@@ -74,14 +74,26 @@ const Register = () => {
 
                     <div className="form-group">
                         <label htmlFor="role">Role</label>
-                        <input
-                            type="text"
+                        <select
                             id="role"
                             value={role}
                             onChange={(e) => setRole(e.target.value)}
-                            placeholder="e.g., ADMIN, STAFF"
                             required
-                        />
+                        >
+                            <option value="" disabled>Select a role</option>
+                            <option value="ADMIN">Admin</option>
+                            <option value="INVENTORY_MANAGER">Inventory Manager</option>
+                            <option value="SALES">Sales</option>
+                            <option value="VIEWER">Viewer</option>
+                        </select>
+                        <div className="form-help-text">
+                            <small>
+                                {role === 'ADMIN' && 'Full system access'}
+                                {role === 'INVENTORY_MANAGER' && 'Manage stock and view reports'}
+                                {role === 'SALES' && 'Create orders and view inventory'}
+                                {role === 'VIEWER' && 'Read-only access'}
+                            </small>
+                        </div>
                     </div>
 
                     <div className="form-row">

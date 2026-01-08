@@ -6,6 +6,12 @@ const errorHandler = require('./middleware/errorHandler');
 
 // Import routes
 const authRoutes = require('./routes/auth.routes');
+const testRoutes = require('./routes/test.routes');
+const brandRoutes = require('./routes/brand.routes');
+const productRoutes = require('./routes/product.routes');
+const regionRoutes = require('./routes/region.routes');
+const warehouseRoutes = require('./routes/warehouse.routes');
+const inventoryRoutes = require('./routes/inventory.routes');
 
 // Connect to database
 connectDB();
@@ -20,6 +26,12 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/test', testRoutes);
+app.use('/api/brands', brandRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/regions', regionRoutes);
+app.use('/api/warehouses', warehouseRoutes);
+app.use('/api/inventory', inventoryRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

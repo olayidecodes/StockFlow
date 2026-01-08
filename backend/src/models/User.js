@@ -23,7 +23,10 @@ const userSchema = new mongoose.Schema(
         role: {
             type: String,
             required: [true, 'Role is required'],
-            // Role validation will be added when user provides role structure
+            enum: {
+                values: ['ADMIN', 'INVENTORY_MANAGER', 'SALES', 'VIEWER'],
+                message: '{VALUE} is not a valid role',
+            },
         },
         region: {
             type: String,

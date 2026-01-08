@@ -1,13 +1,26 @@
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { usePermissions } from '../hooks/usePermissions';
+import PermissionGuard from '../components/PermissionGuard';
 
 const Dashboard = () => {
-    const { user, logout } = useAuth();
+    const { logout } = useAuth();
+    const { user, role, ROLES, PERMISSIONS, can } = usePermissions();
     const navigate = useNavigate();
 
     const handleLogout = () => {
         logout();
         navigate('/login');
+    };
+
+    const getRoleBadgeColor = (role) => {
+        switch (role) {
+            case ROLES.ADMIN: return 'linear-gradient(135deg, #FF6B6B, #EE5D5D)';
+            case ROLES.INVENTORY_MANAGER: return 'linear-gradient(135deg, #4DADF7, #3B99E6)';
+            case ROLES.SALES: return 'linear-gradient(135deg, #51CF66, #40C057)';
+            case ROLES.VIEWER: return 'linear-gradient(135deg, #FCC419, #FAB005)';
+            default: return 'var(--color-primary)';
+        }
     };
 
     return (
@@ -26,59 +39,123 @@ const Dashboard = () => {
 
             <div className="dashboard-content">
                 <div className="welcome-section">
-                    <h1>Welcome to StockFlow</h1>
-                    <p className="subtitle">Multi-region, multi-warehouse inventory management</p>
+                    <h1>Welcome, {user?.email.split('@')[0]}</h1>
+                    <p className="subtitle">
+                        You are logged in as <span className="badge" style={{ background: getRoleBadgeColor(role) }}>{role?.replace('_', ' ')}</span>
+                    </p>
                 </div>
 
-                <div className="user-info-card">
-                    <h3>Your Profile</h3>
-                    <div className="info-grid">
-                        <div className="info-item">
-                            <span className="info-label">Email</span>
-                            <span className="info-value">{user?.email}</span>
-                        </div>
-                        <div className="info-item">
-                            <span className="info-label">Role</span>
-                            <span className="info-value">
-                                <span className="badge">{user?.role}</span>
-                            </span>
-                        </div>
-                        {user?.region && (
+                <div className="dashboard-grid">
+                    {/* User Profile Card */}
+                    <div className="dashboard-card user-card">
+                        <h3>Your Profile</h3>
+                        <div className="info-grid">
+                            <div className="info-item">
+                                <span className="info-label">Email</span>
+                                <span className="info-value">{user?.email}</span>
+                            </div>
                             <div className="info-item">
                                 <span className="info-label">Region</span>
-                                <span className="info-value">{user.region}</span>
+                                <span className="info-value">{user?.region || 'Not assigned'}</span>
                             </div>
-                        )}
-                        {user?.warehouse && (
                             <div className="info-item">
                                 <span className="info-label">Warehouse</span>
-                                <span className="info-value">{user.warehouse}</span>
+                                <span className="info-value">{user?.warehouse || 'Not assigned'}</span>
                             </div>
-                        )}
+                        </div>
+                    </div>
+
+                    {/* Capabilities Card */}
+                    <div className="dashboard-card capabilities-card">
+                        <h3>Your Capabilities</h3>
+                        <div className="capabilities-list">
+                            <PermissionGuard permission={PERMISSIONS.MANAGE_USERS}>
+                                <div className="capability-item active">
+                                    <span className="icon">👥</span>
+                                    <span>Manage Users</span>
+                                </div>
+                            </PermissionGuard>
+
+                            <PermissionGuard permission={PERMISSIONS.MANAGE_INVENTORY}>
+                                <div className="capability-item active">
+                                    <span className="icon">📦</span>
+                                    <span>Manage Inventory</span>
+                                </div>
+                            </PermissionGuard>
+
+                            <PermissionGuard permission={PERMISSIONS.CREATE_ORDERS}>
+                                <div className="capability-item active">
+                                    <span className="icon">📝</span>
+                                    <span>Create Orders</span>
+                                </div>
+                            </PermissionGuard>
+
+                            <PermissionGuard permission={PERMISSIONS.VIEW_REPORTS}>
+                                <div className="capability-item active">
+                                    <span className="icon">📊</span>
+                                    <span>View Reports</span>
+                                </div>
+                            </PermissionGuard>
+
+                            <PermissionGuard permission={PERMISSIONS.MANAGE_SETTINGS}>
+                                <div className="capability-item active">
+                                    <span className="icon">⚙️</span>
+                                    <span>System Settings</span>
+                                </div>
+                            </PermissionGuard>
+                        </div>
                     </div>
                 </div>
 
-                <div className="features-grid">
-                    <div className="feature-card">
-                        <div className="feature-icon">📊</div>
-                        <h3>Inventory Tracking</h3>
-                        <p>Track inventory in pieces internally while allowing users to work in cartons + pieces</p>
-                    </div>
-                    <div className="feature-card">
-                        <div className="feature-icon">🏢</div>
-                        <h3>Multi-Warehouse</h3>
-                        <p>Manage inventory across multiple regions and warehouses seamlessly</p>
-                    </div>
-                    <div className="feature-card">
-                        <div className="feature-icon">📝</div>
-                        <h3>Immutable Ledger</h3>
-                        <p>All stock movements are logged in an immutable ledger for full traceability</p>
-                    </div>
-                    <div className="feature-card">
-                        <div className="feature-icon">🔒</div>
-                        <h3>Role-Based Access</h3>
-                        <p>Enterprise-grade role-based access control enforced everywhere</p>
-                    </div>
+                {/* Action Areas based on Permissions */}
+                <div className="action-areas">
+                    <PermissionGuard permission={PERMISSIONS.MANAGE_USERS}>
+                        <div className="action-card admin-area">
+                            <h3>⚠️ Admin Zone</h3>
+                            <p>User management and system configuration area.</p>
+                            <div className="button-group">
+                                <button className="btn btn-primary">Manage Users</button>
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={() => navigate('/settings/locations')}
+                                >
+                                    Locations
+                                </button>
+                            </div>
+                        </div>
+                    </PermissionGuard>
+
+                    <PermissionGuard permission={PERMISSIONS.MANAGE_INVENTORY}>
+                        <div className="action-card inventory-area">
+                            <h3>📦 Inventory Control</h3>
+                            <p>Adjust stock levels, move inventory, and manage cartons.</p>
+                            <div className="button-group">
+                                <button className="btn btn-primary" onClick={() => navigate('/inventory/balance')}>
+                                    Stock Levels
+                                </button>
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={() => navigate('/inventory/products')}
+                                >
+                                    Products
+                                </button>
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={() => navigate('/inventory/brands')}
+                                >
+                                    Brands
+                                </button>
+                            </div>
+                        </div>
+                    </PermissionGuard>
+
+                    <PermissionGuard permission={PERMISSIONS.CREATE_ORDERS}>
+                        <div className="action-card orders-area">
+                            <h3>🛒 Order Processing</h3>
+                            <p>Create new orders and manage fulfillment.</p>
+                            <button className="btn btn-primary">New Order</button>
+                        </div>
+                    </PermissionGuard>
                 </div>
             </div>
         </div>

@@ -1,18 +1,13 @@
-// Application constants
-
 // Roles
-const ROLES = {
+export const ROLES = {
     ADMIN: 'ADMIN',
     INVENTORY_MANAGER: 'INVENTORY_MANAGER',
     SALES: 'SALES',
     VIEWER: 'VIEWER',
 };
 
-// All valid roles array (for validation)
-const VALID_ROLES = Object.values(ROLES);
-
 // Permissions/Capabilities
-const PERMISSIONS = {
+export const PERMISSIONS = {
     // User Management
     MANAGE_USERS: 'MANAGE_USERS',
     VIEW_USERS: 'VIEW_USERS',
@@ -34,7 +29,7 @@ const PERMISSIONS = {
 };
 
 // Role-Permission Mapping
-const ROLE_PERMISSIONS = {
+export const ROLE_PERMISSIONS = {
     [ROLES.ADMIN]: [
         // Admin has all permissions
         PERMISSIONS.MANAGE_USERS,
@@ -71,55 +66,8 @@ const ROLE_PERMISSIONS = {
 };
 
 // Helper function to check if a role has a specific permission
-const hasPermission = (role, permission) => {
-    if (!role || !VALID_ROLES.includes(role)) {
-        return false;
-    }
-
-    const rolePermissions = ROLE_PERMISSIONS[role] || [];
-    return rolePermissions.includes(permission);
-};
-
-// Helper function to get all permissions for a role
-const getPermissions = (role) => {
-    if (!role || !VALID_ROLES.includes(role)) {
-        return [];
-    }
-
-    return ROLE_PERMISSIONS[role] || [];
-};
-
-// Helper function to check if a role has any of the given permissions
-const hasAnyPermission = (role, permissions) => {
-    if (!Array.isArray(permissions)) {
-        permissions = [permissions];
-    }
-
-    return permissions.some(permission => hasPermission(role, permission));
-};
-
-// Helper function to check if a role has all of the given permissions
-const hasAllPermissions = (role, permissions) => {
-    if (!Array.isArray(permissions)) {
-        permissions = [permissions];
-    }
-
-    return permissions.every(permission => hasPermission(role, permission));
-};
-
-// Pagination defaults
-const DEFAULT_PAGE_SIZE = 20;
-const MAX_PAGE_SIZE = 100;
-
-module.exports = {
-    ROLES,
-    VALID_ROLES,
-    PERMISSIONS,
-    ROLE_PERMISSIONS,
-    hasPermission,
-    getPermissions,
-    hasAnyPermission,
-    hasAllPermissions,
-    DEFAULT_PAGE_SIZE,
-    MAX_PAGE_SIZE,
+export const hasPermission = (userRole, permission) => {
+    if (!userRole) return false;
+    const permissions = ROLE_PERMISSIONS[userRole] || [];
+    return permissions.includes(permission);
 };

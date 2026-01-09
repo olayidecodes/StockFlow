@@ -23,7 +23,7 @@ const Dashboard = () => {
             default: return 'var(--color-primary)';
         }
     };
-    
+
 
     return (
         <div className="dashboard-container">
@@ -169,6 +169,18 @@ const Dashboard = () => {
                                     All Orders
                                 </button>
                             </div>
+                        </div>
+                    </PermissionGuard>
+                    <PermissionGuard permission={PERMISSIONS.VIEW_REPORTS}>
+                        <div className="action-card analytics-area">
+                            <h3>📊 Analytics</h3>
+                            <p>View sales trends, regional performance, and stock health.</p>
+                            <button
+                                className="btn btn-secondary"
+                                onClick={() => navigate('/analytics')}
+                            >
+                                View Reports
+                            </button>
                         </div>
                     </PermissionGuard>
                 </div>

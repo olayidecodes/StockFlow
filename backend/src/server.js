@@ -14,6 +14,7 @@ const warehouseRoutes = require('./routes/warehouse.routes');
 const inventoryRoutes = require('./routes/inventory.routes');
 const orderRoutes = require('./routes/order.routes');
 const templateRoutes = require('./routes/template.routes');
+const analyticsRoutes = require('./routes/analytics.routes');
 
 // Connect to database
 connectDB();
@@ -36,6 +37,7 @@ app.use('/api/warehouses', warehouseRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/templates', templateRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -12,6 +12,8 @@ import Orders from './pages/Orders';
 import OrderCreate from './pages/OrderCreate';
 import OrderDetail from './pages/OrderDetail';
 
+import Analytics from './pages/Analytics';
+
 function App() {
   return (
     <AuthProvider>
@@ -24,6 +26,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analytics"
+            element={
+              <ProtectedRoute>
+                <Analytics />
               </ProtectedRoute>
             }
           />

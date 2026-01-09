@@ -16,7 +16,13 @@ const inventoryBalanceSchema = new mongoose.Schema(
             type: Number,
             required: true,
             default: 0,
-            // Always stored in pieces
+            // Total physical quantity in pieces
+        },
+        allocated: {
+            type: Number,
+            required: true,
+            default: 0,
+            // Quantity reserved for Confirmed orders
         },
         lastUpdated: {
             type: Date,
@@ -25,8 +31,15 @@ const inventoryBalanceSchema = new mongoose.Schema(
     },
     {
         timestamps: true,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true }
     }
 );
+
+// Virtual for available quantity
+inventoryBalanceSchema.virtual('available').get(function () {
+    return this.quantity - this.allocated;
+});
 
 // Ensure unique combination of product+warehouse
 inventoryBalanceSchema.index({ warehouse: 1, product: 1 }, { unique: true });

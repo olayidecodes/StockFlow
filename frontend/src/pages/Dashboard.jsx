@@ -8,6 +8,7 @@ const Dashboard = () => {
     const { user, role, ROLES, PERMISSIONS, can } = usePermissions();
     const navigate = useNavigate();
 
+
     const handleLogout = () => {
         logout();
         navigate('/login');
@@ -22,6 +23,7 @@ const Dashboard = () => {
             default: return 'var(--color-primary)';
         }
     };
+    
 
     return (
         <div className="dashboard-container">
@@ -149,11 +151,24 @@ const Dashboard = () => {
                         </div>
                     </PermissionGuard>
 
-                    <PermissionGuard permission={PERMISSIONS.CREATE_ORDERS}>
+                    <PermissionGuard permission={PERMISSIONS.VIEW_ORDERS}>
                         <div className="action-card orders-area">
-                            <h3>🛒 Order Processing</h3>
-                            <p>Create new orders and manage fulfillment.</p>
-                            <button className="btn btn-primary">New Order</button>
+                            <h3>🛒 Order Management</h3>
+                            <p>Process orders, manage fulfillment, and track shipments.</p>
+                            <div className="button-group">
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={() => navigate('/orders/new')}
+                                >
+                                    New Order
+                                </button>
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={() => navigate('/orders')}
+                                >
+                                    All Orders
+                                </button>
+                            </div>
                         </div>
                     </PermissionGuard>
                 </div>

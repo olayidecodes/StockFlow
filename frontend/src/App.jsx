@@ -8,6 +8,9 @@ import Brands from './pages/Brands';
 import Products from './pages/Products';
 import Locations from './pages/Locations';
 import Inventory from './pages/Inventory';
+import Orders from './pages/Orders';
+import OrderCreate from './pages/OrderCreate';
+import OrderDetail from './pages/OrderDetail';
 
 function App() {
   return (
@@ -21,6 +24,30 @@ function App() {
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/orders"
+            element={
+              <ProtectedRoute>
+                <Orders />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/orders/new"
+            element={
+              <ProtectedRoute>
+                <OrderCreate />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/orders/:id"
+            element={
+              <ProtectedRoute>
+                <OrderDetail />
               </ProtectedRoute>
             }
           />

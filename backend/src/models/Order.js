@@ -64,4 +64,9 @@ const orderSchema = new mongoose.Schema(
 // Index for efficient querying by status and warehouse
 orderSchema.index({ warehouse: 1, status: 1 });
 
+// Indexes for frequent queries (dashboard, list views)
+orderSchema.index({ createdAt: -1 }); // Recent orders
+orderSchema.index({ status: 1 });     // Filter by status
+orderSchema.index({ 'customer.name': 'text' }); // Search by customer
+
 module.exports = mongoose.model('Order', orderSchema);

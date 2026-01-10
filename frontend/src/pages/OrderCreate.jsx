@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import api from '../utils/api';
 
 const OrderCreate = () => {
@@ -78,10 +79,11 @@ const OrderCreate = () => {
         const newItems = [...formData.items];
         newItems[index][field] = value;
 
-        // Auto-set mock price (optional)
         if (field === 'product') {
-            // In a real app we'd fetch price. Here just mock 100.
-            newItems[index].price = 100;
+            const product = products.find(p => p._id === value);
+            if (product) {
+                newItems[index].price = product.price || 0;
+            }
         }
 
         setFormData({ ...formData, items: newItems });
@@ -89,14 +91,15 @@ const OrderCreate = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (formData.items.length === 0) return alert('Add at least one item');
+        if (formData.items.length === 0) return toast.error('Add at least one item');
 
         setLoading(true);
         try {
             await api.post('/orders', formData);
+            toast.success('Order created successfully');
             navigate('/orders');
         } catch (err) {
-            alert(err.response?.data?.errors?.[0]?.msg || 'Failed to create order');
+            toast.error(err.response?.data?.errors?.[0]?.msg || 'Failed to create order');
         } finally {
             setLoading(false);
         }
@@ -195,14 +198,15 @@ const OrderCreate = () => {
                                             <label>Price</label>
                                             <input
                                                 type="number"
-                                                min="0"
                                                 value={item.price}
-                                                onChange={e => updateItem(idx, 'price', parseFloat(e.target.value))}
+                                                readOnly
+                                                disabled
+                                                style={{ background: '#f5f5f5', cursor: 'not-allowed' }}
                                             />
                                         </div>
 
                                         <button type="button" onClick={() => removeItem(idx)} className="btn-icon delete mt-md">
-                                            🗑️
+                                            Delete
                                         </button>
                                     </div>
                                 );

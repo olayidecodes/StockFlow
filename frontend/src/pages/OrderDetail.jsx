@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import api from '../utils/api';
 import PermissionGuard from '../components/PermissionGuard';
 import { PERMISSIONS } from '../utils/constants';
@@ -35,8 +36,9 @@ const OrderDetail = () => {
         try {
             await api.put(`/orders/${id}/status`, { status: newStatus });
             fetchOrder(); // Reload to get updates logs and allocated check
+            toast.success(`Order status updated to ${newStatus}`);
         } catch (err) {
-            alert(err.response?.data?.message || 'Status update failed');
+            toast.error(err.response?.data?.message || 'Status update failed');
         } finally {
             setActionLoading(false);
         }
@@ -49,7 +51,7 @@ const OrderDetail = () => {
         <div className="page-container">
             <div className="page-header">
                 <div className="flex-col">
-                    <button className="link mb-sm" onClick={() => navigate('/orders')}>← Back to Orders</button>
+                    <button className="btn btn-secondary btn-sm mb-sm" onClick={() => navigate('/orders')}>← Back to Orders</button>
                     <h1>Order #{order._id.slice(-6).toUpperCase()}</h1>
                 </div>
 

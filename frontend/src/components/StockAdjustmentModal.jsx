@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import api from '../utils/api';
 
 const StockAdjustmentModal = ({ isOpen, onClose, product, warehouse, onSuccess }) => {
@@ -10,7 +11,6 @@ const StockAdjustmentModal = ({ isOpen, onClose, product, warehouse, onSuccess }
     });
 
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
 
     // Reset form when modal opens
     useEffect(() => {
@@ -21,7 +21,6 @@ const StockAdjustmentModal = ({ isOpen, onClose, product, warehouse, onSuccess }
                 pieces: 0,
                 reason: '',
             });
-            setError('');
         }
     }, [isOpen]);
 
@@ -38,10 +37,9 @@ const StockAdjustmentModal = ({ isOpen, onClose, product, warehouse, onSuccess }
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
 
         if (totalChange === 0) {
-            setError('Adjustment amount cannot be zero');
+            toast.error('Adjustment amount cannot be zero');
             return;
         }
 
@@ -59,11 +57,12 @@ const StockAdjustmentModal = ({ isOpen, onClose, product, warehouse, onSuccess }
 
             await api.post('/inventory/adjust', payload);
             setLoading(false);
+            toast.success('Stock adjusted successfully');
             onSuccess();
             onClose();
         } catch (err) {
             setLoading(false);
-            setError(err.response?.data?.errors?.[0]?.msg || err.response?.data?.message || 'Adjustment failed');
+            toast.error(err.response?.data?.errors?.[0]?.msg || err.response?.data?.message || 'Adjustment failed');
         }
     };
 
@@ -92,22 +91,24 @@ const StockAdjustmentModal = ({ isOpen, onClose, product, warehouse, onSuccess }
                     </div>
 
                     <div className="form-row">
-                        <div className="form-group">
+                        <div className="form-group" style={{ flex: 1 }}>
                             <label>Cartons</label>
                             <input
                                 type="number"
                                 min="0"
                                 value={formData.cartons}
                                 onChange={(e) => setFormData({ ...formData, cartons: parseInt(e.target.value) || 0 })}
+                                style={{ width: '100%' }}
                             />
                         </div>
-                        <div className="form-group">
+                        <div className="form-group" style={{ flex: 1 }}>
                             <label>Pieces</label>
                             <input
                                 type="number"
                                 min="0"
                                 value={formData.pieces}
                                 onChange={(e) => setFormData({ ...formData, pieces: parseInt(e.target.value) || 0 })}
+                                style={{ width: '100%' }}
                             />
                         </div>
                     </div>
@@ -128,8 +129,6 @@ const StockAdjustmentModal = ({ isOpen, onClose, product, warehouse, onSuccess }
                             placeholder="Why are you making this adjustment?"
                         />
                     </div>
-
-                    {error && <div className="alert alert-error">{error}</div>}
 
                     <div className="modal-actions">
                         <button type="button" onClick={onClose} className="btn btn-secondary" disabled={loading}>

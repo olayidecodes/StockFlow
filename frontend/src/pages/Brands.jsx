@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext'; // Or use axios instance directly
 import api from '../utils/api';
 import PermissionGuard from '../components/PermissionGuard';
@@ -7,7 +8,6 @@ import { PERMISSIONS } from '../utils/constants';
 const Brands = () => {
     const [brands, setBrands] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingBrand, setEditingBrand] = useState(null);
     const [formData, setFormData] = useState({ name: '', active: true });
@@ -22,7 +22,7 @@ const Brands = () => {
             setBrands(res.data.data);
             setLoading(false);
         } catch (err) {
-            setError('Failed to load brands');
+            toast.error('Failed to load brands');
             setLoading(false);
         }
     };
@@ -37,8 +37,9 @@ const Brands = () => {
             }
             fetchBrands();
             closeModal();
+            toast.success('Brand saved successfully');
         } catch (err) {
-            setError(err.response?.data?.errors?.[0]?.msg || 'Operation failed');
+            toast.error(err.response?.data?.errors?.[0]?.msg || 'Operation failed');
         }
     };
 
@@ -50,7 +51,6 @@ const Brands = () => {
             setEditingBrand(null);
             setFormData({ name: '', active: true });
         }
-        setError('');
         setIsModalOpen(true);
     };
 
@@ -58,7 +58,6 @@ const Brands = () => {
         setIsModalOpen(false);
         setEditingBrand(null);
         setFormData({ name: '', active: true });
-        setError('');
     };
 
     const handleDelete = async (id) => {
@@ -66,8 +65,9 @@ const Brands = () => {
             try {
                 await api.delete(`/brands/${id}`);
                 fetchBrands();
+                toast.success('Brand deleted');
             } catch (err) {
-                setError('Failed to delete brand');
+                toast.error('Failed to delete brand');
             }
         }
     };
@@ -83,7 +83,7 @@ const Brands = () => {
                 </PermissionGuard>
             </div>
 
-            {error && <div className="alert alert-error">{error}</div>}
+
 
             {loading ? (
                 <div>Loading...</div>
@@ -119,7 +119,7 @@ const Brands = () => {
                                                     onClick={() => handleDelete(brand._id)}
                                                     className="btn-icon delete"
                                                 >
-                                                    🗑️
+                                                    Delete
                                                 </button>
                                             </div>
                                         </PermissionGuard>

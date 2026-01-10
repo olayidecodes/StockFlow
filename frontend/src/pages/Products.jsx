@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import api from '../utils/api';
 import PermissionGuard from '../components/PermissionGuard';
 import { PERMISSIONS } from '../utils/constants';
@@ -7,7 +8,6 @@ const Products = () => {
     const [products, setProducts] = useState([]);
     const [brands, setBrands] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
 
@@ -18,7 +18,9 @@ const Products = () => {
         sku: '',
         brand: '',
         cartonSize: 1,
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        price: 0,
+        dimensions: { length: 0, breadth: 0, height: 0 }
     };
     const [formData, setFormData] = useState(initialForm);
 
@@ -37,7 +39,7 @@ const Products = () => {
             setBrands(brandsRes.data.data);
             setLoading(false);
         } catch (err) {
-            setError('Failed to load data');
+            toast.error('Failed to load data');
             setLoading(false);
         }
     };
@@ -52,13 +54,13 @@ const Products = () => {
             }
             fetchData();
             closeModal();
+            toast.success('Product saved successfully');
         } catch (err) {
-            setError(err.response?.data?.errors?.[0]?.msg || 'Operation failed');
+            toast.error(err.response?.data?.errors?.[0]?.msg || 'Operation failed');
         }
     };
 
     const openModal = (product = null) => {
-        setError('');
         if (product) {
             setEditingProduct(product);
             setFormData({
@@ -66,7 +68,9 @@ const Products = () => {
                 sku: product.sku,
                 brand: product.brand._id || product.brand, // Handle populated or id
                 cartonSize: product.cartonSize,
-                status: product.status
+                status: product.status,
+                price: product.price || 0,
+                dimensions: product.dimensions || { length: 0, breadth: 0, height: 0 }
             });
         } else {
             setEditingProduct(null);
@@ -79,7 +83,6 @@ const Products = () => {
         setIsModalOpen(false);
         setEditingProduct(null);
         setFormData(initialForm);
-        setError('');
     };
 
     const handleDelete = async (id) => {
@@ -87,8 +90,9 @@ const Products = () => {
             try {
                 await api.delete(`/products/${id}`);
                 fetchData();
+                toast.success('Product deleted');
             } catch (err) {
-                setError('Failed to delete product');
+                toast.error('Failed to delete product');
             }
         }
     };
@@ -117,7 +121,7 @@ const Products = () => {
                 </select>
             </div>
 
-            {error && <div className="alert alert-error">{error}</div>}
+
 
             {loading ? (
                 <div>Loading...</div>
@@ -150,7 +154,7 @@ const Products = () => {
                                         <PermissionGuard permission={PERMISSIONS.MANAGE_INVENTORY}>
                                             <div className="action-buttons">
                                                 <button onClick={() => openModal(product)} className="btn-icon">✎</button>
-                                                <button onClick={() => handleDelete(product._id)} className="btn-icon delete">🗑️</button>
+                                                <button onClick={() => handleDelete(product._id)} className="btn-icon delete">Delete</button>
                                             </div>
                                         </PermissionGuard>
                                     </td>
@@ -200,6 +204,7 @@ const Products = () => {
                                     ))}
                                 </select>
                             </div>
+
                             <div className="form-group">
                                 <label>Carton Size (Pieces per Carton)</label>
                                 <input
@@ -210,6 +215,76 @@ const Products = () => {
                                     required
                                 />
                                 <small className="form-help-text">Mandatory. Cannot change if orders exist.</small>
+                            </div>
+
+                            <div className="form-group">
+                                <label>Price (per piece)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={formData.price}
+                                    onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+                                    required
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label>Carton Dimensions (Meters)</label>
+                                <div className="dimensions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '10px' }}>
+                                    <div>
+                                        <label style={{ fontSize: '0.75em', marginBottom: '2px', display: 'block' }}>Length (m)</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            placeholder="0.00"
+                                            value={formData.dimensions?.length || ''}
+                                            onChange={(e) => setFormData({
+                                                ...formData,
+                                                dimensions: { ...formData.dimensions, length: parseFloat(e.target.value) }
+                                            })}
+                                            style={{ width: '100%' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '0.75em', marginBottom: '2px', display: 'block' }}>Breadth (m)</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            placeholder="0.00"
+                                            value={formData.dimensions?.breadth || ''}
+                                            onChange={(e) => setFormData({
+                                                ...formData,
+                                                dimensions: { ...formData.dimensions, breadth: parseFloat(e.target.value) }
+                                            })}
+                                            style={{ width: '100%' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '0.75em', marginBottom: '2px', display: 'block' }}>Height (m)</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            placeholder="0.00"
+                                            value={formData.dimensions?.height || ''}
+                                            onChange={(e) => setFormData({
+                                                ...formData,
+                                                dimensions: { ...formData.dimensions, height: parseFloat(e.target.value) }
+                                            })}
+                                            style={{ width: '100%' }}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="text-sm mt-xs text-secondary">
+                                    Calculated Volume: {
+                                        ((formData.dimensions?.length || 0) *
+                                            (formData.dimensions?.breadth || 0) *
+                                            (formData.dimensions?.height || 0)).toFixed(4)
+                                    } m³
+                                </div>
                             </div>
                             <div className="form-group">
                                 <label>Status</label>

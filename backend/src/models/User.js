@@ -3,6 +3,12 @@ const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema(
     {
+        username: {
+            type: String,
+            required: [true, 'Username is required'],
+            unique: true,
+            trim: true
+        },
         email: {
             type: String,
             required: [true, 'Email is required'],
@@ -28,18 +34,17 @@ const userSchema = new mongoose.Schema(
                 message: '{VALUE} is not a valid role',
             },
         },
-        region: {
-            type: String,
-            trim: true,
-        },
-        warehouse: {
-            type: String,
-            trim: true,
-        },
         isActive: {
             type: Boolean,
-            default: true,
+            default: true, // Admin can ban users
         },
+        isVerified: {
+            type: Boolean,
+            default: false
+        },
+        verificationToken: String,
+        resetPasswordToken: String,
+        resetPasswordExpire: Date,
     },
     {
         timestamps: true, // Adds createdAt and updatedAt

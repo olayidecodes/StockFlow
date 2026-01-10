@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import api from '../utils/api';
 import PermissionGuard from '../components/PermissionGuard';
 import { PERMISSIONS } from '../utils/constants';
@@ -84,7 +85,7 @@ const Inventory = () => {
             setSelectedItem({ product: prod, warehouse: wh });
             setIsAdjustModalOpen(true);
         } else {
-            alert("Please select a specific Warehouse and Product filter to add new stock.");
+            toast.info("Please select a specific Warehouse and Product filter to add new stock.");
         }
     };
 

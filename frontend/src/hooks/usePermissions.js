@@ -33,6 +33,7 @@ export const usePermissions = () => {
 
     return {
         can,
+        user,
         ...permissions,
         is,
         role: userRole,

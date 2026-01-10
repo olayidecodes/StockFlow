@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import api from '../utils/api';
 import PermissionGuard from '../components/PermissionGuard';
 import { PERMISSIONS } from '../utils/constants';
@@ -46,8 +47,9 @@ const Locations = () => {
             }
             fetchLocations();
             closeRegionModal();
+            toast.success('Region saved successfully');
         } catch (err) {
-            alert(err.response?.data?.errors?.[0]?.msg || 'Operation failed');
+            toast.error(err.response?.data?.errors?.[0]?.msg || 'Operation failed');
         }
     };
 
@@ -56,8 +58,9 @@ const Locations = () => {
             try {
                 await api.delete(`/regions/${id}`);
                 fetchLocations();
+                toast.success('Region deleted');
             } catch (err) {
-                alert('Failed to delete region');
+                toast.error('Failed to delete region');
             }
         }
     };
@@ -73,8 +76,9 @@ const Locations = () => {
             }
             fetchLocations();
             closeWarehouseModal();
+            toast.success('Warehouse saved successfully');
         } catch (err) {
-            alert(err.response?.data?.errors?.[0]?.msg || 'Operation failed');
+            toast.error(err.response?.data?.errors?.[0]?.msg || 'Operation failed');
         }
     };
 
@@ -83,8 +87,9 @@ const Locations = () => {
             try {
                 await api.delete(`/warehouses/${id}`);
                 fetchLocations();
+                toast.success('Warehouse deleted');
             } catch (err) {
-                alert('Failed to delete warehouse');
+                toast.error('Failed to delete warehouse');
             }
         }
     };
@@ -153,7 +158,7 @@ const Locations = () => {
                                 <PermissionGuard permission={PERMISSIONS.MANAGE_SETTINGS}>
                                     <div className="action-buttons">
                                         <button onClick={() => openRegionModal(region)} className="btn-icon">✎</button>
-                                        <button onClick={() => deleteRegion(region._id)} className="btn-icon delete">🗑️</button>
+                                        <button onClick={() => deleteRegion(region._id)} className="btn-icon delete">Delete</button>
                                     </div>
                                 </PermissionGuard>
                             </div>

@@ -38,6 +38,7 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/users', require('./routes/user.routes'));
 
 // Health check
 app.get('/api/health', (req, res) => {

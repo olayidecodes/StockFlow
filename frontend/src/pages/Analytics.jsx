@@ -50,6 +50,29 @@ const Analytics = () => {
                         {summary.lowStock}
                     </div>
                 </div>
+
+                {/* Financials (v2) */}
+                <div className="dashboard-card text-center">
+                    <h3>Total Inventory Qty</h3>
+                    <div className="display-value">{summary.totalQuantity?.toLocaleString() || 0}</div>
+                    <div className="stat-label">Units Across Warehouses</div>
+                </div>
+
+                <div className="dashboard-card text-center">
+                    <h3>Total Inventory Value</h3>
+                    <div className="display-value" style={{ color: '#10B981' }}>
+                        ${summary.totalValue?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                    </div>
+                    <div className="stat-label">Cost Basis</div>
+                </div>
+
+                {/* <div className="dashboard-card text-center">
+                    <h3>Total Volume</h3>
+                    <div className="display-value">
+                        {summary.totalVolume?.toFixed(2) || 0} <span style={{ fontSize: '0.5em' }}>m³</span>
+                    </div>
+                    <div className="stat-label">Storage Usage</div>
+                </div> */}
             </div>
 
             <div className="dashboard-grid two-col" style={{ gridTemplateColumns: '1fr 1fr' }}>

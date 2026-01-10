@@ -1,30 +1,40 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { toast } from 'react-toastify';
+import api from '../utils/api';
 
 const Register = () => {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [role, setRole] = useState('');
-    const [region, setRegion] = useState('');
-    const [warehouse, setWarehouse] = useState('');
-    const [error, setError] = useState('');
+    const [formData, setFormData] = useState({
+        username: '',
+        email: '',
+        password: '',
+        role: ''
+    });
     const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
-    const { register } = useAuth();
+
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.id]: e.target.value });
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
         setLoading(true);
 
-        const result = await register(email, password, role, region, warehouse);
-
-        if (result.success) {
-            navigate('/dashboard');
-        } else {
-            setError(result.message);
+        try {
+            const res = await api.post('/auth/register', formData);
+            if (res.data.success) {
+                toast.success('Registration successful!');
+                // Wait for user to read verification instruction (simulated by toast)
+                // In real app, we might redirect to a "Verify Email" page
+                // For now, redirect to login
+                setTimeout(() => navigate('/login'), 2000);
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Registration failed');
+        } finally {
             setLoading(false);
         }
     };
@@ -35,25 +45,31 @@ const Register = () => {
                 <div className="auth-header">
                     <div className="logo">
                         <div className="logo-icon">📦</div>
-                        <h1>StockFlow</h1>
+                        <h1 className="">StockFlow</h1>
                     </div>
                     <p className="auth-subtitle">Create your account</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="auth-form">
-                    {error && (
-                        <div className="alert alert-error">
-                            {error}
-                        </div>
-                    )}
+                    <div className="form-group">
+                        <label htmlFor="username">Username</label>
+                        <input
+                            type="text"
+                            id="username"
+                            value={formData.username}
+                            onChange={handleChange}
+                            placeholder="johndoe"
+                            required
+                        />
+                    </div>
 
                     <div className="form-group">
                         <label htmlFor="email">Email</label>
                         <input
                             type="email"
                             id="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            value={formData.email}
+                            onChange={handleChange}
                             placeholder="you@example.com"
                             required
                         />
@@ -64,8 +80,8 @@ const Register = () => {
                         <input
                             type="password"
                             id="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
+                            value={formData.password}
+                            onChange={handleChange}
                             placeholder="••••••••"
                             minLength="6"
                             required
@@ -76,8 +92,8 @@ const Register = () => {
                         <label htmlFor="role">Role</label>
                         <select
                             id="role"
-                            value={role}
-                            onChange={(e) => setRole(e.target.value)}
+                            value={formData.role}
+                            onChange={handleChange}
                             required
                         >
                             <option value="" disabled>Select a role</option>
@@ -86,42 +102,10 @@ const Register = () => {
                             <option value="SALES">Sales</option>
                             <option value="VIEWER">Viewer</option>
                         </select>
-                        <div className="form-help-text">
-                            <small>
-                                {role === 'ADMIN' && 'Full system access'}
-                                {role === 'INVENTORY_MANAGER' && 'Manage stock and view reports'}
-                                {role === 'SALES' && 'Create orders and view inventory'}
-                                {role === 'VIEWER' && 'Read-only access'}
-                            </small>
-                        </div>
-                    </div>
-
-                    <div className="form-row">
-                        <div className="form-group">
-                            <label htmlFor="region">Region (Optional)</label>
-                            <input
-                                type="text"
-                                id="region"
-                                value={region}
-                                onChange={(e) => setRegion(e.target.value)}
-                                placeholder="North America"
-                            />
-                        </div>
-
-                        <div className="form-group">
-                            <label htmlFor="warehouse">Warehouse (Optional)</label>
-                            <input
-                                type="text"
-                                id="warehouse"
-                                value={warehouse}
-                                onChange={(e) => setWarehouse(e.target.value)}
-                                placeholder="WH-001"
-                            />
-                        </div>
                     </div>
 
                     <button type="submit" className="btn btn-primary" disabled={loading}>
-                        {loading ? 'Creating account...' : 'Create account'}
+                        {loading ? 'Creating...' : 'Create Account'}
                     </button>
                 </form>
 

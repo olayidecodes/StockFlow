@@ -7,7 +7,8 @@ const Dashboard = () => {
     const { logout } = useAuth();
     const { user, role, ROLES, PERMISSIONS, can } = usePermissions();
     const navigate = useNavigate();
-
+    
+    console.log(user);
 
     const handleLogout = () => {
         logout();
@@ -41,7 +42,7 @@ const Dashboard = () => {
 
             <div className="dashboard-content">
                 <div className="welcome-section">
-                    <h1>Welcome, {user?.email.split('@')[0]}</h1>
+                    <h1>Welcome, {user?.username}</h1>
                     <p className="subtitle">
                         You are logged in as <span className="badge" style={{ background: getRoleBadgeColor(role) }}>{role?.replace('_', ' ')}</span>
                     </p>
@@ -116,7 +117,10 @@ const Dashboard = () => {
                             <h3>⚠️ Admin Zone</h3>
                             <p>User management and system configuration area.</p>
                             <div className="button-group">
-                                <button className="btn btn-primary">Manage Users</button>
+                                <button 
+                                className="btn btn-primary"
+                                onClick={() => navigate('/users')}
+                                >Manage Users</button>
                                 <button
                                     className="btn btn-secondary"
                                     onClick={() => navigate('/settings/locations')}

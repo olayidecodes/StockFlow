@@ -16,6 +16,8 @@ import OrderCreate from './pages/OrderCreate';
 import OrderDetail from './pages/OrderDetail';
 
 import Analytics from './pages/Analytics';
+import Users from './pages/Users';
+import VerifyEmail from './pages/VerifyEmail';
 
 function App() {
   return (
@@ -96,11 +98,19 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/users"
+            element={
+              <ProtectedRoute>
+                <Users />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </Router>
+        </Routes >
+      </Router >
       <ToastContainer position="top-right" autoClose={3000} />
-    </AuthProvider>
+    </AuthProvider >
   );
 }
 

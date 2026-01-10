@@ -66,6 +66,13 @@ exports.createProduct = async (req, res, next) => {
             return res.status(400).json({ success: false, errors: errors.array() });
         }
 
+        if (req.body.dimensions) {
+            const { length, breadth, height } = req.body.dimensions;
+            if (length && breadth && height) {
+                req.body.volume = length * breadth * height;
+            }
+        }
+
         const product = await Product.create(req.body);
 
         res.status(201).json({
@@ -104,6 +111,17 @@ exports.updateProduct = async (req, res, next) => {
             // if (ordersExist > 0) { ... }
 
             // For now, allow change as no orders system yet
+        }
+
+        // Recalculate volume if dimensions provided
+        if (req.body.dimensions) {
+            const { length, breadth, height } = req.body.dimensions;
+            // Merge with existing if partial update? For simplicity assume full dimensions object or fetch existing
+            // Mongoose update is atomic, but calculation needs values. 
+            // Ideally frontend sends full dimensions.
+            if (length !== undefined && breadth !== undefined && height !== undefined) {
+                req.body.volume = length * breadth * height;
+            }
         }
 
         const updatedProduct = await Product.findByIdAndUpdate(req.params.id, req.body, {

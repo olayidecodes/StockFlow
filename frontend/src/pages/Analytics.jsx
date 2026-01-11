@@ -39,16 +39,19 @@ const Analytics = () => {
                 <div className="dashboard-card text-center">
                     <h3>Total Orders</h3>
                     <div className="display-value">{summary.totalOrders}</div>
+                    <div className="stat-label">Orders Across Warehouses</div>
                 </div>
                 <div className="dashboard-card text-center">
                     <h3>Active SKU Count</h3>
                     <div className="display-value">{summary.totalProducts}</div>
+                    <div className="stat-label">Available Products</div>
                 </div>
                 <div className="dashboard-card text-center" style={{ borderColor: summary.lowStock > 0 ? 'var(--color-error)' : undefined }}>
                     <h3>Low Stock Alerts</h3>
                     <div className="display-value" style={{ color: summary.lowStock > 0 ? 'var(--color-error)' : 'var(--color-success)' }}>
                         {summary.lowStock}
                     </div>
+                    <div className="stat-label">Inventory Count Low</div>
                 </div>
 
                 {/* Financials (v2) */}

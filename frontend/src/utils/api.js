@@ -32,7 +32,12 @@ api.interceptors.response.use(
             // Token expired or invalid
             localStorage.removeItem('token');
             localStorage.removeItem('user');
-            window.location.href = '/login';
+
+            // Only redirect if NOT already on login page or if request wasn't a login attempt
+            // This prevents the login form from refreshing on failed credentials
+            if (!window.location.pathname.includes('/login') && !error.config.url.includes('/auth/login')) {
+                window.location.href = '/login';
+            }
         }
         return Promise.reject(error);
     }

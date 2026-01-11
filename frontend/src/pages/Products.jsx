@@ -133,6 +133,7 @@ const Products = () => {
                                 <th>SKU</th>
                                 <th>Name</th>
                                 <th>Brand</th>
+                                <th>Price</th>
                                 <th>Carton Size</th>
                                 <th>Status</th>
                                 <th>Actions</th>
@@ -144,6 +145,7 @@ const Products = () => {
                                     <td className="font-mono">{product.sku}</td>
                                     <td>{product.name}</td>
                                     <td>{product.brand?.name || 'Unknown'}</td>
+                                    <td>${product.price?.toFixed(2) || '0.00'}</td>
                                     <td>{product.cartonSize}</td>
                                     <td>
                                         <span className={`status-badge ${product.status.toLowerCase()}`}>

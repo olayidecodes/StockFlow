@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://stockflow-1-w6ji.onrender.com/api';
 
 // Test Users
 const users = [

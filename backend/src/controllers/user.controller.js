@@ -29,6 +29,7 @@ exports.getUser = async (req, res, next) => {
 // @route   PUT /api/users/:id
 // @access  Private/Admin
 exports.updateUser = async (req, res, next) => {
+    console.log('DEBUG: updateUser called. req:', !!req, 'res:', !!res, 'next type:', typeof next);
     try {
         const { role, isActive, isVerified } = req.body;
 

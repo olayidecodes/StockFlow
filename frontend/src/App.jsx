@@ -18,6 +18,8 @@ import OrderDetail from './pages/OrderDetail';
 import Analytics from './pages/Analytics';
 import Users from './pages/Users';
 import VerifyEmail from './pages/VerifyEmail';
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 
 function App() {
   return (
@@ -27,88 +29,31 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route
-            path="/dashboard"
+            path="*"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <>
+                  <Navbar />
+                  <Routes>
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/analytics" element={<Analytics />} />
+                    <Route path="/orders" element={<Orders />} />
+                    <Route path="/orders/new" element={<OrderCreate />} />
+                    <Route path="/orders/:id" element={<OrderDetail />} />
+                    <Route path="/inventory/brands" element={<Brands />} />
+                    <Route path="/inventory/products" element={<Products />} />
+                    <Route path="/inventory/balance" element={<Inventory />} />
+                    <Route path="/settings/locations" element={<Locations />} />
+                    <Route path="/users" element={<Users />} />
+                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                  </Routes>
+                  <Footer />
+                </>
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/analytics"
-            element={
-              <ProtectedRoute>
-                <Analytics />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/orders"
-            element={
-              <ProtectedRoute>
-                <Orders />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/orders/new"
-            element={
-              <ProtectedRoute>
-                <OrderCreate />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/orders/:id"
-            element={
-              <ProtectedRoute>
-                <OrderDetail />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/inventory/brands"
-            element={
-              <ProtectedRoute>
-                <Brands />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/inventory/products"
-            element={
-              <ProtectedRoute>
-                <Products />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/inventory/balance"
-            element={
-              <ProtectedRoute>
-                <Inventory />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings/locations"
-            element={
-              <ProtectedRoute>
-                <Locations />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/users"
-            element={
-              <ProtectedRoute>
-                <Users />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        </Routes >
-      </Router >
+        </Routes>
+      </Router>
       <ToastContainer position="top-right" autoClose={3000} />
     </AuthProvider >
   );

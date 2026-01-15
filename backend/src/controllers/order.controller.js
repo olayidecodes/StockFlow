@@ -3,6 +3,7 @@ const { validationResult } = require('express-validator');
 const Order = require('../models/Order');
 const StockLedger = require('../models/StockLedger');
 const InventoryBalance = require('../models/InventoryBalance');
+const WhatsAppService = require('../services/whatsapp.service');
 
 // @desc    Create new order
 // @route   POST /api/orders
@@ -26,8 +27,8 @@ exports.createOrder = async (req, res, next) => {
             items,
             totalAmount,
             createdBy: req.user.id,
-            status: 'DRAFT',
-            logs: [{ status: 'DRAFT', changedBy: req.user.id }],
+            status: 'PENDING',
+            logs: [{ status: 'PENDING', changedBy: req.user.id }],
         });
 
         res.status(201).json({
@@ -115,8 +116,8 @@ exports.updateOrderStatus = async (req, res, next) => {
 
         // --- State Machine & Inventory Logic ---
 
-        // 1. Confirming Order: Reserve Stock
-        if (status === 'CONFIRMED' && oldStatus !== 'CONFIRMED') {
+        // 1. Confirming Order: Reserve and Deduct Stock (2-step simplification)
+        if (status === 'CONFIRMED' && oldStatus === 'PENDING') {
             for (const item of order.items) {
                 // Check availability
                 const balance = await InventoryBalance.findOne({
@@ -124,36 +125,22 @@ exports.updateOrderStatus = async (req, res, next) => {
                     warehouse: order.warehouse,
                 }).session(session);
 
-                if (!balance) {
-                    throw new Error(`Stock record not found for product ${item.product}`);
-                }
+                const currentQuantity = balance ? balance.quantity : 0;
+                const currentAllocated = balance ? balance.allocated : 0;
+                const available = currentQuantity - currentAllocated;
 
-                const available = balance.quantity - balance.allocated;
                 if (available < item.quantity) {
                     throw new Error(`Insufficient stock for product ${item.product}. Available: ${available}, Requested: ${item.quantity}`);
                 }
 
-                // Reserve (Increase Allocated)
-                balance.allocated += item.quantity;
-                await balance.save({ session });
-            }
-        }
-
-        // 2. Dispatching Order: Deduct Stock
-        else if (status === 'DISPATCHED' && oldStatus === 'CONFIRMED') {
-            for (const item of order.items) {
-                const balance = await InventoryBalance.findOne({
-                    product: item.product,
-                    warehouse: order.warehouse,
-                }).session(session);
-
                 if (!balance) {
-                    throw new Error(`Stock record missing during dispatch for product ${item.product}`);
+                    // This case should theoretically be caught by available < item.quantity if item.quantity > 0
+                    // but we keep it safe. If it ever gets here, it means we are trying to deduct 0 or less?
+                    throw new Error(`Stock record not found for product ${item.product}`);
                 }
 
-                // Deduct from Physical and Allocated
+                // Deduct from Physical Stock (since we are bypassing DISPATCHED)
                 balance.quantity -= item.quantity;
-                balance.allocated -= item.quantity;
                 await balance.save({ session });
 
                 // Ledger Entry
@@ -163,8 +150,8 @@ exports.updateOrderStatus = async (req, res, next) => {
                             product: item.product,
                             warehouse: order.warehouse,
                             change: -item.quantity,
-                            type: 'OUT', // Sale
-                            reason: `Order Dispatch #${order._id}`,
+                            type: 'OUT',
+                            reason: `Order Confirmed #${order._id}`,
                             reference: order._id.toString(),
                             balanceAfter: balance.quantity,
                             performedBy: req.user.id,
@@ -175,26 +162,14 @@ exports.updateOrderStatus = async (req, res, next) => {
             }
         }
 
-        // 3. Cancelling Order: Release Reservation
-        else if (status === 'CANCELLED' && oldStatus === 'CONFIRMED') {
-            for (const item of order.items) {
-                const balance = await InventoryBalance.findOne({
-                    product: item.product,
-                    warehouse: order.warehouse,
-                }).session(session);
-
-                if (balance) {
-                    balance.allocated -= item.quantity;
-                    // Safety check
-                    if (balance.allocated < 0) balance.allocated = 0;
-                    await balance.save({ session });
-                }
-            }
+        // 2. Cancelling Order: Logic stays similar if needed, but simplified
+        else if (status === 'CANCELLED' && oldStatus === 'PENDING') {
+            // No stock was reserved yet in the new flow, so just update status
         }
 
         // Prevent invalid jumps (Basic check)
-        if (oldStatus === 'DISPATCHED' && status !== 'DISPATCHED') {
-            throw new Error('Cannot change status of dispatched order');
+        if (oldStatus === 'CONFIRMED' && status === 'PENDING') {
+            throw new Error('Cannot revert confirmed order to pending');
         }
 
         // Update Order
@@ -209,6 +184,22 @@ exports.updateOrderStatus = async (req, res, next) => {
 
         await session.commitTransaction();
         await session.endSession();
+
+        // Trigger WhatsApp Message (Outside Transaction but after success)
+        if (status === 'CONFIRMED') {
+            try {
+                // Re-fetch populated order for the message
+                const populatedOrder = await Order.findById(order._id)
+                    .populate('items.product', 'name')
+                    .populate('customer');
+
+                await WhatsAppService.sendOrderConfirmation(populatedOrder);
+            } catch (wsError) {
+                console.error('WhatsApp trigger failed:', wsError);
+                // Note: We don't fail the request if just WhatsApp fails, 
+                // but in production you might want a queue/retry mechanism
+            }
+        }
 
         res.status(200).json({
             success: true,

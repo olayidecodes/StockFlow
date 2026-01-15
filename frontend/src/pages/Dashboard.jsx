@@ -7,7 +7,7 @@ const Dashboard = () => {
     const { logout } = useAuth();
     const { user, role, ROLES, PERMISSIONS, can } = usePermissions();
     const navigate = useNavigate();
-    
+
     console.log(user);
 
     const handleLogout = () => {
@@ -28,18 +28,6 @@ const Dashboard = () => {
 
     return (
         <div className="dashboard-container">
-            <nav className="dashboard-nav">
-                <div className="nav-brand">
-                    <div className="logo-icon">📦</div>
-                    <h2>StockFlow</h2>
-                </div>
-                <div className="nav-actions">
-                    <button onClick={handleLogout} className="btn btn-secondary">
-                        Logout
-                    </button>
-                </div>
-            </nav>
-
             <div className="dashboard-content">
                 <div className="welcome-section">
                     <h1>Welcome, {user?.username}</h1>
@@ -117,9 +105,9 @@ const Dashboard = () => {
                             <h3>⚠️ Admin Zone</h3>
                             <p>User management and system configuration area.</p>
                             <div className="button-group">
-                                <button 
-                                className="btn btn-primary"
-                                onClick={() => navigate('/users')}
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={() => navigate('/users')}
                                 >Manage Users</button>
                                 <button
                                     className="btn btn-secondary"

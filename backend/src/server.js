@@ -15,6 +15,7 @@ const inventoryRoutes = require('./routes/inventory.routes');
 const orderRoutes = require('./routes/order.routes');
 const templateRoutes = require('./routes/template.routes');
 const analyticsRoutes = require('./routes/analytics.routes');
+const whatsappService = require('./services/whatsapp.service');
 
 // Connect to database
 connectDB();
@@ -57,4 +58,7 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
     console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+
+    // Initialize WhatsApp Service
+    whatsappService.initialize();
 });

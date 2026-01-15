@@ -58,22 +58,13 @@ const OrderDetail = () => {
                 <div className="header-actions">
                     <PermissionGuard permission={PERMISSIONS.MANAGE_ORDERS}>
                         {order.status === 'PENDING' && (
-                            <button
-                                className="btn btn-primary"
-                                onClick={() => handleStatusChange('CONFIRMED')}
-                                disabled={actionLoading}
-                            >
-                                Confirm Order
-                            </button>
-                        )}
-                        {order.status === 'CONFIRMED' && (
                             <div className="button-group">
                                 <button
-                                    className="btn btn-success"
-                                    onClick={() => handleStatusChange('DISPATCHED')}
+                                    className="btn btn-primary"
+                                    onClick={() => handleStatusChange('CONFIRMED')}
                                     disabled={actionLoading}
                                 >
-                                    Dispatch
+                                    Confirm Order
                                 </button>
                                 <button
                                     className="btn btn-danger"
@@ -83,15 +74,6 @@ const OrderDetail = () => {
                                     Cancel
                                 </button>
                             </div>
-                        )}
-                        {order.status === 'DRAFT' && (
-                            <button
-                                className="btn btn-primary"
-                                onClick={() => handleStatusChange('PENDING')}
-                                disabled={actionLoading}
-                            >
-                                Submit for Review
-                            </button>
                         )}
                     </PermissionGuard>
                 </div>

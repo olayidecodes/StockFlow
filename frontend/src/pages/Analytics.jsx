@@ -52,13 +52,12 @@ const Analytics = () => {
                         {summary.lowStock}
                     </div>
                     <div className="stat-label">Inventory Count Low</div>
-                </div>
-
+                </div> 
                 {/* Financials (v2) */}
                 <div className="dashboard-card text-center">
                     <h3>Total Inventory Qty</h3>
                     <div className="display-value">{summary.totalQuantity?.toLocaleString() || 0}</div>
-                    <div className="stat-label">Units Across Warehouses</div>
+                    <div the apclassName="stat-label">Units Across Warehouses</div>
                 </div>
 
                 <div className="dashboard-card text-center">

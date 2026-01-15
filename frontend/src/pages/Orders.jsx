@@ -30,10 +30,8 @@ const Orders = () => {
 
     const getStatusBadge = (status) => {
         switch (status) {
-            case 'DRAFT': return 'inactive';
             case 'PENDING': return 'warning';
             case 'CONFIRMED': return 'active';
-            case 'DISPATCHED': return 'success'; // Add success class later
             case 'CANCELLED': return 'discontinued';
             default: return '';
         }
@@ -57,10 +55,8 @@ const Orders = () => {
                     className="filter-select"
                 >
                     <option value="">All Statuses</option>
-                    <option value="DRAFT">Draft</option>
                     <option value="PENDING">Pending</option>
                     <option value="CONFIRMED">Confirmed</option>
-                    <option value="DISPATCHED">Dispatched</option>
                     <option value="CANCELLED">Cancelled</option>
                 </select>
             </div>

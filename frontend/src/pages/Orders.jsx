@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import PermissionGuard from '../components/PermissionGuard';
@@ -9,6 +9,7 @@ const Orders = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState('');
+    const [expandedOrders, setExpandedOrders] = useState([]);
 
     useEffect(() => {
         fetchOrders();
@@ -26,6 +27,15 @@ const Orders = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const toggleOrderExpansion = (orderId, e) => {
+        e.stopPropagation();
+        setExpandedOrders(prev =>
+            prev.includes(orderId)
+                ? prev.filter(id => id !== orderId)
+                : [...prev, orderId]
+        );
     };
 
     const getStatusBadge = (status) => {
@@ -70,7 +80,6 @@ const Orders = () => {
                             <tr>
                                 <th>Order ID</th>
                                 <th>Customer</th>
-                                <th>Warehouse</th>
                                 <th>Date</th>
                                 <th>Status</th>
                                 <th>Total</th>
@@ -80,26 +89,64 @@ const Orders = () => {
                         <tbody>
                             {orders.length > 0 ? (
                                 orders.map((order) => (
-                                    <tr key={order._id} className="hover-row" onClick={() => navigate(`/orders/${order._id}`)}>
-                                        <td className="font-mono text-sm">#{order._id.slice(-6).toUpperCase()}</td>
-                                        <td>{order.customer?.name}</td>
-                                        <td>{order.warehouse?.name}</td>
-                                        <td>{new Date(order.createdAt).toLocaleDateString()}</td>
-                                        <td>
-                                            <span className={`status-badge ${getStatusBadge(order.status)}`}>
-                                                {order.status}
-                                            </span>
-                                        </td>
-                                        <td>${(order.totalAmount || 0).toLocaleString()}</td>
-                                        <td>
-                                            <button
-                                                className="btn btn-sm btn-secondary"
-                                                onClick={(e) => { e.stopPropagation(); navigate(`/orders/${order._id}`); }}
-                                            >
-                                                View
-                                            </button>
-                                        </td>
-                                    </tr>
+                                    <Fragment key={order._id}>
+                                        <tr className="hover-row" onClick={() => navigate(`/orders/${order._id}`)}>
+                                            <td className="font-mono text-sm">#{order._id.slice(-6).toUpperCase()}</td>
+                                            <td>{order.customer?.name}</td>
+                                            <td>{new Date(order.createdAt).toLocaleDateString()}</td>
+                                            <td>
+                                                <span className={`status-badge ${getStatusBadge(order.status)}`}>
+                                                    {order.status}
+                                                </span>
+                                            </td>
+                                            <td>${(order.totalAmount || 0).toLocaleString()}</td>
+                                            <td>
+                                                <div className="button-group">
+                                                    <button
+                                                        className="btn btn-sm btn-secondary"
+                                                        onClick={(e) => { e.stopPropagation(); navigate(`/orders/${order._id}`); }}
+                                                    >
+                                                        View
+                                                    </button>
+                                                    <button
+                                                        className={`btn btn-sm btn-secondary toggle-btn ${expandedOrders.includes(order._id) ? 'active' : ''}`}
+                                                        onClick={(e) => toggleOrderExpansion(order._id, e)}
+                                                        title={expandedOrders.includes(order._id) ? 'Collapse' : 'See More'}
+                                                    >
+                                                        {expandedOrders.includes(order._id) ? '▲' : '▼'}
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {expandedOrders.includes(order._id) && (
+                                            <tr className="expanded-row">
+                                                <td colSpan="6">
+                                                    <div className="expanded-content">
+                                                        <div className="expanded-header">
+                                                            <div className="warehouse-info">
+                                                                <span className="info-label">Warehouse:</span>
+                                                                <span className="warehouse-name">{order.warehouse?.name}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="order-items-minimal">
+                                                            {order.items.map((item, idx) => (
+                                                                <div key={idx} className="minimal-item">
+                                                                    <div className="item-info">
+                                                                        <span className="item-name">{item.product?.name}</span>
+                                                                        <span className="item-sku text-muted">{item.product?.sku}</span>
+                                                                    </div>
+                                                                    <div className="item-stats">
+                                                                        <span className="item-qty"><strong>{item.quantity}</strong> pcs</span>
+                                                                        <span className="item-total">${(item.quantity * (item.price || 0)).toLocaleString()}</span>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </Fragment>
                                 ))
                             ) : (
                                 <tr>

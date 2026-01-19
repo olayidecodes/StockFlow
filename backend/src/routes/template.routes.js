@@ -18,7 +18,7 @@ router
             body('customer.name').notEmpty().withMessage('Customer name is required'),
             body('region').notEmpty().withMessage('Region is required'),
             body('warehouse').notEmpty().withMessage('Warehouse is required'),
-            body('items').isArray({ min: 1 }).withMessage('Items must be at least 1 product'),
+            body('items').isArray().withMessage('Items must be an array'),
             body('items.*.product').notEmpty().withMessage('Product ID is required'),
             body('items.*.quantity').isInt({ min: 1 }).withMessage('Quantity must be positive integer'),
         ],

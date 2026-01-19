@@ -113,7 +113,7 @@ const Brands = () => {
                                                     onClick={() => openModal(brand)}
                                                     className="btn-icon"
                                                 >
-                                                    ✎
+                                                    Edit
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(brand._id)}

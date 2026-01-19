@@ -155,7 +155,7 @@ const Products = () => {
                                     <td>
                                         <PermissionGuard permission={PERMISSIONS.MANAGE_INVENTORY}>
                                             <div className="action-buttons">
-                                                <button onClick={() => openModal(product)} className="btn-icon">✎</button>
+                                                <button onClick={() => openModal(product)} className="btn-icon">Edit</button>
                                                 <button onClick={() => handleDelete(product._id)} className="btn-icon delete">Delete</button>
                                             </div>
                                         </PermissionGuard>

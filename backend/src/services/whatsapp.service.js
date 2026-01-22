@@ -1,3 +1,5 @@
+process.env.PUPPETEER_CACHE_DIR = "/opt/render/.cache/puppeteer";
+
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 
@@ -8,7 +10,13 @@ class WhatsAppService {
                 dataPath: './.wwebjs_auth'
             }),
             puppeteer: {
-                args: ['--no-sandbox', '--disable-setuid-sandbox'],
+                headless: true,
+                args: [
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--disable-gpu"
+                ],
             },
             webVersionCache: {
                 type: 'remote',

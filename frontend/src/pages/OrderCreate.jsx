@@ -49,7 +49,7 @@ const ProductSearchSelect = ({ value, options, onChange, placeholder }) => {
     );
 
     return (
-        <div className="search-select-container" ref={containerRef}>
+        <div className="search-select-container">
             <input
                 type="text"
                 className="search-select-input"
@@ -59,9 +59,10 @@ const ProductSearchSelect = ({ value, options, onChange, placeholder }) => {
                     setSearchTerm(e.target.value);
                     if (!isOpen) setIsOpen(true);
                 }}
-                onFocus={(e) => {
-                    setIsOpen(true);
-                    e.target.select();
+                onFocus={() => setIsOpen(true)}
+                onBlur={() => {
+                    // Timeout to allow clicking an option before it vanishes
+                    setTimeout(() => setIsOpen(false), 200);
                 }}
             />
             {isOpen && (
@@ -76,11 +77,8 @@ const ProductSearchSelect = ({ value, options, onChange, placeholder }) => {
                                     setIsOpen(false);
                                 }}
                             >
-                                <div className="p-info">
-                                    <span className="p-name">{p.name}</span>
-                                    <span className="p-sku">{p.sku}</span>
-                                </div>
-                                <span className="p-status badge badge-sm">Active</span>
+                                <span className="p-name">{p.name}</span>
+                                <span className="p-sku">{p.sku}</span>
                             </div>
                         ))
                     ) : (
@@ -194,33 +192,30 @@ const OrderCreate = () => {
     };
 
     const addItem = () => {
-        setFormData(prev => ({
-            ...prev,
-            items: [...prev.items, { product: '', quantity: 1, price: 0 }]
-        }));
+        setFormData({
+            ...formData,
+            items: [...formData.items, { product: '', quantity: 1, price: 0 }]
+        });
     };
 
     const removeItem = (index) => {
-        setFormData(prev => {
-            const newItems = [...prev.items];
-            newItems.splice(index, 1);
-            return { ...prev, items: newItems };
-        });
+        const newItems = [...formData.items];
+        newItems.splice(index, 1);
+        setFormData({ ...formData, items: newItems });
     };
 
     const updateItem = (index, field, value) => {
-        setFormData(prev => {
-            const newItems = [...prev.items];
-            newItems[index][field] = value;
+        const newItems = [...formData.items];
+        newItems[index][field] = value;
 
-            if (field === 'product') {
-                const product = products.find(p => p._id === value);
-                if (product) {
-                    newItems[index].price = product.price || 0;
-                }
+        if (field === 'product') {
+            const product = products.find(p => p._id === value);
+            if (product) {
+                newItems[index].price = product.price || 0;
             }
-            return { ...prev, items: newItems };
-        });
+        }
+
+        setFormData({ ...formData, items: newItems });
     };
 
     const calculateTotal = () => {

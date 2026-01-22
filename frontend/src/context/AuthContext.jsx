@@ -1,5 +1,6 @@
 import { createContext, useState, useContext, useEffect } from 'react';
 import api from '../utils/api';
+import useSessionTimeout from '../hooks/useSessionTimeout';
 
 const AuthContext = createContext(null);
 
@@ -21,14 +22,14 @@ export const AuthProvider = ({ children }) => {
     const login = async (email, password) => {
         try {
             const response = await api.post('/auth/login', { email, password });
-            const { user, token } = response.data.data;           
-            
+            const { user, token } = response.data.data;
+
 
             localStorage.setItem('token', token);
             localStorage.setItem('user', JSON.stringify(user));
             setUser(user);
             console.log(user);
-            
+
 
             return { success: true };
         } catch (error) {
@@ -76,6 +77,9 @@ export const AuthProvider = ({ children }) => {
         }
         return user.role === roles;
     };
+
+    // Session timeout: logout after 5 minutes of inactivity
+    useSessionTimeout(logout, !!user);
 
     return (
         <AuthContext.Provider

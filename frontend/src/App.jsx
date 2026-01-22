@@ -47,7 +47,7 @@ function App() {
                     <Route path="/users" element={<Users />} />
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   </Routes>
-                  <Footer />
+                  {/* <Footer /> */}
                 </>
               </ProtectedRoute>
             }

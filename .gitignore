@@ -15,3 +15,8 @@ Thumbs.db
 
 # Environment variables
 .env
+
+# WhatsApp Session Data
+.baileys_auth/
+.wwebjs_auth/
+.wwebjs_cache/

@@ -94,6 +94,10 @@ const Navbar = () => {
                         Logout
                     </button>
                 </div>
+
+                {isMenuOpen && (
+                    <div className="nav-backdrop" onClick={closeMenu}></div>
+                )}
             </div>
         </nav>
     );

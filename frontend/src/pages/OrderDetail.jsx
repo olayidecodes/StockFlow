@@ -104,15 +104,28 @@ const OrderDetail = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {order.items.map((item, idx) => (
-                                    <tr key={idx}>
-                                        <td>{item.product?.name} ({item.product?.cartonSize}pc/ctn)</td>
-                                        <td>{item.product?.sku}</td>
-                                        <td>{item.quantity}</td>
-                                        <td>${item.price || 0}</td>
-                                        <td>${(item.quantity * (item.price || 0)).toLocaleString()}</td>
-                                    </tr>
-                                ))}
+                                {order.items.map((item, idx) => {
+                                    const cartonSize = item.product?.cartonSize || 1;
+                                    const cartons = Math.floor(item.quantity / cartonSize);
+                                    const pieces = item.quantity % cartonSize;
+
+                                    return (
+                                        <tr key={idx}>
+                                            <td>{item.product?.name} ({cartonSize}pc/ctn)</td>
+                                            <td>{item.product?.sku}</td>
+                                            <td>
+                                                {item.quantity} pcs
+                                                {cartonSize > 1 && (
+                                                    <div className="text-sm text-muted">
+                                                        ({cartons} ctn, {pieces} pcs)
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td>${item.price || 0}</td>
+                                            <td>${(item.quantity * (item.price || 0)).toLocaleString()}</td>
+                                        </tr>
+                                    );
+                                })}
                                 <tr className="bg-elevated">
                                     <td colSpan="4" className="text-right font-bold">Total Amount:</td>
                                     <td className="font-bold">${order.totalAmount?.toLocaleString()}</td>

@@ -331,6 +331,11 @@ body {
   position: relative;
 }
 
+.no-scroll {
+  overflow: hidden !important;
+  height: 100vh;
+}
+
 /* Global Page Container Padding Fix */
 .page-container {
   padding: var(--spacing-xl);

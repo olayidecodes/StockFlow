@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
@@ -7,8 +7,22 @@ import PermissionGuard from './PermissionGuard';
 const Navbar = () => {
     const { logout } = useAuth();
     const { user, role, PERMISSIONS } = usePermissions();
-    const navigate = useNavigate();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const navigate = useNavigate();
+
+    // Prevent body scroll when menu is open on mobile
+    useEffect(() => {
+        if (isMenuOpen) {
+            document.body.classList.add('no-scroll');
+        } else {
+            document.body.classList.remove('no-scroll');
+        }
+
+        // Cleanup on unmount
+        return () => {
+            document.body.classList.remove('no-scroll');
+        };
+    }, [isMenuOpen]);
 
     const handleLogout = () => {
         logout();

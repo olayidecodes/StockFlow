@@ -106,7 +106,7 @@ const OrderCreate = () => {
         customer: { name: '', street: '', city: '', state: '', zip: '', phone: '', email: '' },
         region: '',
         warehouse: '',
-        items: [], // { product, quantity, price }
+        items: [], // { product, cartonQty, pieceQty, price }
     });
 
     // Load Regions and Templates
@@ -194,7 +194,7 @@ const OrderCreate = () => {
     const addItem = () => {
         setFormData({
             ...formData,
-            items: [...formData.items, { product: '', quantity: 1, price: 0 }]
+            items: [...formData.items, { product: '', cartonQty: 0, pieceQty: 0, price: 0 }]
         });
     };
 
@@ -219,7 +219,12 @@ const OrderCreate = () => {
     };
 
     const calculateTotal = () => {
-        return formData.items.reduce((acc, item) => acc + (item.quantity * item.price), 0);
+        return formData.items.reduce((acc, item) => {
+            const product = products.find(p => p._id === item.product);
+            const cartonSize = product?.cartonSize || 1;
+            const pieces = (item.cartonQty * cartonSize) + item.pieceQty;
+            return acc + (pieces * item.price);
+        }, 0);
     };
 
     const handleSubmit = async (e) => {
@@ -249,6 +254,18 @@ const OrderCreate = () => {
 
             const payload = {
                 ...formData,
+                items: formData.items.map(item => {
+                    if (item.cartonQty === 0 && item.pieceQty === 0) {
+                        throw new Error('Each item must have a Carton or Piece quantity');
+                    }
+                    const product = products.find(p => p._id === item.product);
+                    const cartonSize = product?.cartonSize || 1;
+                    return {
+                        product: item.product,
+                        quantity: (item.cartonQty * cartonSize) + item.pieceQty,
+                        price: item.price
+                    };
+                }),
                 customer: customerData
             };
             await api.post('/orders', payload);
@@ -365,26 +382,45 @@ const OrderCreate = () => {
                                                 onChange={val => updateItem(idx, 'product', val)}
                                                 placeholder="Search Product..."
                                             />
-                                            {item.product && (
-                                                <span className={`text-sm ${available === 0 ? 'text-error' : 'text-muted'}`}>
-                                                    Available: {available} pieces
-                                                </span>
-                                            )}
+                                            {item.product && (() => {
+                                                const product = products.find(p => p._id === item.product);
+                                                const cartonSize = product?.cartonSize || 1;
+                                                const availPieces = available;
+                                                const availCartons = Math.floor(available / cartonSize);
+                                                const remPieces = available % cartonSize;
+
+                                                return (
+                                                    <span className={`text-sm ${available === 0 ? 'text-error' : 'text-muted'}`}>
+                                                        Available: {availPieces} pcs {cartonSize > 1 ? `(${availCartons} ctn, ${remPieces} pcs)` : ''}
+                                                    </span>
+                                                );
+                                            })()}
                                         </div>
 
                                         <div className="form-group w-100">
-                                            <label>Qty</label>
+                                            <label>Cartons</label>
                                             <input
                                                 type="number"
-                                                min="1"
-                                                value={item.quantity}
-                                                onChange={e => updateItem(idx, 'quantity', parseInt(e.target.value))}
+                                                min="0"
+                                                value={item.cartonQty}
+                                                onChange={e => updateItem(idx, 'cartonQty', parseInt(e.target.value) || 0)}
                                                 required
                                             />
                                         </div>
 
                                         <div className="form-group w-100">
-                                            <label>Price</label>
+                                            <label>Pieces</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={item.pieceQty}
+                                                onChange={e => updateItem(idx, 'pieceQty', parseInt(e.target.value) || 0)}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="form-group w-100">
+                                            <label>Price/Pc</label>
                                             <input
                                                 type="number"
                                                 value={item.price}

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-const TIMEOUT_DURATION = 3 * 60 * 1000; // 5 minutes in milliseconds
+const TIMEOUT_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 const useSessionTimeout = (onTimeout, isActive = true) => {
     const timeoutRef = useRef(null);

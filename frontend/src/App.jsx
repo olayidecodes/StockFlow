@@ -16,6 +16,7 @@ import OrderCreate from './pages/OrderCreate';
 import OrderDetail from './pages/OrderDetail';
 
 import Analytics from './pages/Analytics';
+import CustomerAnalytics from './pages/CustomerAnalytics';
 import Users from './pages/Users';
 import VerifyEmail from './pages/VerifyEmail';
 import Navbar from './components/Navbar';
@@ -37,6 +38,7 @@ function App() {
                   <Routes>
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/analytics" element={<Analytics />} />
+                    <Route path="/analytics/customers" element={<CustomerAnalytics />} />
                     <Route path="/orders" element={<Orders />} />
                     <Route path="/orders/new" element={<OrderCreate />} />
                     <Route path="/orders/:id" element={<OrderDetail />} />

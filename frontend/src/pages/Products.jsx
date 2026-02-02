@@ -20,6 +20,8 @@ const Products = () => {
         cartonSize: 1,
         status: 'ACTIVE',
         price: 0,
+        weight: 0,
+        wholesaleCost: 0,
         dimensions: { length: 0, breadth: 0, height: 0 }
     };
     const [formData, setFormData] = useState(initialForm);
@@ -70,6 +72,8 @@ const Products = () => {
                 cartonSize: product.cartonSize,
                 status: product.status,
                 price: product.price || 0,
+                weight: product.weight || 0,
+                wholesaleCost: product.wholesaleCost || 0,
                 dimensions: product.dimensions || { length: 0, breadth: 0, height: 0 }
             });
         } else {
@@ -134,6 +138,8 @@ const Products = () => {
                                 <th>Name</th>
                                 <th>Brand</th>
                                 <th>Price</th>
+                                <th>Wholesale</th>
+                                <th>Weight</th>
                                 <th>Carton Size</th>
                                 <th>Status</th>
                                 <th>Actions</th>
@@ -145,7 +151,9 @@ const Products = () => {
                                     <td className="font-mono">{product.sku}</td>
                                     <td>{product.name}</td>
                                     <td>{product.brand?.name || 'Unknown'}</td>
-                                    <td>${product.price?.toFixed(2) || '0.00'}</td>
+                                    <td>₦{product.price?.toFixed(2) || '0.00'}</td>
+                                    <td>₦{product.wholesaleCost?.toFixed(2) || '0.00'}</td>
+                                    <td>{product.weight?.toFixed(2) || '0.00'} kg</td>
                                     <td>{product.cartonSize}</td>
                                     <td>
                                         <span className={`status-badge ${product.status.toLowerCase()}`}>
@@ -229,6 +237,31 @@ const Products = () => {
                                     onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
                                     required
                                 />
+                            </div>
+
+                            <div className="form-group">
+                                <label>Unit Wholesale Cost (per piece)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={formData.wholesaleCost}
+                                    onChange={(e) => setFormData({ ...formData, wholesaleCost: parseFloat(e.target.value) })}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label>Weight per Piece (kg)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={formData.weight}
+                                    onChange={(e) => setFormData({ ...formData, weight: parseFloat(e.target.value) })}
+                                />
+                                <small className="form-help-text">
+                                    Total weight per carton: {((formData.weight || 0) * (formData.cartonSize || 1)).toFixed(2)} kg
+                                </small>
                             </div>
 
                             <div className="form-group">

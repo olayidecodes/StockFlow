@@ -121,14 +121,14 @@ const OrderDetail = () => {
                                                     </div>
                                                 )}
                                             </td>
-                                            <td>${item.price || 0}</td>
-                                            <td>${(item.quantity * (item.price || 0)).toLocaleString()}</td>
+                                            <td>₦{item.price || 0}</td>
+                                            <td>₦{(item.quantity * (item.price || 0)).toLocaleString()}</td>
                                         </tr>
                                     );
                                 })}
                                 <tr className="bg-elevated">
                                     <td colSpan="4" className="text-right font-bold">Total Amount:</td>
-                                    <td className="font-bold">${order.totalAmount?.toLocaleString()}</td>
+                                    <td className="font-bold">₦{order.totalAmount?.toLocaleString()}</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -158,11 +158,14 @@ const OrderDetail = () => {
 
                     <h3 className="mt-xl">Fulfillment</h3>
                     <div className="info-group">
-                        <p className="info-label">Warehouse</p>
-                        <p className="mb-md">{order.warehouse?.name}</p>
-
-                        <p className="info-label">Region</p>
-                        <p>{order.region?.name}</p>
+                        <div className="detail-item">
+                            <span className="label">Warehouse:</span>
+                            <span>{order.warehouse?.name}</span>
+                        </div>
+                        <div className="detail-item">
+                            <span className="label">Channel:</span>
+                            <span>{order.channel || 'N/A'}</span>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -71,9 +71,13 @@ const Navbar = () => {
                     </PermissionGuard>
 
                     <PermissionGuard permission={PERMISSIONS.VIEW_REPORTS}>
-                        <NavLink to="/analytics" onClick={closeMenu} className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-                            Analytics
-                        </NavLink>
+                        <div className="nav-dropdown">
+                            <span className="nav-item">Analytics</span>
+                            <div className="dropdown-content">
+                                <NavLink to="/analytics" onClick={closeMenu}>Dashboard</NavLink>
+                                <NavLink to="/analytics/customers" onClick={closeMenu}>Customers</NavLink>
+                            </div>
+                        </div>
                     </PermissionGuard>
 
                     <PermissionGuard permission={PERMISSIONS.MANAGE_USERS}>

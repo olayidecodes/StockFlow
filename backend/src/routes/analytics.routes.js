@@ -1,5 +1,5 @@
 const express = require('express');
-const { getStats } = require('../controllers/analytics.controller');
+const { getStats, getCustomerAnalytics } = require('../controllers/analytics.controller');
 const { protect, authorize } = require('../middleware/auth');
 const router = express.Router();
 
@@ -8,5 +8,6 @@ router.use(protect);
 // router.use(authorize('admin', 'manager'));
 
 router.get('/', getStats);
+router.get('/customers', getCustomerAnalytics);
 
 module.exports = router;

@@ -43,6 +43,11 @@ const orderSchema = new mongoose.Schema(
         totalAmount: {
             type: Number,
         },
+        channel: {
+            type: String,
+            enum: ['Instagram', 'Google', 'Facebook', 'Referral', 'Walk-in', 'Other'],
+            default: 'Other',
+        },
         createdBy: {
             type: mongoose.Schema.ObjectId,
             ref: 'User',

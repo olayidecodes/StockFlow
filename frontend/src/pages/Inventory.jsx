@@ -5,6 +5,7 @@ import PermissionGuard from '../components/PermissionGuard';
 import { PERMISSIONS } from '../utils/constants';
 import StockAdjustmentModal from '../components/StockAdjustmentModal';
 import StockHistoryModal from '../components/StockHistoryModal';
+import StockTransferModal from '../components/StockTransferModal';
 
 const Inventory = () => {
     const [balances, setBalances] = useState([]);
@@ -19,6 +20,7 @@ const Inventory = () => {
     // Modals
     const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+    const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null); // { product, warehouse }
 
     useEffect(() => {
@@ -74,6 +76,14 @@ const Inventory = () => {
             warehouse: balance.warehouse
         });
         setIsHistoryModalOpen(true);
+    };
+
+    const handleTransferClick = (balance) => {
+        setSelectedItem({
+            product: balance.product,
+            warehouse: balance.warehouse
+        });
+        setIsTransferModalOpen(true);
     };
 
     // Manual "Add Stock" for empty state (requires selecting wh and product first)
@@ -174,6 +184,14 @@ const Inventory = () => {
                                                 >
                                                     History
                                                 </button>
+                                                <PermissionGuard permission={PERMISSIONS.MANAGE_INVENTORY}>
+                                                    <button
+                                                        onClick={() => handleTransferClick(bal)}
+                                                        className="btn btn-sm btn-secondary"
+                                                    >
+                                                        Transfer
+                                                    </button>
+                                                </PermissionGuard>
                                             </div>
                                         </td>
                                     </tr>
@@ -204,6 +222,14 @@ const Inventory = () => {
                         onClose={() => setIsHistoryModalOpen(false)}
                         product={selectedItem.product}
                         warehouse={selectedItem.warehouse}
+                    />
+                    <StockTransferModal
+                        isOpen={isTransferModalOpen}
+                        onClose={() => setIsTransferModalOpen(false)}
+                        product={selectedItem.product}
+                        sourceWarehouse={selectedItem.warehouse}
+                        warehouses={warehouses}
+                        onSuccess={fetchBalances}
                     />
                 </>
             )}

@@ -4,6 +4,7 @@ const {
     adjustStock,
     getBalance,
     getLedger,
+    transferStock,
 } = require('../controllers/inventory.controller');
 const { protect } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/checkPermission');
@@ -26,6 +27,19 @@ router.post(
         body('reason').notEmpty().withMessage('Reason is required'),
     ],
     adjustStock
+);
+
+router.post(
+    '/transfer',
+    checkPermission(PERMISSIONS.MANAGE_INVENTORY),
+    [
+        body('product').notEmpty().withMessage('Product ID is required'),
+        body('sourceWarehouse').notEmpty().withMessage('Source warehouse ID is required'),
+        body('destinationWarehouse').notEmpty().withMessage('Destination warehouse ID is required'),
+        body('quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
+        body('reason').notEmpty().withMessage('Reason is required'),
+    ],
+    transferStock
 );
 
 router.get('/balance', checkPermission(PERMISSIONS.VIEW_INVENTORY), getBalance);

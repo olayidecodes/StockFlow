@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const { validationResult } = require('express-validator');
 const StockLedger = require('../models/StockLedger');
 const InventoryBalance = require('../models/InventoryBalance');
+const InventoryTransfer = require('../models/InventoryTransfer');
 const Product = require('../models/Product');
 const Warehouse = require('../models/Warehouse');
 
@@ -146,6 +147,125 @@ exports.getLedger = async (req, res, next) => {
             success: true,
             count: ledger.length,
             data: ledger,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Transfer stock between warehouses
+// @route   POST /api/inventory/transfer
+// @access  Private (Manage Inventory)
+exports.transferStock = async (req, res, next) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ success: false, errors: errors.array() });
+        }
+
+        const { product, sourceWarehouse, destinationWarehouse, quantity, reason } = req.body;
+
+        // Validation
+        if (sourceWarehouse === destinationWarehouse) {
+            return res.status(400).json({
+                success: false,
+                message: 'Source and destination warehouses cannot be the same',
+            });
+        }
+
+        // 1. Verify Product and Warehouses exist
+        const [productExists, sourceExists, destExists] = await Promise.all([
+            Product.findById(product),
+            Warehouse.findById(sourceWarehouse),
+            Warehouse.findById(destinationWarehouse),
+        ]);
+
+        if (!productExists || !sourceExists || !destExists) {
+            return res.status(404).json({
+                success: false,
+                message: 'Product or Warehouse not found',
+            });
+        }
+
+        // 2. Check if source warehouse has enough stock
+        const sourceBalance = await InventoryBalance.findOne({
+            product,
+            warehouse: sourceWarehouse,
+        });
+
+        if (!sourceBalance || sourceBalance.quantity < quantity) {
+            return res.status(400).json({
+                success: false,
+                message: 'Insufficient stock in source warehouse',
+            });
+        }
+
+        // 3. Create transfer record
+        const transfer = await InventoryTransfer.create({
+            product,
+            sourceWarehouse,
+            destinationWarehouse,
+            quantity,
+            reason,
+            status: 'COMPLETED',
+            initiatedBy: req.user.id,
+        });
+
+        // 4. Update source warehouse (TRANSFER_OUT)
+        const updatedSourceBalance = await InventoryBalance.findOneAndUpdate(
+            { product, warehouse: sourceWarehouse },
+            {
+                $inc: { quantity: -quantity },
+                $set: { lastUpdated: new Date() },
+            },
+            { new: true }
+        );
+
+        // 5. Update destination warehouse (TRANSFER_IN)
+        const updatedDestBalance = await InventoryBalance.findOneAndUpdate(
+            { product, warehouse: destinationWarehouse },
+            {
+                $inc: { quantity: quantity },
+                $set: { lastUpdated: new Date() },
+            },
+            {
+                new: true,
+                upsert: true,
+                setDefaultsOnInsert: true,
+            }
+        );
+
+        // 6. Create ledger entries for both warehouses
+        await StockLedger.create([
+            {
+                product,
+                warehouse: sourceWarehouse,
+                change: -quantity,
+                type: 'TRANSFER_OUT',
+                reason: `Transfer to ${destExists.name}: ${reason}`,
+                reference: transfer._id.toString(),
+                balanceAfter: updatedSourceBalance.quantity,
+                performedBy: req.user.id,
+            },
+            {
+                product,
+                warehouse: destinationWarehouse,
+                change: quantity,
+                type: 'TRANSFER_IN',
+                reason: `Transfer from ${sourceExists.name}: ${reason}`,
+                reference: transfer._id.toString(),
+                balanceAfter: updatedDestBalance.quantity,
+                performedBy: req.user.id,
+            },
+        ]);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                transfer,
+                sourceBalance: updatedSourceBalance,
+                destinationBalance: updatedDestBalance,
+            },
         });
     } catch (error) {
         next(error);

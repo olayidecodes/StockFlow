@@ -80,9 +80,10 @@ const Orders = () => {
                             <tr>
                                 <th>Order ID</th>
                                 <th>Customer</th>
-                                <th>Date</th>
                                 <th>Status</th>
+                                <th>Channel</th>
                                 <th>Total</th>
+                                <th>Date</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -99,7 +100,8 @@ const Orders = () => {
                                                     {order.status}
                                                 </span>
                                             </td>
-                                            <td>${(order.totalAmount || 0).toLocaleString()}</td>
+                                            <td>{order.channel || 'N/A'}</td>
+                                            <td>₦{(order.totalAmount || 0).toLocaleString()}</td>
                                             <td>
                                                 <div className="button-group">
                                                     <button
@@ -137,7 +139,7 @@ const Orders = () => {
                                                                     </div>
                                                                     <div className="item-stats">
                                                                         <span className="item-qty"><strong>{item.quantity}</strong> pcs</span>
-                                                                        <span className="item-total">${(item.quantity * (item.price || 0)).toLocaleString()}</span>
+                                                                        <span className="item-total">₦{(item.quantity * (item.price || 0)).toLocaleString()}</span>
                                                                     </div>
                                                                 </div>
                                                             ))}

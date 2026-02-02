@@ -52,7 +52,7 @@ const Analytics = () => {
                         {summary.lowStock}
                     </div>
                     <div className="stat-label">Inventory Count Low</div>
-                </div> 
+                </div>
                 {/* Financials (v2) */}
                 <div className="dashboard-card text-center">
                     <h3>Total Inventory Qty</h3>
@@ -63,7 +63,7 @@ const Analytics = () => {
                 <div className="dashboard-card text-center">
                     <h3>Total Inventory Value</h3>
                     <div className="display-value" style={{ color: '#10B981' }}>
-                        ${summary.totalValue?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                        ₦{summary.totalValue?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                     </div>
                     <div className="stat-label">Cost Basis</div>
                 </div>

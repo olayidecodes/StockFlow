@@ -167,12 +167,20 @@ const Dashboard = () => {
                         <div className="action-card analytics-area">
                             <h3>📊 Analytics</h3>
                             <p>View sales trends, regional performance, and stock health.</p>
+                            <div className="button-group">
                             <button
-                                className="btn btn-secondary"
+                                className="btn btn-primary"
                                 onClick={() => navigate('/analytics')}
                             >
                                 View Reports
                             </button>
+                            <button
+                                className="btn btn-secondary"
+                                onClick={() => navigate('/analytics/customers')}
+                            >
+                                Customers
+                            </button>
+                            </div>
                         </div>
                     </PermissionGuard>
                 </div>

@@ -42,6 +42,18 @@ const productSchema = new mongoose.Schema(
             min: [0, 'Price cannot be negative'],
             default: 0
         },
+        weight: {
+            type: Number,
+            min: [0, 'Weight cannot be negative'],
+            default: 0,
+            // Weight per piece in kg
+        },
+        wholesaleCost: {
+            type: Number,
+            min: [0, 'Wholesale cost cannot be negative'],
+            default: 0,
+            // Cost per piece
+        },
         status: {
             type: String,
             enum: ['ACTIVE', 'INACTIVE', 'DISCONTINUED'],

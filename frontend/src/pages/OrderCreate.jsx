@@ -107,6 +107,7 @@ const OrderCreate = () => {
         region: '',
         warehouse: '',
         items: [], // { product, cartonQty, pieceQty, price }
+        channel: 'Other',
     });
 
     // Load Regions and Templates
@@ -185,7 +186,8 @@ const OrderCreate = () => {
             },
             region: template.region?._id || template.region,
             warehouse: template.warehouse?._id || template.warehouse,
-            items: [] // Don't load items from template
+            items: [], // Don't load items from template
+            channel: 'Other',
         });
         setSelectedTemplate(templateId);
         toast.info(`Loaded template: ${template.name}`);
@@ -442,7 +444,7 @@ const OrderCreate = () => {
                             </button>
 
                             <div className="text-right mt-lg">
-                                <h3>Total: ${calculateTotal().toLocaleString()}</h3>
+                                <h3>Total: ₦{calculateTotal().toLocaleString()}</h3>
                             </div>
                         </div>
                     ) : (
@@ -469,12 +471,28 @@ const OrderCreate = () => {
                         <label>Warehouse</label>
                         <select
                             value={formData.warehouse}
-                            onChange={e => setFormData({ ...formData, warehouse: e.target.value })}
+                            onChange={(e) => setFormData({ ...formData, warehouse: e.target.value })}
                             required
                             disabled={!formData.region}
                         >
                             <option value="">Select Warehouse...</option>
                             {warehouses.map(w => <option key={w._id} value={w._id}>{w.name}</option>)}
+                        </select>
+                    </div>
+
+                    <div className="form-group mb-xl">
+                        <label>How did the customer find us?</label>
+                        <select
+                            value={formData.channel}
+                            onChange={(e) => setFormData({ ...formData, channel: e.target.value })}
+                            required
+                        >
+                            <option value="Instagram">Instagram</option>
+                            <option value="Google">Google</option>
+                            <option value="Facebook">Facebook</option>
+                            <option value="Referral">Referral</option>
+                            <option value="Walk-in">Walk-in</option>
+                            <option value="Other">Other</option>
                         </select>
                     </div>
 

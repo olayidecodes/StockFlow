@@ -4,8 +4,8 @@ const productSchema = new mongoose.Schema(
     {
         sku: {
             type: String,
-            required: [true, 'SKU is required'],
             unique: true,
+            sparse: true, // Allows multiple null/undefined values
             trim: true,
             uppercase: true,
             maxlength: [20, 'SKU cannot be more than 20 characters'],

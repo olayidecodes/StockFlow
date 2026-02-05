@@ -35,44 +35,76 @@ const ProductSearchSelect = ({ value, options, onChange, placeholder }) => {
             }
         };
 
-        if (isOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
+        document.addEventListener('mousedown', handleClickOutside);
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [isOpen, selectedProduct]);
+    }, [selectedProduct]);
 
     const filteredOptions = options.filter(p =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.sku.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const handleClearSelection = () => {
+        onChange('');
+        setSelectedProduct(null);
+        setSearchTerm('');
+        setIsOpen(true);
+    };
+
     return (
-        <div className="search-select-container">
+        <div className="search-select-container" ref={containerRef} style={{ position: 'relative' }}>
             <input
                 type="text"
                 className="search-select-input"
                 placeholder={placeholder}
                 value={searchTerm}
                 onChange={e => {
-                    setSearchTerm(e.target.value);
-                    if (!isOpen) setIsOpen(true);
+                    if (!selectedProduct) {
+                        setSearchTerm(e.target.value);
+                        if (!isOpen) setIsOpen(true);
+                    }
                 }}
-                onFocus={() => setIsOpen(true)}
-                onBlur={() => {
-                    // Timeout to allow clicking an option before it vanishes
-                    setTimeout(() => setIsOpen(false), 200);
+                onFocus={() => {
+                    if (!selectedProduct) {
+                        setIsOpen(true);
+                    }
                 }}
+                readOnly={!!selectedProduct}
+                style={{ paddingRight: selectedProduct ? '35px' : '10px' }}
             />
-            {isOpen && (
+            {selectedProduct && (
+                <button
+                    type="button"
+                    onClick={handleClearSelection}
+                    style={{
+                        position: 'absolute',
+                        right: '8px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: '#666',
+                        fontSize: '18px',
+                        padding: '0 5px',
+                        lineHeight: '1'
+                    }}
+                    title="Change product"
+                >
+                    ×
+                </button>
+            )}
+            {isOpen && !selectedProduct && (
                 <div className="search-select-dropdown">
                     {filteredOptions.length > 0 ? (
                         filteredOptions.map(p => (
                             <div
                                 key={p._id}
                                 className={`search-select-option ${p._id === value ? 'active' : ''}`}
-                                onClick={() => {
+                                onClick={(e) => {
+                                    e.stopPropagation();
                                     onChange(p._id);
                                     setIsOpen(false);
                                 }}
@@ -404,9 +436,8 @@ const OrderCreate = () => {
                                             <input
                                                 type="number"
                                                 min="0"
-                                                value={item.cartonQty}
+                                                value={item.cartonQty || ''}
                                                 onChange={e => updateItem(idx, 'cartonQty', parseInt(e.target.value) || 0)}
-                                                required
                                             />
                                         </div>
 
@@ -415,9 +446,8 @@ const OrderCreate = () => {
                                             <input
                                                 type="number"
                                                 min="0"
-                                                value={item.pieceQty}
+                                                value={item.pieceQty || ''}
                                                 onChange={e => updateItem(idx, 'pieceQty', parseInt(e.target.value) || 0)}
-                                                required
                                             />
                                         </div>
 
@@ -425,7 +455,7 @@ const OrderCreate = () => {
                                             <label>Price/Pc</label>
                                             <input
                                                 type="number"
-                                                value={item.price}
+                                                value={item.price || ''}
                                                 readOnly
                                                 disabled
                                                 style={{ background: '#f5f5f5', cursor: 'not-allowed' }}

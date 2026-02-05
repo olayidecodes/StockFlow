@@ -21,7 +21,7 @@ router
     .post(
         checkPermission(PERMISSIONS.MANAGE_INVENTORY),
         [
-            body('sku').notEmpty().withMessage('SKU is required'),
+            body('sku').optional().trim().notEmpty().withMessage('SKU cannot be empty if provided'),
             body('name').notEmpty().withMessage('Name is required'),
             body('brand').notEmpty().withMessage('Brand ID is required'),
             body('cartonSize')

@@ -97,7 +97,7 @@ const StockTransferModal = ({ isOpen, onClose, product, sourceWarehouse, warehou
                             <input
                                 type="number"
                                 min="0"
-                                value={formData.cartons}
+                                value={formData.cartons || ''}
                                 onChange={(e) => setFormData({ ...formData, cartons: parseInt(e.target.value) || 0 })}
                                 style={{ width: '100%' }}
                             />
@@ -107,7 +107,7 @@ const StockTransferModal = ({ isOpen, onClose, product, sourceWarehouse, warehou
                             <input
                                 type="number"
                                 min="0"
-                                value={formData.pieces}
+                                value={formData.pieces || ''}
                                 onChange={(e) => setFormData({ ...formData, pieces: parseInt(e.target.value) || 0 })}
                                 style={{ width: '100%' }}
                             />

@@ -58,7 +58,10 @@ const Products = () => {
             closeModal();
             toast.success('Product saved successfully');
         } catch (err) {
-            toast.error(err.response?.data?.errors?.[0]?.msg || 'Operation failed');
+            const errorMsg = err.response?.data?.errors?.[0]?.msg
+                || (Array.isArray(err.response?.data?.message) ? err.response?.data?.message[0] : err.response?.data?.message)
+                || 'Operation failed';
+            toast.error(errorMsg);
         }
     };
 
@@ -187,8 +190,6 @@ const Products = () => {
                                     type="text"
                                     value={formData.sku}
                                     onChange={(e) => setFormData({ ...formData, sku: e.target.value.toUpperCase() })}
-                                    required
-                                    disabled={!!editingProduct} // Basic SKU immutability preference, but not strict requirement
                                     placeholder="e.g., SAM-S24-BLK"
                                 />
                             </div>
@@ -233,8 +234,8 @@ const Products = () => {
                                     type="number"
                                     min="0"
                                     step="0.01"
-                                    value={formData.price}
-                                    onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+                                    value={formData.price || ''}
+                                    onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
                                     required
                                 />
                             </div>
@@ -245,69 +246,70 @@ const Products = () => {
                                     type="number"
                                     min="0"
                                     step="0.01"
-                                    value={formData.wholesaleCost}
-                                    onChange={(e) => setFormData({ ...formData, wholesaleCost: parseFloat(e.target.value) })}
+                                    value={formData.wholesaleCost || ''}
+                                    onChange={(e) => setFormData({ ...formData, wholesaleCost: parseFloat(e.target.value) || 0 })}
                                 />
                             </div>
 
                             <div className="form-group">
-                                <label>Weight per Piece (kg)</label>
+                                <label>Carton Weight (kg)</label>
                                 <input
                                     type="number"
                                     min="0"
                                     step="0.01"
-                                    value={formData.weight}
-                                    onChange={(e) => setFormData({ ...formData, weight: parseFloat(e.target.value) })}
+                                    value={((formData.weight || 0) * (formData.cartonSize || 1)) || ''}
+                                    onChange={(e) => {
+                                        const cartonWeight = parseFloat(e.target.value) || 0;
+                                        const pieceWeight = formData.cartonSize > 0 ? cartonWeight / formData.cartonSize : 0;
+                                        setFormData({ ...formData, weight: pieceWeight });
+                                    }}
                                 />
                                 <small className="form-help-text">
-                                    Total weight per carton: {((formData.weight || 0) * (formData.cartonSize || 1)).toFixed(2)} kg
+                                    Estimated weight per piece: {(formData.weight || 0).toFixed(2)} kg
                                 </small>
                             </div>
 
                             <div className="form-group">
-                                <label>Carton Dimensions (Meters)</label>
+                                <label>Carton Dimensions (Centimeters)</label>
                                 <div className="dimensions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '10px' }}>
                                     <div>
-                                        <label style={{ fontSize: '0.75em', marginBottom: '2px', display: 'block' }}>Length (m)</label>
+                                        <label style={{ fontSize: '0.75em', marginBottom: '2px', display: 'block' }}>Length (cm)</label>
                                         <input
                                             type="number"
                                             min="0"
-                                            step="0.01"
-                                            placeholder="0.00"
-                                            value={formData.dimensions?.length || ''}
+                                            step="0.1"
+                                            value={(formData.dimensions?.length || 0) * 100 || ''}
                                             onChange={(e) => setFormData({
                                                 ...formData,
-                                                dimensions: { ...formData.dimensions, length: parseFloat(e.target.value) }
+                                                dimensions: { ...formData.dimensions, length: parseFloat(e.target.value) / 100 || 0 }
                                             })}
                                             style={{ width: '100%' }}
                                         />
                                     </div>
                                     <div>
-                                        <label style={{ fontSize: '0.75em', marginBottom: '2px', display: 'block' }}>Breadth (m)</label>
+                                        <label style={{ fontSize: '0.75em', marginBottom: '2px', display: 'block' }}>Breadth (cm)</label>
                                         <input
                                             type="number"
                                             min="0"
-                                            step="0.01"
-                                            placeholder="0.00"
-                                            value={formData.dimensions?.breadth || ''}
+                                            step="0.1"
+                                            value={(formData.dimensions?.breadth || 0) * 100 || ''}
                                             onChange={(e) => setFormData({
                                                 ...formData,
-                                                dimensions: { ...formData.dimensions, breadth: parseFloat(e.target.value) }
+                                                dimensions: { ...formData.dimensions, breadth: parseFloat(e.target.value) / 100 || 0 }
                                             })}
                                             style={{ width: '100%' }}
                                         />
                                     </div>
                                     <div>
-                                        <label style={{ fontSize: '0.75em', marginBottom: '2px', display: 'block' }}>Height (m)</label>
+                                        <label style={{ fontSize: '0.75em', marginBottom: '2px', display: 'block' }}>Height (cm)</label>
                                         <input
                                             type="number"
                                             min="0"
-                                            step="0.01"
-                                            placeholder="0.00"
-                                            value={formData.dimensions?.height || ''}
+                                            step="0.1"
+                                            value={(formData.dimensions?.height || 0) * 100 || ''}
                                             onChange={(e) => setFormData({
                                                 ...formData,
-                                                dimensions: { ...formData.dimensions, height: parseFloat(e.target.value) }
+                                                dimensions: { ...formData.dimensions, height: parseFloat(e.target.value) / 100 || 0 }
                                             })}
                                             style={{ width: '100%' }}
                                         />

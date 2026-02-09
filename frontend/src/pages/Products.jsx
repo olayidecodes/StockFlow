@@ -49,10 +49,19 @@ const Products = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            // Convert dimensions from cm to m for backend
+            const payload = {
+                ...formData,
+                dimensions: {
+                    length: (formData.dimensions?.length || 0) / 100,
+                    breadth: (formData.dimensions?.breadth || 0) / 100,
+                    height: (formData.dimensions?.height || 0) / 100
+                }
+            };
             if (editingProduct) {
-                await api.put(`/products/${editingProduct._id}`, formData);
+                await api.put(`/products/${editingProduct._id}`, payload);
             } else {
-                await api.post('/products', formData);
+                await api.post('/products', payload);
             }
             fetchData();
             closeModal();
@@ -77,7 +86,11 @@ const Products = () => {
                 price: product.price || 0,
                 weight: product.weight || 0,
                 wholesaleCost: product.wholesaleCost || 0,
-                dimensions: product.dimensions || { length: 0, breadth: 0, height: 0 }
+                dimensions: product.dimensions ? {
+                    length: (product.dimensions.length || 0) * 100,
+                    breadth: (product.dimensions.breadth || 0) * 100,
+                    height: (product.dimensions.height || 0) * 100
+                } : { length: 0, breadth: 0, height: 0 }
             });
         } else {
             setEditingProduct(null);
@@ -223,6 +236,7 @@ const Products = () => {
                                     min="1"
                                     value={formData.cartonSize}
                                     onChange={(e) => setFormData({ ...formData, cartonSize: parseInt(e.target.value) })}
+                                    onWheel={(e) => e.target.blur()}
                                     required
                                 />
                                 <small className="form-help-text">Mandatory. Cannot change if orders exist.</small>
@@ -236,6 +250,7 @@ const Products = () => {
                                     step="0.01"
                                     value={formData.price || ''}
                                     onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                                    onWheel={(e) => e.target.blur()}
                                     required
                                 />
                             </div>
@@ -248,6 +263,7 @@ const Products = () => {
                                     step="0.01"
                                     value={formData.wholesaleCost || ''}
                                     onChange={(e) => setFormData({ ...formData, wholesaleCost: parseFloat(e.target.value) || 0 })}
+                                    onWheel={(e) => e.target.blur()}
                                 />
                             </div>
 
@@ -263,6 +279,7 @@ const Products = () => {
                                         const pieceWeight = formData.cartonSize > 0 ? cartonWeight / formData.cartonSize : 0;
                                         setFormData({ ...formData, weight: pieceWeight });
                                     }}
+                                    onWheel={(e) => e.target.blur()}
                                 />
                                 <small className="form-help-text">
                                     Estimated weight per piece: {(formData.weight || 0).toFixed(2)} kg
@@ -278,11 +295,12 @@ const Products = () => {
                                             type="number"
                                             min="0"
                                             step="0.1"
-                                            value={(formData.dimensions?.length || 0) * 100 || ''}
+                                            value={formData.dimensions?.length || ''}
                                             onChange={(e) => setFormData({
                                                 ...formData,
-                                                dimensions: { ...formData.dimensions, length: parseFloat(e.target.value) / 100 || 0 }
+                                                dimensions: { ...formData.dimensions, length: e.target.value }
                                             })}
+                                            onWheel={(e) => e.target.blur()}
                                             style={{ width: '100%' }}
                                         />
                                     </div>
@@ -292,11 +310,12 @@ const Products = () => {
                                             type="number"
                                             min="0"
                                             step="0.1"
-                                            value={(formData.dimensions?.breadth || 0) * 100 || ''}
+                                            value={formData.dimensions?.breadth || ''}
                                             onChange={(e) => setFormData({
                                                 ...formData,
-                                                dimensions: { ...formData.dimensions, breadth: parseFloat(e.target.value) / 100 || 0 }
+                                                dimensions: { ...formData.dimensions, breadth: e.target.value }
                                             })}
+                                            onWheel={(e) => e.target.blur()}
                                             style={{ width: '100%' }}
                                         />
                                     </div>
@@ -306,20 +325,21 @@ const Products = () => {
                                             type="number"
                                             min="0"
                                             step="0.1"
-                                            value={(formData.dimensions?.height || 0) * 100 || ''}
+                                            value={formData.dimensions?.height || ''}
                                             onChange={(e) => setFormData({
                                                 ...formData,
-                                                dimensions: { ...formData.dimensions, height: parseFloat(e.target.value) / 100 || 0 }
+                                                dimensions: { ...formData.dimensions, height: e.target.value }
                                             })}
+                                            onWheel={(e) => e.target.blur()}
                                             style={{ width: '100%' }}
                                         />
                                     </div>
                                 </div>
                                 <div className="text-sm mt-xs text-secondary">
                                     Calculated Volume: {
-                                        ((formData.dimensions?.length || 0) *
-                                            (formData.dimensions?.breadth || 0) *
-                                            (formData.dimensions?.height || 0)).toFixed(4)
+                                        ((parseFloat(formData.dimensions?.length) || 0) *
+                                            (parseFloat(formData.dimensions?.breadth) || 0) *
+                                            (parseFloat(formData.dimensions?.height) || 0) / 1000000).toFixed(4)
                                     } m³
                                 </div>
                             </div>

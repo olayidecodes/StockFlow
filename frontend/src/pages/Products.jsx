@@ -21,6 +21,7 @@ const Products = () => {
         status: 'ACTIVE',
         price: 0,
         weight: 0,
+        cartonWeight: 0,
         wholesaleCost: 0,
         dimensions: { length: 0, breadth: 0, height: 0 }
     };
@@ -85,6 +86,7 @@ const Products = () => {
                 status: product.status,
                 price: product.price || 0,
                 weight: product.weight || 0,
+                cartonWeight: (product.weight || 0) * (product.cartonSize || 1),
                 wholesaleCost: product.wholesaleCost || 0,
                 dimensions: product.dimensions ? {
                     length: (product.dimensions.length || 0) * 100,
@@ -235,7 +237,15 @@ const Products = () => {
                                     type="number"
                                     min="1"
                                     value={formData.cartonSize}
-                                    onChange={(e) => setFormData({ ...formData, cartonSize: parseInt(e.target.value) })}
+                                    onChange={(e) => {
+                                        const newSize = parseInt(e.target.value) || 0;
+                                        setFormData({
+                                            ...formData,
+                                            cartonSize: newSize,
+                                            // Update carton weight display based on constant piece weight
+                                            cartonWeight: (formData.weight * newSize)
+                                        });
+                                    }}
                                     onWheel={(e) => e.target.blur()}
                                     required
                                 />
@@ -273,11 +283,15 @@ const Products = () => {
                                     type="number"
                                     min="0"
                                     step="0.01"
-                                    value={((formData.weight || 0) * (formData.cartonSize || 1)) || ''}
+                                    value={formData.cartonWeight}
                                     onChange={(e) => {
-                                        const cartonWeight = parseFloat(e.target.value) || 0;
-                                        const pieceWeight = formData.cartonSize > 0 ? cartonWeight / formData.cartonSize : 0;
-                                        setFormData({ ...formData, weight: pieceWeight });
+                                        const newCartonWeight = e.target.value; // Keep as string to allow decimals
+                                        const pieceWeight = formData.cartonSize > 0 ? (parseFloat(newCartonWeight) || 0) / formData.cartonSize : 0;
+                                        setFormData({
+                                            ...formData,
+                                            cartonWeight: newCartonWeight,
+                                            weight: pieceWeight
+                                        });
                                     }}
                                     onWheel={(e) => e.target.blur()}
                                 />

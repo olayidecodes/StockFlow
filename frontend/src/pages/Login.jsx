@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Spinner from '../components/Spinner';
 
 const Login = () => {
     const [email, setEmail] = useState('');

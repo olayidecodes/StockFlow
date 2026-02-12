@@ -4,6 +4,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
     LineChart, Line, PieChart, Pie, Cell, AreaChart, Area
 } from 'recharts';
+import Spinner from '../components/Spinner';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -57,7 +58,7 @@ const Analytics = () => {
                 <div className="dashboard-card text-center">
                     <h3>Total Inventory Qty</h3>
                     <div className="display-value">{summary.totalQuantity?.toLocaleString() || 0}</div>
-                    <div the apclassName="stat-label">Units Across Warehouses</div>
+                    <div className="stat-label">Units Across Warehouses</div>
                 </div>
 
                 <div className="dashboard-card text-center">

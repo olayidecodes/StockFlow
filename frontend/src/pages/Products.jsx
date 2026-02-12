@@ -12,6 +12,8 @@ const Products = () => {
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState({ totalPages: 1, total: 0 });
 
     const [filterBrand, setFilterBrand] = useState('');
 
@@ -29,17 +31,23 @@ const Products = () => {
     const [formData, setFormData] = useState(initialForm);
 
     useEffect(() => {
-        fetchData();
+        setPage(1); // Reset to page 1 when filter changes
     }, [filterBrand]);
+
+    useEffect(() => {
+        fetchData();
+    }, [filterBrand, page]);
 
     const fetchData = async () => {
         setLoading(true);
         try {
+            const brandQuery = filterBrand ? `&brandId=${filterBrand}` : '';
             const [productsRes, brandsRes] = await Promise.all([
-                api.get(`/products${filterBrand ? `?brandId=${filterBrand}` : ''}`),
+                api.get(`/products?page=${page}&limit=20${brandQuery}`),
                 api.get('/brands')
             ]);
             setProducts(productsRes.data.data);
+            setPagination(productsRes.data.pagination);
             setBrands(brandsRes.data.data);
             setLoading(false);
         } catch (err) {
@@ -194,6 +202,29 @@ const Products = () => {
                             ))}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {!loading && pagination?.totalPages > 1 && (
+                <div className="pagination">
+                    <button
+                        className="btn btn-sm btn-secondary"
+                        disabled={page === 1}
+                        onClick={() => setPage(p => p - 1)}
+                    >
+                        Previous
+                    </button>
+                    <div className="page-info">
+                        Page <strong>{page}</strong> of <strong>{pagination.totalPages}</strong>
+                        <span className="text-secondary ml-sm">({pagination.total} products)</span>
+                    </div>
+                    <button
+                        className="btn btn-sm btn-secondary"
+                        disabled={page === pagination.totalPages}
+                        onClick={() => setPage(p => p + 1)}
+                    >
+                        Next
+                    </button>
                 </div>
             )}
 
@@ -353,7 +384,7 @@ const Products = () => {
                                     } m³
                                 </div>
                             </div>
-                            <div className="form-group">
+                            <div className="form-group form-group-row">
                                 <label>Status</label>
                                 <select
                                     value={formData.status}

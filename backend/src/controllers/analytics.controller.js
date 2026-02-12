@@ -8,11 +8,13 @@ const mongoose = require('mongoose');
 // @access  Private (Admin/Manager)
 exports.getStats = async (req, res, next) => {
     try {
+        const { days = 30 } = req.query;
+        const trendDays = parseInt(days);
         const today = new Date();
-        const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+        const trendStartDate = new Date(today.getTime() - trendDays * 24 * 60 * 60 * 1000);
 
-        // 1. Top Selling Products (by quantity)
-        const topProducts = await Order.aggregate([
+        // 1. Top Selling Product (by quantity)
+        const topProductByQty = await Order.aggregate([
             { $match: { status: { $ne: 'CANCELLED' } } },
             { $unwind: '$items' },
             {
@@ -22,55 +24,112 @@ exports.getStats = async (req, res, next) => {
                 },
             },
             { $sort: { totalSold: -1 } },
-            { $limit: 5 },
+            { $limit: 1 },
             {
                 $lookup: {
                     from: 'products',
                     localField: '_id',
+                    foreignField: '_id',
+                    as: 'product',
+                },
+            },
+            { $unwind: '$product' }
+        ]);
+
+        // 2. Top Selling Product (by sales value)
+        const topProductByValue = await Order.aggregate([
+            { $match: { status: { $ne: 'CANCELLED' } } },
+            { $unwind: '$items' },
+            {
+                $group: {
+                    _id: '$items.product',
+                    totalValue: { $sum: { $multiply: ['$items.quantity', '$items.price'] } },
+                },
+            },
+            { $sort: { totalValue: -1 } },
+            { $limit: 1 },
+            {
+                $lookup: {
+                    from: 'products',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'product',
+                },
+            },
+            { $unwind: '$product' }
+        ]);
+
+        // 3. Top Selling Brand
+        const topBrand = await Order.aggregate([
+            { $match: { status: { $ne: 'CANCELLED' } } },
+            { $unwind: '$items' },
+            {
+                $lookup: {
+                    from: 'products',
+                    localField: 'items.product',
+                    foreignField: '_id',
+                    as: 'product',
+                },
+            },
+            { $unwind: '$product' },
+            {
+                $group: {
+                    _id: '$product.brand',
+                    totalSold: { $sum: '$items.quantity' },
+                },
+            },
+            { $sort: { totalSold: -1 } },
+            { $limit: 1 },
+            {
+                $lookup: {
+                    from: 'brands',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'brand',
+                },
+            },
+            { $unwind: '$brand' }
+        ]);
+
+        // 4. Warehouse Volume (CBM)
+        const warehouseCBM = await InventoryBalance.aggregate([
+            {
+                $lookup: {
+                    from: 'products',
+                    localField: 'product',
                     foreignField: '_id',
                     as: 'productInfo',
                 },
             },
             { $unwind: '$productInfo' },
             {
-                $project: {
-                    name: '$productInfo.name',
-                    value: '$totalSold',
-                },
-            },
-        ]);
-
-        // 2. Regional Performance (Order Count)
-        const regionalPerformance = await Order.aggregate([
-            { $match: { status: { $ne: 'CANCELLED' } } },
-            {
                 $group: {
-                    _id: '$region',
-                    value: { $sum: 1 },
+                    _id: '$warehouse',
+                    totalCBM: { $sum: { $multiply: ['$quantity', { $ifNull: ['$productInfo.volume', 0] }] } },
                 },
             },
             {
                 $lookup: {
-                    from: 'regions',
+                    from: 'warehouses',
                     localField: '_id',
                     foreignField: '_id',
-                    as: 'regionInfo',
+                    as: 'warehouseInfo',
                 },
             },
-            { $unwind: '$regionInfo' },
+            { $unwind: '$warehouseInfo' },
             {
                 $project: {
-                    name: '$regionInfo.name',
-                    value: 1,
+                    name: '$warehouseInfo.name',
+                    value: { $round: ['$totalCBM', 2] },
                 },
             },
         ]);
 
-        // 3. Dispatch Trends (Last 30 Days)
+        // 5. Dispatch Trends
         const dispatchTrends = await Order.aggregate([
             {
                 $match: {
-                    createdAt: { $gte: thirtyDaysAgo },
+                    createdAt: { $gte: trendStartDate },
                     status: { $ne: 'CANCELLED' }
                 },
             },
@@ -90,27 +149,35 @@ exports.getStats = async (req, res, next) => {
             }
         ]);
 
-        // 4. Stock Health (Low Stock Count)
-        // Assuming low stock is < 50 pieces (we could make this dynamic per product later)
-        const lowStockCount = await InventoryBalance.countDocuments({
-            quantity: { $lt: 50 },
-            // We might want to filter active products only, but balance implies existence
-        });
+        // 6. Top Customers
+        const topCustomers = await Order.aggregate([
+            { $match: { status: { $ne: 'CANCELLED' } } },
+            {
+                $group: {
+                    _id: '$customer.name',
+                    totalSpent: { $sum: '$totalAmount' },
+                    orderCount: { $sum: 1 },
+                    lastOrder: { $max: '$createdAt' }
+                }
+            },
+            { $sort: { totalSpent: -1 } },
+            { $limit: 5 }
+        ]);
 
-        const totalOrders = await Order.countDocuments();
-        const totalProducts = await Product.countDocuments();
+        const totalOrders = await Order.countDocuments({ status: { $ne: 'CANCELLED' } });
 
         res.status(200).json({
             success: true,
             data: {
-                topProducts,
-                regionalPerformance,
-                dispatchTrends,
                 summary: {
-                    lowStock: lowStockCount,
                     totalOrders,
-                    totalProducts
-                }
+                    topSellingBrand: topBrand[0]?.brand?.name || 'N/A',
+                    topProductQty: topProductByQty[0]?.product?.name || 'N/A',
+                    topProductValue: topProductByValue[0]?.product?.name || 'N/A',
+                },
+                warehouseCBM,
+                dispatchTrends,
+                topCustomers
             },
         });
     } catch (error) {

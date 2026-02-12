@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { FiPlus, FiTrash2 } from 'react-icons/fi';
 import api from '../utils/api';
+import Spinner from '../components/Spinner';
 
 const ProductSearchSelect = ({ value, options, onChange, placeholder }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -330,11 +332,10 @@ const OrderCreate = () => {
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="dashboard-grid">
-                {/* Left Column: Customer & Location */}
-                <div className="dashboard-card main-col">
-                    <h3>Customer Details</h3>
-                    <div className="form-group mb-md">
+            <form onSubmit={handleSubmit} style={{ maxWidth: '800px', margin: '0 auto' }}>
+                <div className="card mb-xl" style={{ marginBottom: '1rem' }}>
+                    <h3 className="mb-lg border-bottom pb-sm">Customer Details</h3>
+                    <div className="form-group">
                         <label>Name</label>
                         <input
                             value={formData.customer.name}
@@ -343,7 +344,7 @@ const OrderCreate = () => {
                         />
                     </div>
 
-                    <div className="form-group mb-md">
+                    <div className="form-group">
                         <label>Street Address</label>
                         <input
                             value={formData.customer.street}
@@ -352,7 +353,7 @@ const OrderCreate = () => {
                         />
                     </div>
 
-                    <div className="form-row mb-md">
+                    <div className="form-row">
                         <div className="form-group">
                             <label>City</label>
                             <input
@@ -361,23 +362,21 @@ const OrderCreate = () => {
                                 required
                             />
                         </div>
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label>State/Province</label>
-                                <input
-                                    value={formData.customer.state}
-                                    onChange={e => setFormData({ ...formData, customer: { ...formData.customer, state: e.target.value } })}
-                                    required
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Zip Code</label>
-                                <input
-                                    value={formData.customer.zip}
-                                    onChange={e => setFormData({ ...formData, customer: { ...formData.customer, zip: e.target.value } })}
-                                    required
-                                />
-                            </div>
+                        <div className="form-group">
+                            <label>State/Province</label>
+                            <input
+                                value={formData.customer.state}
+                                onChange={e => setFormData({ ...formData, customer: { ...formData.customer, state: e.target.value } })}
+                                required
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Zip Code</label>
+                            <input
+                                value={formData.customer.zip}
+                                onChange={e => setFormData({ ...formData, customer: { ...formData.customer, zip: e.target.value } })}
+                                required
+                            />
                         </div>
                     </div>
 
@@ -398,17 +397,63 @@ const OrderCreate = () => {
                             />
                         </div>
                     </div>
+                </div>
 
-                    <h3 className="mt-xl">Order Items</h3>
+                <div className="card mb-xl" style={{ marginBottom: '1rem' }}>
+                    <h3 className="mb-lg border-bottom pb-sm">Fulfillment Center</h3>
+                    <div className="form-row">
+                        <div className="form-group">
+                            <label>Region</label>
+                            <select
+                                value={formData.region}
+                                onChange={e => setFormData({ ...formData, region: e.target.value, warehouse: '' })}
+                                required
+                            >
+                                <option value="">Select Region...</option>
+                                {regions.map(r => <option key={r._id} value={r._id}>{r.name}</option>)}
+                            </select>
+                        </div>
+
+                        <div className="form-group">
+                            <label>Warehouse</label>
+                            <select
+                                value={formData.warehouse}
+                                onChange={(e) => setFormData({ ...formData, warehouse: e.target.value })}
+                                required
+                                disabled={!formData.region}
+                            >
+                                <option value="">Select Warehouse...</option>
+                                {warehouses.map(w => <option key={w._id} value={w._id}>{w.name}</option>)}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="form-group">
+                        <label>How did the customer find us?</label>
+                        <select
+                            value={formData.channel}
+                            onChange={(e) => setFormData({ ...formData, channel: e.target.value })}
+                            required
+                        >
+                            <option value="Instagram">Instagram</option>
+                            <option value="Google">Google</option>
+                            <option value="Facebook">Facebook</option>
+                            <option value="Referral">Referral</option>
+                            <option value="Walk-in">Walk-in</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div className="card mb-xl" style={{ marginBottom: '1rem' }}>
+                    <h3>Order Items</h3>
                     {formData.warehouse ? (
                         <div className="items-context">
                             {formData.items.map((item, idx) => {
                                 const available = inventory[item.product] || 0;
-                                const isStockLow = available < item.quantity;
-
                                 return (
-                                    <div key={idx} className="item-row card-row">
-                                        <div className="form-group flex-grow">
+                                    <div key={idx} className="item-row card-row" style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', paddingBottom: '1rem', borderBottom: '1px solid #eee', marginBottom: '1rem' }}>
+                                        <div className="form-group flex-grow" style={{ flex: 2 }}>
                                             <label>Product</label>
                                             <ProductSearchSelect
                                                 value={item.product}
@@ -431,7 +476,7 @@ const OrderCreate = () => {
                                             })()}
                                         </div>
 
-                                        <div className="form-group w-100">
+                                        <div className="form-group" style={{ width: '100px' }}>
                                             <label>Cartons</label>
                                             <input
                                                 type="number"
@@ -441,7 +486,7 @@ const OrderCreate = () => {
                                             />
                                         </div>
 
-                                        <div className="form-group w-100">
+                                        <div className="form-group" style={{ width: '100px' }}>
                                             <label>Pieces</label>
                                             <input
                                                 type="number"
@@ -451,7 +496,7 @@ const OrderCreate = () => {
                                             />
                                         </div>
 
-                                        <div className="form-group w-100">
+                                        <div className="form-group" style={{ width: '100px' }}>
                                             <label>Price/Pc</label>
                                             <input
                                                 type="number"
@@ -462,19 +507,19 @@ const OrderCreate = () => {
                                             />
                                         </div>
 
-                                        <button type="button" onClick={() => removeItem(idx)} className="btn-icon delete mt-md">
-                                            Delete
+                                        <button type="button" onClick={() => removeItem(idx)} className="btn-icon delete" title="Remove Item" style={{ marginTop: '2rem' }}>
+                                            <FiTrash2 />
                                         </button>
                                     </div>
                                 );
                             })}
 
                             <button type="button" onClick={addItem} className="btn btn-secondary btn-sm mt-md">
-                                + Add Item
+                                <FiPlus /> Add Item
                             </button>
 
-                            <div className="text-right mt-lg">
-                                <h3>Total: ₦{calculateTotal().toLocaleString()}</h3>
+                            <div className="text-right mt-lg" style={{ textAlign: 'right', fontSize: '1.2rem', fontWeight: 'bold' }}>
+                                Total: ₦{calculateTotal().toLocaleString()}
                             </div>
                         </div>
                     ) : (
@@ -482,51 +527,8 @@ const OrderCreate = () => {
                     )}
                 </div>
 
-                {/* Right Column: Settings */}
-                <div className="dashboard-card sidebar-col h-fit">
-                    <h3>Fulfillment Center</h3>
-                    <div className="form-group mb-md">
-                        <label>Region</label>
-                        <select
-                            value={formData.region}
-                            onChange={e => setFormData({ ...formData, region: e.target.value, warehouse: '' })}
-                            required
-                        >
-                            <option value="">Select Region...</option>
-                            {regions.map(r => <option key={r._id} value={r._id}>{r.name}</option>)}
-                        </select>
-                    </div>
-
-                    <div className="form-group mb-xl">
-                        <label>Warehouse</label>
-                        <select
-                            value={formData.warehouse}
-                            onChange={(e) => setFormData({ ...formData, warehouse: e.target.value })}
-                            required
-                            disabled={!formData.region}
-                        >
-                            <option value="">Select Warehouse...</option>
-                            {warehouses.map(w => <option key={w._id} value={w._id}>{w.name}</option>)}
-                        </select>
-                    </div>
-
-                    <div className="form-group mb-xl">
-                        <label>How did the customer find us?</label>
-                        <select
-                            value={formData.channel}
-                            onChange={(e) => setFormData({ ...formData, channel: e.target.value })}
-                            required
-                        >
-                            <option value="Instagram">Instagram</option>
-                            <option value="Google">Google</option>
-                            <option value="Facebook">Facebook</option>
-                            <option value="Referral">Referral</option>
-                            <option value="Walk-in">Walk-in</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-
-                    <div className="template-save-box mt-xl mb-lg">
+                <div className="card mb-xl">
+                    <div className="template-save-box mb-lg">
                         <div className="checkbox-group">
                             <input
                                 type="checkbox"
@@ -549,9 +551,11 @@ const OrderCreate = () => {
                         )}
                     </div>
 
-                    <button type="submit" className="btn btn-primary w-full" disabled={loading}>
-                        {loading ? 'Creating...' : 'Create Order'}
-                    </button>
+                    <div className="text-right">
+                        <button type="submit" className="btn btn-primary" disabled={loading} style={{ padding: '0.75rem 2rem', fontSize: '1rem', marginTop: '1rem' }}>
+                            {loading ? <Spinner size={20} color="#fff" /> : 'Create Order'}
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>

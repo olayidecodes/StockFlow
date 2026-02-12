@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { FiEdit2, FiTrash2, FiPlus, FiMapPin, FiX } from 'react-icons/fi';
 import api from '../utils/api';
+import Spinner from '../components/Spinner';
 import PermissionGuard from '../components/PermissionGuard';
 import { PERMISSIONS } from '../utils/constants';
 
@@ -135,7 +137,7 @@ const Locations = () => {
                 <h1>Locations</h1>
                 <PermissionGuard permission={PERMISSIONS.MANAGE_SETTINGS}>
                     <button onClick={() => openRegionModal()} className="btn btn-primary">
-                        + New Region
+                        <FiPlus style={{ marginRight: '0.5rem' }} /> New Region
                     </button>
                 </PermissionGuard>
             </div>
@@ -143,22 +145,26 @@ const Locations = () => {
             {error && <div className="alert alert-error">{error}</div>}
 
             {loading ? (
-                <div>Loading...</div>
+                <Spinner fullPage />
             ) : (
                 <div className="regions-grid">
                     {regions.map((region) => (
                         <div key={region._id} className="region-card">
                             <div className="region-header">
                                 <div className="region-title">
-                                    <h3>{region.name}</h3>
+                                    <h3><FiMapPin style={{ marginRight: '0.5rem', color: 'var(--color-primary)' }} />{region.name}</h3>
                                     <span className={`status-badge ${region.active ? 'active' : 'inactive'}`}>
                                         {region.active ? 'Active' : 'Inactive'}
                                     </span>
                                 </div>
                                 <PermissionGuard permission={PERMISSIONS.MANAGE_SETTINGS}>
                                     <div className="action-buttons">
-                                        <button onClick={() => openRegionModal(region)} className="btn-icon">✎</button>
-                                        <button onClick={() => deleteRegion(region._id)} className="btn-icon delete">Delete</button>
+                                        <button onClick={() => openRegionModal(region)} className="btn-icon" title="Edit Region">
+                                            <FiEdit2 />
+                                        </button>
+                                        <button onClick={() => deleteRegion(region._id)} className="btn-icon delete" title="Delete Region">
+                                            <FiTrash2 />
+                                        </button>
                                     </div>
                                 </PermissionGuard>
                             </div>
@@ -173,8 +179,8 @@ const Locations = () => {
                                                 <div className="wh-actions">
                                                     <span className={`status-dot ${wh.active ? 'active' : 'inactive'}`}></span>
                                                     <PermissionGuard permission={PERMISSIONS.MANAGE_SETTINGS}>
-                                                        <button onClick={() => openWarehouseModal(region._id, wh)} className="btn-icon small">✎</button>
-                                                        <button onClick={() => deleteWarehouse(wh._id)} className="btn-icon small delete">×</button>
+                                                        <button onClick={() => openWarehouseModal(region._id, wh)} className="btn-icon small" title="Edit Warehouse"><FiEdit2 size={14} /></button>
+                                                        <button onClick={() => deleteWarehouse(wh._id)} className="btn-icon small delete" title="Delete Warehouse"><FiTrash2 size={14} /></button>
                                                     </PermissionGuard>
                                                 </div>
                                             </li>
@@ -204,7 +210,10 @@ const Locations = () => {
             {isRegionModalOpen && (
                 <div className="modal-overlay">
                     <div className="modal-content">
-                        <h2>{editingRegion ? 'Edit Region' : 'New Region'}</h2>
+                        <div className="modal-header">
+                            <h2>{editingRegion ? 'Edit Region' : 'New Region'}</h2>
+                            <button onClick={closeRegionModal} className="btn-close" title="Close"><FiX /></button>
+                        </div>
                         <form onSubmit={handleRegionSubmit}>
                             <div className="form-group">
                                 <label>Region Name</label>
@@ -237,7 +246,10 @@ const Locations = () => {
             {isWarehouseModalOpen && (
                 <div className="modal-overlay">
                     <div className="modal-content">
-                        <h2>{editingWarehouse ? 'Edit Warehouse' : 'New Warehouse'}</h2>
+                        <div className="modal-header">
+                            <h2>{editingWarehouse ? 'Edit Warehouse' : 'New Warehouse'}</h2>
+                            <button onClick={closeWarehouseModal} className="btn-close" title="Close"><FiX /></button>
+                        </div>
                         <form onSubmit={handleWarehouseSubmit}>
                             <div className="form-group">
                                 <label>Warehouse Name</label>

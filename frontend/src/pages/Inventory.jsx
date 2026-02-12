@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { FiPlus } from 'react-icons/fi';
 import api from '../utils/api';
+import Spinner from '../components/Spinner';
 import PermissionGuard from '../components/PermissionGuard';
 import { PERMISSIONS } from '../utils/constants';
 import StockAdjustmentModal from '../components/StockAdjustmentModal';
@@ -117,7 +119,7 @@ const Inventory = () => {
                 <PermissionGuard permission={PERMISSIONS.MANAGE_INVENTORY}>
                     {filterProduct && filterWarehouse && (
                         <button onClick={handleManualAdd} className="btn btn-primary">
-                            + Add Stock for Selected
+                            <FiPlus /> Add Stock for Selected
                         </button>
                     )}
                 </PermissionGuard>
@@ -144,7 +146,7 @@ const Inventory = () => {
             </div>
 
             {loading ? (
-                <div className="loading-container"><div className="spinner"></div></div>
+                <Spinner fullPage />
             ) : (
                 <div className="table-container">
                     <table className="data-table">

@@ -1,6 +1,8 @@
 import { useState, useEffect, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FiPlus, FiChevronUp, FiChevronDown, FiEye } from 'react-icons/fi';
 import api from '../utils/api';
+import Spinner from '../components/Spinner';
 import PermissionGuard from '../components/PermissionGuard';
 import { PERMISSIONS } from '../utils/constants';
 
@@ -53,7 +55,7 @@ const Orders = () => {
                 <h1>Orders</h1>
                 <PermissionGuard permission={PERMISSIONS.CREATE_ORDERS}>
                     <button onClick={() => navigate('/orders/new')} className="btn btn-primary">
-                        + New Order
+                        <FiPlus /> New Order
                     </button>
                 </PermissionGuard>
             </div>
@@ -72,7 +74,7 @@ const Orders = () => {
             </div>
 
             {loading ? (
-                <div className="loading-container"><div className="spinner"></div></div>
+                <Spinner fullPage />
             ) : (
                 <div className="table-container">
                     <table className="data-table">
@@ -107,15 +109,16 @@ const Orders = () => {
                                                     <button
                                                         className="btn btn-sm btn-secondary"
                                                         onClick={(e) => { e.stopPropagation(); navigate(`/orders/${order._id}`); }}
+                                                        title="View"
                                                     >
-                                                        View
+                                                        <FiEye />
                                                     </button>
                                                     <button
                                                         className={`btn btn-sm btn-secondary toggle-btn ${expandedOrders.includes(order._id) ? 'active' : ''}`}
                                                         onClick={(e) => toggleOrderExpansion(order._id, e)}
                                                         title={expandedOrders.includes(order._id) ? 'Collapse' : 'See More'}
                                                     >
-                                                        {expandedOrders.includes(order._id) ? '▲' : '▼'}
+                                                        {expandedOrders.includes(order._id) ? <FiChevronUp /> : <FiChevronDown />}
                                                     </button>
                                                 </div>
                                             </td>

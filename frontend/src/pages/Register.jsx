@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 import api from '../utils/api';
+import Spinner from '../components/Spinner';
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -105,7 +106,7 @@ const Register = () => {
                     </div>
 
                     <button type="submit" className="btn btn-primary" disabled={loading}>
-                        {loading ? 'Creating...' : 'Create Account'}
+                        {loading ? <Spinner size={20} color="#fff" /> : 'Create Account'}
                     </button>
                 </form>
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import api from '../utils/api';
+import Spinner from '../components/Spinner';
 
 const VerifyEmail = () => {
     const [token, setToken] = useState('');
@@ -51,7 +52,7 @@ const VerifyEmail = () => {
                         />
                     </div>
                     <button type="submit" className="btn btn-primary" disabled={loading}>
-                        {loading ? 'Verifying...' : 'Verify Email'}
+                        {loading ? <Spinner size={20} color="#fff" /> : 'Verify Email'}
                     </button>
                 </form>
 

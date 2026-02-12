@@ -69,7 +69,7 @@ const Login = () => {
                     </div>
 
                     <button type="submit" className="btn btn-primary" disabled={loading}>
-                        {loading ? 'Signing in...' : 'Sign in'}
+                        {loading ? <Spinner size={20} color="#fff" /> : 'Sign in'}
                     </button>
                 </form>
 

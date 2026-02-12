@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import api from '../utils/api';
+import Spinner from '../components/Spinner';
 
 const CustomerAnalytics = () => {
     const [customers, setCustomers] = useState([]);
@@ -40,7 +41,7 @@ const CustomerAnalytics = () => {
             </div>
 
             {loading ? (
-                <div className="loading-container"><div className="spinner"></div></div>
+                <Spinner fullPage />
             ) : (
                 <div className="table-container">
                     <table className="data-table">

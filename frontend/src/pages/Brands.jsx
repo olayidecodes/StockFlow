@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { useAuth } from '../context/AuthContext'; // Or use axios instance directly
+import { FiEdit2, FiTrash2, FiPlus, FiX } from 'react-icons/fi';
 import api from '../utils/api';
+import Spinner from '../components/Spinner';
 import PermissionGuard from '../components/PermissionGuard';
 import { PERMISSIONS } from '../utils/constants';
 
@@ -78,7 +79,7 @@ const Brands = () => {
                 <h1>Brand Management</h1>
                 <PermissionGuard permission={PERMISSIONS.MANAGE_INVENTORY}>
                     <button onClick={() => openModal()} className="btn btn-primary">
-                        + Add Brand
+                        <FiPlus style={{ marginRight: '0.5rem' }} /> Add Brand
                     </button>
                 </PermissionGuard>
             </div>
@@ -86,7 +87,7 @@ const Brands = () => {
 
 
             {loading ? (
-                <div>Loading...</div>
+                <Spinner fullPage />
             ) : (
                 <div className="table-container">
                     <table className="data-table">
@@ -112,14 +113,16 @@ const Brands = () => {
                                                 <button
                                                     onClick={() => openModal(brand)}
                                                     className="btn-icon"
+                                                    title="Edit"
                                                 >
-                                                    Edit
+                                                    <FiEdit2 />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(brand._id)}
                                                     className="btn-icon delete"
+                                                    title="Delete"
                                                 >
-                                                    Delete
+                                                    <FiTrash2 />
                                                 </button>
                                             </div>
                                         </PermissionGuard>
@@ -135,7 +138,10 @@ const Brands = () => {
             {isModalOpen && (
                 <div className="modal-overlay">
                     <div className="modal-content">
-                        <h2>{editingBrand ? 'Edit Brand' : 'New Brand'}</h2>
+                        <div className="modal-header">
+                            <h2>{editingBrand ? 'Edit Brand' : 'New Brand'}</h2>
+                            <button onClick={closeModal} className="btn-close" title="Close"><FiX /></button>
+                        </div>
                         <form onSubmit={handleSubmit}>
                             <div className="form-group">
                                 <label>Brand Name</label>

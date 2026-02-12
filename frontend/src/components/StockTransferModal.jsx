@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { FiX } from 'react-icons/fi';
 import api from '../utils/api';
+import Spinner from '../components/Spinner';
 
 const StockTransferModal = ({ isOpen, onClose, product, sourceWarehouse, warehouses, onSuccess }) => {
     const [formData, setFormData] = useState({
@@ -69,7 +71,10 @@ const StockTransferModal = ({ isOpen, onClose, product, sourceWarehouse, warehou
     return (
         <div className="modal-overlay">
             <div className="modal-content">
-                <h2>Transfer Stock</h2>
+                <div className="modal-header">
+                    <h2>Transfer Stock</h2>
+                    <button onClick={onClose} className="btn-close" title="Close"><FiX /></button>
+                </div>
                 <div className="stock-context">
                     <p><strong>Product:</strong> {product.name} (SKU: {product.sku})</p>
                     <p><strong>From Warehouse:</strong> {sourceWarehouse.name}</p>
@@ -136,7 +141,7 @@ const StockTransferModal = ({ isOpen, onClose, product, sourceWarehouse, warehou
                             Cancel
                         </button>
                         <button type="submit" className="btn btn-primary" disabled={loading}>
-                            {loading ? 'Processing...' : 'Confirm Transfer'}
+                            {loading ? <Spinner size={20} color="#fff" /> : 'Confirm Transfer'}
                         </button>
                     </div>
                 </form>

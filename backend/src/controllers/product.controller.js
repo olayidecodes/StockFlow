@@ -6,26 +6,33 @@ const { validationResult } = require('express-validator');
 // @access  Private (Auth users)
 exports.getProducts = async (req, res, next) => {
     try {
-        let query;
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 20;
+        const startIndex = (page - 1) * limit;
 
-        // Filter by brand if provided
+        let queryParams = {};
         if (req.query.brandId) {
-            query = Product.find({ brand: req.query.brandId });
-        } else {
-            query = Product.find();
+            queryParams.brand = req.query.brandId;
         }
 
-        // Populate brand details
-        query = query.populate({
-            path: 'brand',
-            select: 'name active',
-        });
-
-        const products = await query;
+        const total = await Product.countDocuments(queryParams);
+        const products = await Product.find(queryParams)
+            .populate({
+                path: 'brand',
+                select: 'name active',
+            })
+            .skip(startIndex)
+            .limit(limit);
 
         res.status(200).json({
             success: true,
             count: products.length,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            },
             data: products,
         });
     } catch (error) {

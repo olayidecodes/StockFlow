@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
+import { FiEdit2, FiTrash2, FiX } from 'react-icons/fi';
+import Spinner from '../components/Spinner';
 
 const Users = () => {
     const [users, setUsers] = useState([]);
@@ -69,8 +71,10 @@ const Users = () => {
     return (
         <div className="page-container">
             <div className="page-header">
-                <h1>User Management</h1>
-                <p>Manage access and permissions</p>
+                <div>
+                    <h1>User Management</h1>
+                    <p>Manage access and permissions</p>
+                </div>
             </div>
 
             <div className="card-container" style={{ overflowX: 'auto' }}>
@@ -103,21 +107,22 @@ const Users = () => {
                                     Created: {new Date(u.createdAt).toLocaleDateString()}
                                 </td>
                                 <td>
-                                    <div className="flex gap-2">
+                                    <div className="action-buttons">
                                         <button
-                                            className="btn btn-sm btn-secondary"
+                                            className="btn-icon"
                                             onClick={() => handleEdit(u)}
                                             disabled={u._id === currentUser.id}
+                                            title="Edit User"
                                         >
-                                            Edit
+                                            <FiEdit2 />
                                         </button>
                                         <button
-                                            className="btn btn-sm btn-danger"
+                                            className="btn-icon delete"
                                             onClick={() => handleDelete(u._id)}
                                             disabled={u._id === currentUser.id}
                                             title="Delete User"
                                         >
-                                            Delete
+                                            <FiTrash2 />
                                         </button>
                                     </div>
                                 </td>
@@ -131,7 +136,10 @@ const Users = () => {
             {editingUser && (
                 <div className="modal-overlay">
                     <div className="modal-content" style={{ maxWidth: '500px' }}>
-                        <h2>Edit User</h2>
+                        <div className="modal-header">
+                            <h2>Edit User</h2>
+                            <button onClick={() => setEditingUser(null)} className="btn-close" title="Close"><FiX /></button>
+                        </div>
                         <div className="mb-md">
                             <strong>{editingUser.username}</strong> ({editingUser.email})
                         </div>

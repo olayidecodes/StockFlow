@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { FiPlus, FiEdit2, FiTrash2, FiX } from 'react-icons/fi';
 import api from '../utils/api';
+import Spinner from '../components/Spinner';
 import PermissionGuard from '../components/PermissionGuard';
 import { PERMISSIONS } from '../utils/constants';
 
@@ -19,7 +21,6 @@ const Products = () => {
         brand: '',
         cartonSize: 1,
         status: 'ACTIVE',
-        price: 0,
         weight: 0,
         cartonWeight: 0,
         wholesaleCost: 0,
@@ -84,7 +85,6 @@ const Products = () => {
                 brand: product.brand._id || product.brand, // Handle populated or id
                 cartonSize: product.cartonSize,
                 status: product.status,
-                price: product.price || 0,
                 weight: product.weight || 0,
                 cartonWeight: (product.weight || 0) * (product.cartonSize || 1),
                 wholesaleCost: product.wholesaleCost || 0,
@@ -125,7 +125,7 @@ const Products = () => {
                 <h1>Product Management</h1>
                 <PermissionGuard permission={PERMISSIONS.MANAGE_INVENTORY}>
                     <button onClick={() => openModal()} className="btn btn-primary">
-                        + Add Product
+                        <FiPlus /> Add Product
                     </button>
                 </PermissionGuard>
             </div>
@@ -146,17 +146,17 @@ const Products = () => {
 
 
             {loading ? (
-                <div>Loading...</div>
+                <Spinner fullPage />
             ) : (
                 <div className="table-container">
                     <table className="data-table">
                         <thead>
                             <tr>
-                                <th>SKU</th>
+                                <th style={{ width: '120px' }}>SKU</th>
                                 <th>Name</th>
                                 <th>Brand</th>
-                                <th>Price</th>
                                 <th>Wholesale</th>
+                                <th>Dimensions (cm)</th>
                                 <th>Weight</th>
                                 <th>Carton Size</th>
                                 <th>Status</th>
@@ -166,11 +166,15 @@ const Products = () => {
                         <tbody>
                             {products.map((product) => (
                                 <tr key={product._id}>
-                                    <td className="font-mono">{product.sku}</td>
+                                    <td className="font-mono text-xs" style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{product.sku}</td>
                                     <td>{product.name}</td>
                                     <td>{product.brand?.name || 'Unknown'}</td>
-                                    <td>₦{product.price?.toFixed(2) || '0.00'}</td>
                                     <td>₦{product.wholesaleCost?.toFixed(2) || '0.00'}</td>
+                                    <td className="text-secondary">
+                                        {product.dimensions ? (
+                                            `${Math.round(product.dimensions.length * 100)}, ${Math.round(product.dimensions.breadth * 100)}, ${Math.round(product.dimensions.height * 100)}`
+                                        ) : '-'}
+                                    </td>
                                     <td>{product.weight?.toFixed(2) || '0.00'} kg</td>
                                     <td>{product.cartonSize}</td>
                                     <td>
@@ -181,8 +185,8 @@ const Products = () => {
                                     <td>
                                         <PermissionGuard permission={PERMISSIONS.MANAGE_INVENTORY}>
                                             <div className="action-buttons">
-                                                <button onClick={() => openModal(product)} className="btn-icon">Edit</button>
-                                                <button onClick={() => handleDelete(product._id)} className="btn-icon delete">Delete</button>
+                                                <button onClick={() => openModal(product)} className="btn-icon" title="Edit Product"><FiEdit2 /></button>
+                                                <button onClick={() => handleDelete(product._id)} className="btn-icon delete" title="Delete Product"><FiTrash2 /></button>
                                             </div>
                                         </PermissionGuard>
                                     </td>
@@ -197,7 +201,10 @@ const Products = () => {
             {isModalOpen && (
                 <div className="modal-overlay">
                     <div className="modal-content">
-                        <h2>{editingProduct ? 'Edit Product' : 'New Product'}</h2>
+                        <div className="modal-header">
+                            <h2>{editingProduct ? 'Edit Product' : 'New Product'}</h2>
+                            <button onClick={closeModal} className="btn-close" title="Close"><FiX /></button>
+                        </div>
                         <form onSubmit={handleSubmit}>
                             <div className="form-group">
                                 <label>SKU (Unique)</label>
@@ -252,18 +259,7 @@ const Products = () => {
                                 <small className="form-help-text">Mandatory. Cannot change if orders exist.</small>
                             </div>
 
-                            <div className="form-group">
-                                <label>Price (per piece)</label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={formData.price || ''}
-                                    onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                                    onWheel={(e) => e.target.blur()}
-                                    required
-                                />
-                            </div>
+
 
                             <div className="form-group">
                                 <label>Unit Wholesale Cost (per piece)</label>

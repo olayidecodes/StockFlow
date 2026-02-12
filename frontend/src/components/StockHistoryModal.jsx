@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { FiX } from 'react-icons/fi';
 import api from '../utils/api';
+import Spinner from '../components/Spinner';
 
 const StockHistoryModal = ({ isOpen, onClose, product, warehouse }) => {
     const [ledger, setLedger] = useState([]);
@@ -30,14 +32,14 @@ const StockHistoryModal = ({ isOpen, onClose, product, warehouse }) => {
             <div className="modal-content large-modal">
                 <div className="modal-header">
                     <h2>Stock History</h2>
-                    <button onClick={onClose} className="btn-icon">×</button>
+                    <button onClick={onClose} className="btn-close" title="Close"><FiX /></button>
                 </div>
                 <div className="stock-context">
                     <p><strong>{product.name}</strong> at <strong>{warehouse.name}</strong></p>
                 </div>
 
                 {loading ? (
-                    <div className="text-center p-md">Loading history...</div>
+                    <div style={{ padding: '2rem' }}><Spinner /></div>
                 ) : (
                     <div className="table-container max-h-400">
                         <table className="data-table">

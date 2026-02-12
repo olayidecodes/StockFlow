@@ -23,7 +23,7 @@ const Analytics = () => {
             });
     }, []);
 
-    if (loading) return <div className="p-xl text-center">Loading analytics...</div>;
+    if (loading) return <Spinner fullPage />;
     if (!data) return <div className="p-xl text-center">Failed to load data</div>;
 
     const { topProducts, regionalPerformance, dispatchTrends, summary } = data;

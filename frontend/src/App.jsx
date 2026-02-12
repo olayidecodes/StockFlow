@@ -19,8 +19,7 @@ import Analytics from './pages/Analytics';
 import CustomerAnalytics from './pages/CustomerAnalytics';
 import Users from './pages/Users';
 import VerifyEmail from './pages/VerifyEmail';
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
+import Layout from './components/Layout';
 
 function App() {
   return (
@@ -33,8 +32,7 @@ function App() {
             path="*"
             element={
               <ProtectedRoute>
-                <>
-                  <Navbar />
+                <Layout>
                   <Routes>
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/analytics" element={<Analytics />} />
@@ -49,8 +47,7 @@ function App() {
                     <Route path="/users" element={<Users />} />
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   </Routes>
-                  {/* <Footer /> */}
-                </>
+                </Layout>
               </ProtectedRoute>
             }
           />

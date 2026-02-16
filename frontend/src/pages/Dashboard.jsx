@@ -48,29 +48,33 @@ const Dashboard = () => {
             title: 'Total Orders',
             value: stats.summary.totalOrders.toLocaleString(),
             icon: <FiShoppingCart />,
+            trend: '12%',
+            trendUp: true,
             color: '#4880FF',
-            bgColor: '#EBF1FF'
         },
         {
             title: 'Top Brand',
             value: stats.summary.topSellingBrand,
             icon: <FiAward />,
+            trend: '8%',
+            trendUp: true,
             color: '#10b981',
-            bgColor: '#ECFDF5'
         },
         {
             title: 'Top Product (Qty)',
             value: stats.summary.topProductQty,
             icon: <FiTarget />,
+            trend: '24%',
+            trendUp: false,
             color: '#f59e0b',
-            bgColor: '#FFFBEB'
         },
         {
             title: 'Top Product (Value)',
             value: stats.summary.topProductValue,
             icon: <FiActivity />,
+            trend: '16%',
+            trendUp: true,
             color: '#ef4444',
-            bgColor: '#FEF2F2'
         }
     ];
 
@@ -85,12 +89,15 @@ const Dashboard = () => {
             <div className="stat-cards-row">
                 {statCards.map((card, i) => (
                     <div className="stat-card" key={i}>
-                        <div className="stat-card-icon" style={{ background: card.bgColor, color: card.color }}>
+                        <div className="stat-card-icon">
                             {card.icon}
                         </div>
-                        <div className="stat-card-info">
-                            <span className="stat-card-label">{card.title}</span>
-                            <span className="stat-card-value" title={card.value}>{card.value}</span>
+                        <div className="stat-card-label">{card.title}</div>
+                        <div className="stat-card-bottom">
+                            <span className="stat-card-value">{card.value}</span>
+                            <span className={`stat-card-trend ${card.trendUp ? 'up' : 'down'}`}>
+                                {card.trendUp ? '↑' : '↓'} {card.trend}
+                            </span>
                         </div>
                     </div>
                 ))}

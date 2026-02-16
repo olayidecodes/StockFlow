@@ -37,7 +37,7 @@ const Inventory = () => {
         try {
             const [whRes, prodRes] = await Promise.all([
                 api.get('/warehouses'),
-                api.get('/products')
+                api.get('/products?limit=1000')
             ]);
             setWarehouses(whRes.data.data);
             setProducts(prodRes.data.data);

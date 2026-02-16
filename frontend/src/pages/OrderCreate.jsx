@@ -173,7 +173,7 @@ const OrderCreate = () => {
     const loadWarehouseData = async (warehouseId) => {
         try {
             const [prodRes, invRes] = await Promise.all([
-                api.get('/products'),
+                api.get('/products?limit=1000'),
                 api.get(`/inventory/balance?warehouseId=${warehouseId}`)
             ]);
             setProducts(prodRes.data.data.filter(p => p.status === 'ACTIVE'));

@@ -12,9 +12,12 @@ exports.getStats = async (req, res, next) => {
         const trendDays = parseInt(days);
         const today = new Date();
         const trendStartDate = new Date(today.getTime() - trendDays * 24 * 60 * 60 * 1000);
+        const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-        // 1. Top Selling Product (by quantity)
-        const topProductByQty = await Order.aggregate([
+        // --- DASHBOARD V2 METRICS ---
+
+        // 1. Top Selling Product (by quantity - single for card)
+        const topProductByQtySingle = await Order.aggregate([
             { $match: { status: { $ne: 'CANCELLED' } } },
             { $unwind: '$items' },
             {
@@ -36,8 +39,8 @@ exports.getStats = async (req, res, next) => {
             { $unwind: '$product' }
         ]);
 
-        // 2. Top Selling Product (by sales value)
-        const topProductByValue = await Order.aggregate([
+        // 2. Top Selling Product (by sales value - single for card)
+        const topProductByValueSingle = await Order.aggregate([
             { $match: { status: { $ne: 'CANCELLED' } } },
             { $unwind: '$items' },
             {
@@ -59,7 +62,7 @@ exports.getStats = async (req, res, next) => {
             { $unwind: '$product' }
         ]);
 
-        // 3. Top Selling Brand
+        // 3. Top Selling Brand (single for card)
         const topBrand = await Order.aggregate([
             { $match: { status: { $ne: 'CANCELLED' } } },
             { $unwind: '$items' },
@@ -149,7 +152,7 @@ exports.getStats = async (req, res, next) => {
             }
         ]);
 
-        // 6. Top Customers
+        // 6. Top Customers (for Dashboard table)
         const topCustomers = await Order.aggregate([
             { $match: { status: { $ne: 'CANCELLED' } } },
             {
@@ -164,17 +167,105 @@ exports.getStats = async (req, res, next) => {
             { $limit: 5 }
         ]);
 
+        // --- LEGACY ANALYTICS PAGE METRICS ---
+
+        // 7. Top Selling Products (Top 5 list for bar chart)
+        const topProducts = await Order.aggregate([
+            { $match: { status: { $ne: 'CANCELLED' } } },
+            { $unwind: '$items' },
+            {
+                $group: {
+                    _id: '$items.product',
+                    totalSold: { $sum: '$items.quantity' },
+                },
+            },
+            { $sort: { totalSold: -1 } },
+            { $limit: 5 },
+            {
+                $lookup: {
+                    from: 'products',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'productInfo',
+                },
+            },
+            { $unwind: '$productInfo' },
+            {
+                $project: {
+                    name: '$productInfo.name',
+                    value: '$totalSold',
+                },
+            },
+        ]);
+
+        // 8. Regional Performance (Order Count for pie chart)
+        const regionalPerformance = await Order.aggregate([
+            { $match: { status: { $ne: 'CANCELLED' } } },
+            {
+                $group: {
+                    _id: '$region',
+                    value: { $sum: 1 },
+                },
+            },
+            {
+                $lookup: {
+                    from: 'regions',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'regionInfo',
+                },
+            },
+            { $unwind: '$regionInfo' },
+            {
+                $project: {
+                    name: '$regionInfo.name',
+                    value: 1,
+                },
+            },
+        ]);
+
+        // 9. Stock Health / Financials
+        const lowStockCount = await InventoryBalance.countDocuments({
+            quantity: { $lt: 50 },
+        });
+
+        const inventorySummary = await InventoryBalance.aggregate([
+            {
+                $lookup: {
+                    from: 'products',
+                    localField: 'product',
+                    foreignField: '_id',
+                    as: 'productInfo',
+                },
+            },
+            { $unwind: '$productInfo' },
+            {
+                $group: {
+                    _id: null,
+                    totalQuantity: { $sum: '$quantity' },
+                    totalValue: { $sum: { $multiply: ['$quantity', { $ifNull: ['$productInfo.wholesaleCost', '$productInfo.price'] }] } }
+                }
+            }
+        ]);
+
         const totalOrders = await Order.countDocuments({ status: { $ne: 'CANCELLED' } });
+        const totalProducts = await Product.countDocuments();
 
         res.status(200).json({
             success: true,
             data: {
                 summary: {
                     totalOrders,
+                    totalProducts,
+                    lowStock: lowStockCount,
                     topSellingBrand: topBrand[0]?.brand?.name || 'N/A',
-                    topProductQty: topProductByQty[0]?.product?.name || 'N/A',
-                    topProductValue: topProductByValue[0]?.product?.name || 'N/A',
+                    topProductQty: topProductByQtySingle[0]?.product?.name || 'N/A',
+                    topProductValue: topProductByValueSingle[0]?.product?.name || 'N/A',
+                    totalQuantity: inventorySummary[0]?.totalQuantity || 0,
+                    totalValue: inventorySummary[0]?.totalValue || 0,
                 },
+                topProducts,
+                regionalPerformance,
                 warehouseCBM,
                 dispatchTrends,
                 topCustomers

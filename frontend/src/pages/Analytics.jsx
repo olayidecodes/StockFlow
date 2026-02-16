@@ -13,13 +13,15 @@ const Analytics = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        console.log("Fetching analytics data...");
         api.get('/analytics')
             .then(res => {
+                console.log("Analytics data received:", res.data.data);
                 setData(res.data.data);
                 setLoading(false);
             })
             .catch(err => {
-                console.error(err);
+                console.error("Analytics fetch error:", err);
                 setLoading(false);
             });
     }, []);

@@ -8,6 +8,7 @@ const errorHandler = require('./middleware/errorHandler');
 const authRoutes = require('./routes/auth.routes');
 const testRoutes = require('./routes/test.routes');
 const brandRoutes = require('./routes/brand.routes');
+const categoryRoutes = require('./routes/category.routes');
 const productRoutes = require('./routes/product.routes');
 const regionRoutes = require('./routes/region.routes');
 const warehouseRoutes = require('./routes/warehouse.routes');
@@ -15,6 +16,7 @@ const inventoryRoutes = require('./routes/inventory.routes');
 const orderRoutes = require('./routes/order.routes');
 const templateRoutes = require('./routes/template.routes');
 const analyticsRoutes = require('./routes/analytics.routes');
+const financialsRoutes = require('./routes/financials.routes');
 const whatsappService = require('./services/whatsapp.service');
 
 // Connect to database
@@ -32,6 +34,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/test', testRoutes);
 app.use('/api/brands', brandRoutes);
+app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/regions', regionRoutes);
 app.use('/api/warehouses', warehouseRoutes);
@@ -39,6 +42,7 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/financials', financialsRoutes);
 app.use('/api/users', require('./routes/user.routes'));
 
 // Health check

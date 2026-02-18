@@ -106,13 +106,64 @@ exports.adjustStock = async (req, res, next) => {
 exports.getBalance = async (req, res, next) => {
     try {
         const { warehouseId, productId } = req.query;
-        const query = {};
 
-        if (warehouseId) query.warehouse = warehouseId;
+        if (!warehouseId || warehouseId === '') {
+            // Aggregated View - Group by product
+            const match = {};
+            if (productId && productId !== '') match.product = new mongoose.Types.ObjectId(productId);
+
+            const balances = await InventoryBalance.aggregate([
+                { $match: match },
+                {
+                    $group: {
+                        _id: '$product',
+                        quantity: { $sum: '$quantity' },
+                        allocated: { $sum: '$allocated' },
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'products',
+                        localField: '_id',
+                        foreignField: '_id',
+                        as: 'product'
+                    }
+                },
+                { $unwind: '$product' },
+                {
+                    $project: {
+                        _id: 1,
+                        quantity: 1,
+                        allocated: 1,
+                        product: {
+                            _id: '$product._id',
+                            name: '$product.name',
+                            sku: '$product.sku',
+                            cartonSize: '$product.cartonSize',
+                            wholesaleCost: '$product.wholesaleCost',
+                            price: '$product.price',
+                            volume: '$product.volume',
+                            dimensions: '$product.dimensions'
+                        },
+                        warehouse: { name: 'All Warehouses' }
+                    }
+                },
+                { $sort: { 'product.name': 1 } }
+            ]);
+
+            return res.status(200).json({
+                success: true,
+                count: balances.length,
+                data: balances,
+            });
+        }
+
+        // Specific Warehouse View
+        const query = { warehouse: warehouseId };
         if (productId) query.product = productId;
 
         const balances = await InventoryBalance.find(query)
-            .populate('product', 'name sku cartonSize')
+            .populate('product', 'name sku cartonSize wholesaleCost price volume dimensions')
             .populate('warehouse', 'name');
 
         res.status(200).json({

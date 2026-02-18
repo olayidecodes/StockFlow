@@ -1,0 +1,803 @@
+import { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import api from '../utils/api';
+import {
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+    LineChart, Line, PieChart, Pie, Cell, ComposedChart, Area
+} from 'recharts';
+import { FiDollarSign, FiTrendingUp, FiPackage, FiShoppingCart, FiAlertCircle, FiFilter } from 'react-icons/fi';
+import Spinner from '../components/Spinner';
+
+const COLORS = ['#4880FF', '#10B981', '#64748B', '#8B5CF6', '#F59E0B', '#EC4899'];
+
+const Financials = () => {
+    const { user } = useAuth();
+    const [data, setData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
+    const [activeView, setActiveView] = useState('overview'); // overview, inventory, sales, profit, trends
+
+    useEffect(() => {
+        console.log('Current user:', user);
+        console.log('User role:', user?.role);
+        fetchFinancials();
+    }, []);
+
+    const fetchFinancials = async () => {
+        setLoading(true);
+        try {
+            const params = new URLSearchParams();
+            if (dateRange.startDate) params.append('startDate', dateRange.startDate);
+            if (dateRange.endDate) params.append('endDate', dateRange.endDate);
+            
+            console.log('Fetching financials from:', `/financials?${params.toString()}`);
+            const res = await api.get(`/financials?${params.toString()}`);
+            console.log('Financials data received:', res.data);
+            setData(res.data.data);
+            setLoading(false);
+        } catch (err) {
+            console.error('Failed to load financials:', err);
+            console.error('Error response:', err.response?.data);
+            console.error('Error status:', err.response?.status);
+            
+            if (err.response?.status === 403) {
+                alert('Access Denied: This page is only accessible to Admin users.');
+            } else if (err.response?.status === 401) {
+                alert('Authentication Error: Please log in again.');
+            } else if (err.response?.status === 404) {
+                alert('API Endpoint Not Found: The server may need to be restarted.');
+            } else {
+                alert('Failed to load financial data. Check console for details.');
+            }
+            
+            setLoading(false);
+        }
+    };
+
+    const handleDateFilter = () => {
+        fetchFinancials();
+    };
+
+    const formatCurrency = (value) => {
+        return `₦${value?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}`;
+    };
+
+    const formatNumber = (value) => {
+        return value?.toLocaleString() || '0';
+    };
+
+    if (loading) return <Spinner fullPage />;
+    if (!data) return (
+        <div className="page-container">
+            <div className="page-header">
+                <h1>Financial Analytics</h1>
+            </div>
+            <div style={{ 
+                padding: '40px', 
+                textAlign: 'center', 
+                background: '#FEF2F2', 
+                borderRadius: '8px',
+                border: '1px solid #FCA5A5'
+            }}>
+                <FiAlertCircle size={48} style={{ color: '#DC2626', marginBottom: '16px' }} />
+                <h3 style={{ color: '#991B1B', marginBottom: '8px' }}>Failed to Load Financial Data</h3>
+                <p style={{ color: '#7F1D1D', marginBottom: '16px' }}>
+                    This page is only accessible to Admin users. Please check your permissions.
+                </p>
+                <button onClick={fetchFinancials} className="btn btn-primary">
+                    Retry
+                </button>
+            </div>
+        </div>
+    );
+
+    const { summary, inventory, sales, profitAnalysis, trends } = data;
+
+    return (
+        <div className="page-container">
+            <div className="page-header">
+                <div>
+                    <h1>Financial Analytics</h1>
+                    <p style={{ color: '#64748B', fontSize: '0.9rem', marginTop: '4px' }}>
+                        Comprehensive financial overview and cost analysis
+                    </p>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <input
+                        type="date"
+                        value={dateRange.startDate}
+                        onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
+                        style={{ padding: '8px', borderRadius: '6px', border: '1px solid #E2E8F0' }}
+                    />
+                    <span>to</span>
+                    <input
+                        type="date"
+                        value={dateRange.endDate}
+                        onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
+                        style={{ padding: '8px', borderRadius: '6px', border: '1px solid #E2E8F0' }}
+                    />
+                    <button onClick={handleDateFilter} className="btn btn-primary">Apply</button>
+                    {(dateRange.startDate || dateRange.endDate) && (
+                        <button 
+                            onClick={() => {
+                                setDateRange({ startDate: '', endDate: '' });
+                                setTimeout(fetchFinancials, 100);
+                            }} 
+                            className="btn btn-secondary"
+                        >
+                            Clear
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* KEY METRICS SUMMARY */}
+            <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
+                gap: '16px',
+                marginBottom: '24px'
+            }}>
+                <div className="dashboard-card" style={{ borderLeft: '4px solid #4880FF' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <div style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '8px' }}>
+                                Total Inventory Value
+                            </div>
+                            <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#1E293B' }}>
+                                {formatCurrency(summary.totalInventoryValue)}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '4px' }}>
+                                Current stock valuation
+                            </div>
+                        </div>
+                        <FiPackage size={28} style={{ color: '#4880FF', opacity: 0.6 }} />
+                    </div>
+                </div>
+
+                <div className="dashboard-card" style={{ borderLeft: '4px solid #10B981' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <div style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '8px' }}>
+                                Total Sales Revenue
+                            </div>
+                            <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#1E293B' }}>
+                                {formatCurrency(summary.totalSalesRevenue)}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '4px' }}>
+                                {formatNumber(summary.totalOrders)} orders completed
+                            </div>
+                        </div>
+                        <FiShoppingCart size={28} style={{ color: '#10B981', opacity: 0.6 }} />
+                    </div>
+                </div>
+
+                <div className="dashboard-card" style={{ borderLeft: '4px solid #8B5CF6' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <div style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '8px' }}>
+                                Average Order Value
+                            </div>
+                            <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#1E293B' }}>
+                                {formatCurrency(summary.avgOrderValue)}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '4px' }}>
+                                Per transaction
+                            </div>
+                        </div>
+                        <FiDollarSign size={28} style={{ color: '#8B5CF6', opacity: 0.6 }} />
+                    </div>
+                </div>
+
+                {/* <div className="dashboard-card" style={{ borderLeft: '4px solid #F59E0B' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <div style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '8px' }}>
+                                Inventory Turnover
+                            </div>
+                            <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#1E293B' }}>
+                                {summary.totalInventoryValue > 0 
+                                    ? ((summary.totalSalesRevenue / summary.totalInventoryValue) * 100).toFixed(1)
+                                    : '0.0'
+                                }%
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '4px' }}>
+                                Sales vs Stock ratio
+                            </div>
+                        </div>
+                        <FiTrendingUp size={28} style={{ color: '#F59E0B', opacity: 0.6 }} />
+                    </div>
+                </div> */}
+            </div>
+
+            {/* VIEW FILTER TABS */}
+            <div style={{ 
+                display: 'flex', 
+                gap: '8px', 
+                marginBottom: '24px',
+                borderBottom: '2px solid #E2E8F0',
+                paddingBottom: '0',
+                overflowX: 'auto',
+                WebkitOverflowScrolling: 'touch',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none'
+            }}>
+                {[
+                    { id: 'overview', label: 'Overview', icon: <FiFilter /> },
+                    { id: 'inventory', label: 'Inventory', icon: <FiPackage /> },
+                    { id: 'sales', label: 'Sales', icon: <FiShoppingCart /> },
+                    { id: 'profit', label: 'Performance', icon: <FiDollarSign /> },
+                    { id: 'trends', label: 'Trends', icon: <FiTrendingUp /> }
+                ].map(view => (
+                    <button
+                        key={view.id}
+                        onClick={() => setActiveView(view.id)}
+                        style={{
+                            padding: '12px 16px',
+                            border: 'none',
+                            background: activeView === view.id ? '#F8FAFC' : 'transparent',
+                            borderBottom: activeView === view.id ? '2px solid #4880FF' : '2px solid transparent',
+                            color: activeView === view.id ? '#4880FF' : '#64748B',
+                            fontWeight: activeView === view.id ? 600 : 400,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            fontSize: '0.9rem',
+                            transition: 'all 0.2s',
+                            marginBottom: '-2px',
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0
+                        }}
+                    >
+                        {view.icon}
+                        <span className="tab-label">{view.label}</span>
+                    </button>
+                ))}
+            </div>
+
+            {/* OVERVIEW VIEW */}
+            {activeView === 'overview' && (
+                <div>
+                    <div className="dashboard-card" style={{ marginBottom: '24px', background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+                        <h3 style={{ color: '#92400E', marginBottom: '12px', fontSize: '1rem' }}>
+                            Key Financial Metrics
+                        </h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', fontSize: '0.85rem', color: '#78350F' }}>
+                            <div>
+                                <strong>Total Inventory Value:</strong> Sum of (quantity × price) for all products currently in stock
+                            </div>
+                            <div>
+                                <strong>Total Sales Revenue:</strong> Sum of all completed order amounts (excluding cancelled orders)
+                            </div>
+                            <div>
+                                <strong>Average Order Value:</strong> Total Revenue ÷ Number of Orders
+                            </div>
+                            <div>
+                                <strong>Inventory Turnover:</strong> (Sales Revenue ÷ Inventory Value) × 100 - measures how efficiently stock is moving
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
+                        <div className="dashboard-card">
+                            <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>Inventory Value by Brand</h3>
+                            <ResponsiveContainer width="100%" height={280}>
+                                <BarChart data={inventory.byBrand.slice(0, 8)} layout="vertical">
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                                    <XAxis type="number" tick={{ fill: '#64748B', fontSize: 11 }} />
+                                    <YAxis dataKey="brandName" type="category" width={90} tick={{ fill: '#1E293B', fontSize: 11 }} />
+                                    <Tooltip formatter={(value) => formatCurrency(value)} />
+                                    <Bar dataKey="totalCost" fill="#4880FF" name="Cost Value" radius={[0, 4, 4, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        <div className="dashboard-card">
+                            <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>Sales Revenue by Region</h3>
+                            <ResponsiveContainer width="100%" height={280}>
+                                <BarChart data={sales.byRegion}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                                    <XAxis dataKey="regionName" tick={{ fill: '#64748B', fontSize: 11 }} />
+                                    <YAxis tick={{ fill: '#64748B', fontSize: 11 }} />
+                                    <Tooltip formatter={(value) => formatCurrency(value)} />
+                                    <Bar dataKey="totalRevenue" fill="#10B981" name="Revenue" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    <div className="dashboard-card">
+                        <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>Quick Summary</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                            <div style={{ padding: '12px', background: '#F8FAFC', borderRadius: '6px' }}>
+                                <div style={{ fontSize: '0.75rem', color: '#64748B', marginBottom: '4px' }}>Warehouses</div>
+                                <div style={{ fontSize: '1.25rem', fontWeight: 600, color: '#1E293B' }}>
+                                    {inventory.byWarehouse.length}
+                                </div>
+                            </div>
+                            <div style={{ padding: '12px', background: '#F8FAFC', borderRadius: '6px' }}>
+                                <div style={{ fontSize: '0.75rem', color: '#64748B', marginBottom: '4px' }}>Active Brands</div>
+                                <div style={{ fontSize: '1.25rem', fontWeight: 600, color: '#1E293B' }}>
+                                    {inventory.byBrand.length}
+                                </div>
+                            </div>
+                            <div style={{ padding: '12px', background: '#F8FAFC', borderRadius: '6px' }}>
+                                <div style={{ fontSize: '0.75rem', color: '#64748B', marginBottom: '4px' }}>Categories</div>
+                                <div style={{ fontSize: '1.25rem', fontWeight: 600, color: '#1E293B' }}>
+                                    {inventory.byCategory.length}
+                                </div>
+                            </div>
+                            <div style={{ padding: '12px', background: '#F8FAFC', borderRadius: '6px' }}>
+                                <div style={{ fontSize: '0.75rem', color: '#64748B', marginBottom: '4px' }}>Regions</div>
+                                <div style={{ fontSize: '1.25rem', fontWeight: 600, color: '#1E293B' }}>
+                                    {sales.byRegion.length}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* INVENTORY ANALYSIS VIEW */}
+            {activeView === 'inventory' && (
+                <div>
+                    <div className="dashboard-card" style={{ marginBottom: '20px' }}>
+                        <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>Inventory Valuation by Warehouse</h3>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table className="data-table" style={{ minWidth: '700px' }}>
+                                <thead>
+                                    <tr>
+                                        <th>Warehouse</th>
+                                        <th>Total Units</th>
+                                        <th>Total Value</th>
+                                        <th>% of Total Inventory</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {inventory.byWarehouse.map((wh, idx) => (
+                                        <tr key={idx}>
+                                            <td><strong>{wh.warehouseName}</strong></td>
+                                            <td>{formatNumber(wh.totalUnits)}</td>
+                                            <td style={{ color: '#4880FF', fontWeight: 600 }}>{formatCurrency(wh.totalCost)}</td>
+                                            <td>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <div style={{ 
+                                                        width: '100px', 
+                                                        height: '8px', 
+                                                        background: '#E5E7EB', 
+                                                        borderRadius: '4px',
+                                                        overflow: 'hidden'
+                                                    }}>
+                                                        <div style={{ 
+                                                            width: `${(wh.totalCost / summary.totalInventoryValue * 100)}%`, 
+                                                            height: '100%',
+                                                            background: '#4880FF',
+                                                            transition: 'width 0.3s'
+                                                        }} />
+                                                    </div>
+                                                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                                                        {((wh.totalCost / summary.totalInventoryValue) * 100).toFixed(1)}%
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                        <div className="dashboard-card">
+                            <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>By Brand</h3>
+                            <div style={{ overflowX: 'auto', maxHeight: '400px' }}>
+                                <table className="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Brand</th>
+                                            <th>Units</th>
+                                            <th>Total Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {inventory.byBrand.map((brand, idx) => (
+                                            <tr key={idx}>
+                                                <td><strong>{brand.brandName}</strong></td>
+                                                <td>{formatNumber(brand.totalUnits)}</td>
+                                                <td style={{ color: '#4880FF' }}>{formatCurrency(brand.totalCost)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div className="dashboard-card">
+                            <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>By Category</h3>
+                            <div style={{ overflowX: 'auto', maxHeight: '400px' }}>
+                                <table className="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Category</th>
+                                            <th>Units</th>
+                                            <th>Total Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {inventory.byCategory.map((cat, idx) => (
+                                            <tr key={idx}>
+                                                <td><strong>{cat.categoryName}</strong></td>
+                                                <td>{formatNumber(cat.totalUnits)}</td>
+                                                <td style={{ color: '#4880FF' }}>{formatCurrency(cat.totalCost)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="dashboard-card">
+                        <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>Top 20 Products by Inventory Value</h3>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table className="data-table" style={{ minWidth: '700px' }}>
+                                <thead>
+                                    <tr>
+                                        <th>SKU</th>
+                                        <th>Product Name</th>
+                                        <th>Quantity</th>
+                                        <th>Unit Price</th>
+                                        <th>Total Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {inventory.topProducts.map((prod, idx) => (
+                                        <tr key={idx}>
+                                            <td><code style={{ fontSize: '0.75rem' }}>{prod.sku}</code></td>
+                                            <td><strong>{prod.productName}</strong></td>
+                                            <td>{formatNumber(prod.quantity)}</td>
+                                            <td>{formatCurrency(prod.unitPrice)}</td>
+                                            <td style={{ color: '#4880FF', fontWeight: 600 }}>{formatCurrency(prod.totalRetailValue)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* SALES PERFORMANCE VIEW */}
+            {activeView === 'sales' && (
+                <div>
+                    <div className="dashboard-card" style={{ marginBottom: '20px' }}>
+                        <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>Sales Revenue by Warehouse</h3>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table className="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Warehouse</th>
+                                        <th>Total Orders</th>
+                                        <th>Total Revenue</th>
+                                        <th>Avg Order Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {sales.byWarehouse.map((wh, idx) => (
+                                        <tr key={idx}>
+                                            <td><strong>{wh.warehouseName}</strong></td>
+                                            <td>{formatNumber(wh.totalOrders)}</td>
+                                            <td style={{ color: '#10B981', fontWeight: 600 }}>{formatCurrency(wh.totalRevenue)}</td>
+                                            <td>{formatCurrency(wh.avgOrderValue)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                        <div className="dashboard-card">
+                            <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>By Brand</h3>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={sales.byBrand.slice(0, 10)}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                                    <XAxis dataKey="brandName" angle={-45} textAnchor="end" height={100} tick={{ fill: '#64748B', fontSize: 10 }} />
+                                    <YAxis tick={{ fill: '#64748B', fontSize: 11 }} />
+                                    <Tooltip formatter={(value) => formatCurrency(value)} />
+                                    <Bar dataKey="totalRevenue" fill="#10B981" name="Revenue" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        <div className="dashboard-card">
+                            <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>By Category</h3>
+                            <div style={{ overflowX: 'auto', maxHeight: '300px' }}>
+                                <table className="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Category</th>
+                                            <th>Units Sold</th>
+                                            <th>Revenue</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {sales.byCategory.map((cat, idx) => (
+                                            <tr key={idx}>
+                                                <td><strong>{cat.categoryName}</strong></td>
+                                                <td>{formatNumber(cat.totalUnitsSold)}</td>
+                                                <td style={{ color: '#10B981', fontWeight: 600 }}>{formatCurrency(cat.totalRevenue)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="dashboard-card">
+                        <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>Top 20 Selling Products (by Revenue)</h3>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table className="data-table" style={{ minWidth: '700px' }}>
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>SKU</th>
+                                        <th>Product Name</th>
+                                        <th>Units Sold</th>
+                                        <th>Avg Price</th>
+                                        <th>Total Revenue</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {sales.topProducts.map((prod, idx) => (
+                                        <tr key={idx}>
+                                            <td>
+                                                <span style={{
+                                                    background: idx < 3 ? '#FEF3C7' : '#F3F4F6',
+                                                    color: idx < 3 ? '#92400E' : '#374151',
+                                                    padding: '4px 8px',
+                                                    borderRadius: '4px',
+                                                    fontWeight: 600,
+                                                    fontSize: '0.85rem'
+                                                }}>
+                                                    #{idx + 1}
+                                                </span>
+                                            </td>
+                                            <td><code style={{ fontSize: '0.75rem' }}>{prod.sku}</code></td>
+                                            <td><strong>{prod.productName}</strong></td>
+                                            <td>{formatNumber(prod.totalUnitsSold)}</td>
+                                            <td>{formatCurrency(prod.avgPrice)}</td>
+                                            <td style={{ color: '#10B981', fontWeight: 600 }}>{formatCurrency(prod.totalRevenue)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* PROFIT ANALYSIS VIEW */}
+            {activeView === 'profit' && (
+                <div>
+                    <div className="dashboard-card" style={{ marginBottom: '20px', background: '#F0F9FF', border: '1px solid #BAE6FD' }}>
+                        <h3 style={{ color: '#075985', marginBottom: '15px', fontSize: '1rem' }}>
+                            Sales Performance Summary
+                        </h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+                            <div>
+                                <div style={{ fontSize: '0.8rem', color: '#0C4A6E', marginBottom: '4px' }}>Total Revenue</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10B981' }}>
+                                    {formatCurrency(profitAnalysis.totalRevenue)}
+                                </div>
+                            </div>
+                            <div>
+                                <div style={{ fontSize: '0.8rem', color: '#0C4A6E', marginBottom: '4px' }}>Total Orders</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#4880FF' }}>
+                                    {formatNumber(summary.totalOrders)}
+                                </div>
+                            </div>
+                            <div>
+                                <div style={{ fontSize: '0.8rem', color: '#0C4A6E', marginBottom: '4px' }}>Avg Order Value</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#8B5CF6' }}>
+                                    {formatCurrency(summary.avgOrderValue)}
+                                </div>
+                            </div>
+                            <div>
+                                <div style={{ fontSize: '0.8rem', color: '#0C4A6E', marginBottom: '4px' }}>Stock Turnover</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#F59E0B' }}>
+                                    {summary.totalInventoryValue > 0 
+                                        ? ((summary.totalSalesRevenue / summary.totalInventoryValue) * 100).toFixed(1)
+                                        : '0.0'
+                                    }%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="dashboard-card">
+                        <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>
+                            Brand Performance: Inventory vs Sales
+                        </h3>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table className="data-table" style={{ minWidth: '800px' }}>
+                                <thead>
+                                    <tr>
+                                        <th>Brand</th>
+                                        <th>Inventory Units</th>
+                                        <th>Inventory Value</th>
+                                        <th>Units Sold</th>
+                                        <th>Sales Revenue</th>
+                                        <th>Turnover %</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {inventory.byBrand.map((invBrand, idx) => {
+                                        const salesBrand = sales.byBrand.find(s => s.brandName === invBrand.brandName);
+                                        const turnoverRatio = invBrand.totalUnits > 0 
+                                            ? ((salesBrand?.totalUnitsSold || 0) / invBrand.totalUnits * 100).toFixed(1)
+                                            : 0;
+                                        
+                                        return (
+                                            <tr key={idx}>
+                                                <td><strong>{invBrand.brandName}</strong></td>
+                                                <td>{formatNumber(invBrand.totalUnits)}</td>
+                                                <td style={{ color: '#4880FF' }}>{formatCurrency(invBrand.totalCost)}</td>
+                                                <td>{formatNumber(salesBrand?.totalUnitsSold || 0)}</td>
+                                                <td style={{ color: '#10B981', fontWeight: 600 }}>
+                                                    {formatCurrency(salesBrand?.totalRevenue || 0)}
+                                                </td>
+                                                <td>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <div style={{ 
+                                                            width: '100px', 
+                                                            height: '8px', 
+                                                            background: '#E5E7EB', 
+                                                            borderRadius: '4px',
+                                                            overflow: 'hidden'
+                                                        }}>
+                                                            <div style={{ 
+                                                                width: `${Math.min(turnoverRatio, 100)}%`, 
+                                                                height: '100%',
+                                                                background: turnoverRatio > 50 ? '#10B981' : turnoverRatio > 25 ? '#F59E0B' : '#DC2626',
+                                                                transition: 'width 0.3s'
+                                                            }} />
+                                                        </div>
+                                                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                                                            {turnoverRatio}%
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* TRENDS VIEW */}
+            {activeView === 'trends' && (
+                <div>
+                    <div className="dashboard-card" style={{ marginBottom: '20px' }}>
+                        <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>
+                            Monthly Revenue Trend (Last 12 Months)
+                        </h3>
+                        <ResponsiveContainer width="100%" height={350}>
+                            <ComposedChart data={trends.monthlyRevenue}>
+                                <defs>
+                                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#4880FF" stopOpacity={0.2} />
+                                        <stop offset="95%" stopColor="#4880FF" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                                <XAxis dataKey="month" tick={{ fill: '#64748B', fontSize: 11 }} />
+                                <YAxis yAxisId="left" tick={{ fill: '#64748B', fontSize: 11 }} />
+                                <YAxis yAxisId="right" orientation="right" tick={{ fill: '#64748B', fontSize: 11 }} />
+                                <Tooltip formatter={(value, name) => {
+                                    if (name === 'Revenue') return formatCurrency(value);
+                                    return formatNumber(value);
+                                }} />
+                                <Legend />
+                                <Area 
+                                    yAxisId="left"
+                                    type="monotone" 
+                                    dataKey="totalRevenue" 
+                                    fill="url(#colorRevenue)" 
+                                    stroke="#4880FF" 
+                                    name="Revenue"
+                                />
+                                <Line 
+                                    yAxisId="right"
+                                    type="monotone" 
+                                    dataKey="orderCount" 
+                                    stroke="#10B981" 
+                                    strokeWidth={2}
+                                    name="Orders"
+                                    dot={{ fill: '#10B981', r: 4 }}
+                                />
+                            </ComposedChart>
+                        </ResponsiveContainer>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                        <div className="dashboard-card">
+                            <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>Monthly Summary</h3>
+                            <div style={{ overflowX: 'auto', maxHeight: '400px' }}>
+                                <table className="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Month</th>
+                                            <th>Orders</th>
+                                            <th>Revenue</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {trends.monthlyRevenue.slice().reverse().map((month, idx) => (
+                                            <tr key={idx}>
+                                                <td><strong>{month.month}</strong></td>
+                                                <td>{formatNumber(month.orderCount)}</td>
+                                                <td style={{ color: '#10B981', fontWeight: 600 }}>
+                                                    {formatCurrency(month.totalRevenue)}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div className="dashboard-card">
+                            <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>Trend Insights</h3>
+                            <div style={{ padding: '12px', background: '#F8FAFC', borderRadius: '6px', marginBottom: '12px' }}>
+                                <div style={{ fontSize: '0.85rem', color: '#64748B', marginBottom: '8px' }}>
+                                    Average Monthly Revenue
+                                </div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1E293B' }}>
+                                    {formatCurrency(
+                                        trends.monthlyRevenue.reduce((sum, m) => sum + m.totalRevenue, 0) / 
+                                        (trends.monthlyRevenue.length || 1)
+                                    )}
+                                </div>
+                            </div>
+                            <div style={{ padding: '12px', background: '#F8FAFC', borderRadius: '6px', marginBottom: '12px' }}>
+                                <div style={{ fontSize: '0.85rem', color: '#64748B', marginBottom: '8px' }}>
+                                    Average Monthly Orders
+                                </div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1E293B' }}>
+                                    {formatNumber(
+                                        Math.round(
+                                            trends.monthlyRevenue.reduce((sum, m) => sum + m.orderCount, 0) / 
+                                            (trends.monthlyRevenue.length || 1)
+                                        )
+                                    )}
+                                </div>
+                            </div>
+                            <div style={{ padding: '12px', background: '#F8FAFC', borderRadius: '6px' }}>
+                                <div style={{ fontSize: '0.85rem', color: '#64748B', marginBottom: '8px' }}>
+                                    Best Month
+                                </div>
+                                <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#10B981' }}>
+                                    {trends.monthlyRevenue.length > 0 
+                                        ? trends.monthlyRevenue.reduce((max, m) => 
+                                            m.totalRevenue > max.totalRevenue ? m : max
+                                        ).month
+                                        : 'N/A'
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default Financials;

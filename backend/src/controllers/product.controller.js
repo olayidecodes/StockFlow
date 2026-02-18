@@ -14,11 +14,18 @@ exports.getProducts = async (req, res, next) => {
         if (req.query.brandId) {
             queryParams.brand = req.query.brandId;
         }
+        if (req.query.categoryId) {
+            queryParams.category = req.query.categoryId;
+        }
 
         const total = await Product.countDocuments(queryParams);
         const products = await Product.find(queryParams)
             .populate({
                 path: 'brand',
+                select: 'name active',
+            })
+            .populate({
+                path: 'category',
                 select: 'name active',
             })
             .skip(startIndex)
@@ -45,7 +52,9 @@ exports.getProducts = async (req, res, next) => {
 // @access  Private
 exports.getProduct = async (req, res, next) => {
     try {
-        const product = await Product.findById(req.params.id).populate('brand');
+        const product = await Product.findById(req.params.id)
+            .populate('brand')
+            .populate('category');
 
         if (!product) {
             return res.status(404).json({
@@ -76,7 +85,8 @@ exports.createProduct = async (req, res, next) => {
         if (req.body.dimensions) {
             const { length, breadth, height } = req.body.dimensions;
             if (length && breadth && height) {
-                req.body.volume = length * breadth * height;
+                // Dimensions are stored in meters, so volume = length * breadth * height (m³)
+                req.body.volume = parseFloat(length) * parseFloat(breadth) * parseFloat(height);
             }
         }
 
@@ -127,7 +137,8 @@ exports.updateProduct = async (req, res, next) => {
             // Mongoose update is atomic, but calculation needs values. 
             // Ideally frontend sends full dimensions.
             if (length !== undefined && breadth !== undefined && height !== undefined) {
-                req.body.volume = length * breadth * height;
+                // Dimensions are stored in meters, so volume = length * breadth * height (m³)
+                req.body.volume = parseFloat(length) * parseFloat(breadth) * parseFloat(height);
             }
         }
 

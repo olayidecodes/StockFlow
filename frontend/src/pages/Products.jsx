@@ -9,6 +9,7 @@ import { PERMISSIONS } from '../utils/constants';
 const Products = () => {
     const [products, setProducts] = useState([]);
     const [brands, setBrands] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
@@ -16,39 +17,45 @@ const Products = () => {
     const [pagination, setPagination] = useState({ totalPages: 1, total: 0 });
 
     const [filterBrand, setFilterBrand] = useState('');
+    const [filterCategory, setFilterCategory] = useState('');
 
     const initialForm = {
         name: '',
         sku: '',
         brand: '',
+        category: '',
         cartonSize: 1,
         status: 'ACTIVE',
         weight: 0,
         cartonWeight: 0,
         wholesaleCost: 0,
+        price: 0,
         dimensions: { length: 0, breadth: 0, height: 0 }
     };
     const [formData, setFormData] = useState(initialForm);
 
     useEffect(() => {
         setPage(1); // Reset to page 1 when filter changes
-    }, [filterBrand]);
+    }, [filterBrand, filterCategory]);
 
     useEffect(() => {
         fetchData();
-    }, [filterBrand, page]);
+    }, [filterBrand, filterCategory, page]);
 
     const fetchData = async () => {
         setLoading(true);
         try {
             const brandQuery = filterBrand ? `&brandId=${filterBrand}` : '';
-            const [productsRes, brandsRes] = await Promise.all([
-                api.get(`/products?page=${page}&limit=20${brandQuery}`),
-                api.get('/brands')
+            const categoryQuery = filterCategory ? `&categoryId=${filterCategory}` : '';
+            const [productsRes, brandsRes, categoriesRes] = await Promise.all([
+                api.get(`/products?page=${page}&limit=20${brandQuery}${categoryQuery}`),
+                api.get('/brands'),
+                api.get('/categories')
             ]);
             setProducts(productsRes.data.data);
             setPagination(productsRes.data.pagination);
             setBrands(brandsRes.data.data);
+            setCategories(categoriesRes.data.data);
             setLoading(false);
         } catch (err) {
             toast.error('Failed to load data');
@@ -90,12 +97,14 @@ const Products = () => {
             setFormData({
                 name: product.name,
                 sku: product.sku,
-                brand: product.brand._id || product.brand, // Handle populated or id
+                brand: product.brand._id || product.brand,
+                category: product.category?._id || product.category || '',
                 cartonSize: product.cartonSize,
                 status: product.status,
                 weight: product.weight || 0,
                 cartonWeight: (product.weight || 0) * (product.cartonSize || 1),
                 wholesaleCost: product.wholesaleCost || 0,
+                price: product.price || 0,
                 dimensions: product.dimensions ? {
                     length: (product.dimensions.length || 0) * 100,
                     breadth: (product.dimensions.breadth || 0) * 100,
@@ -149,6 +158,16 @@ const Products = () => {
                         <option key={b._id} value={b._id}>{b.name}</option>
                     ))}
                 </select>
+                <select
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    className="filter-select"
+                >
+                    <option value="">All Categories</option>
+                    {categories.map(c => (
+                        <option key={c._id} value={c._id}>{c.name}</option>
+                    ))}
+                </select>
             </div>
 
 
@@ -163,7 +182,8 @@ const Products = () => {
                                 <th style={{ width: '120px' }}>SKU</th>
                                 <th>Name</th>
                                 <th>Brand</th>
-                                <th>Wholesale</th>
+                                <th>Category</th>
+                                <th>Wholesale & Price</th>
                                 <th>Dimensions (cm)</th>
                                 <th>Weight</th>
                                 <th>Carton Size</th>
@@ -177,7 +197,15 @@ const Products = () => {
                                     <td className="font-mono text-xs" style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{product.sku}</td>
                                     <td>{product.name}</td>
                                     <td>{product.brand?.name || 'Unknown'}</td>
-                                    <td>₦{product.wholesaleCost?.toFixed(2) || '0.00'}</td>
+                                    <td>
+                                        <span className="text-muted">
+                                            {product.category?.name || '-'}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div style={{ fontSize: '0.8rem', color: '#6B7A99' }}>Cost: ₦{product.wholesaleCost?.toFixed(2) || '0.00'}</div>
+                                        <div style={{ fontWeight: 600, color: '#111827' }}>Price: ₦{product.price?.toFixed(2) || '0.00'}</div>
+                                    </td>
                                     <td className="text-secondary">
                                         {product.dimensions ? (
                                             `${Math.round(product.dimensions.length * 100)}, ${Math.round(product.dimensions.breadth * 100)}, ${Math.round(product.dimensions.height * 100)}`
@@ -270,6 +298,19 @@ const Products = () => {
                             </div>
 
                             <div className="form-group">
+                                <label>Category (Optional)</label>
+                                <select
+                                    value={formData.category}
+                                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                >
+                                    <option value="">No Category</option>
+                                    {categories.filter(c => c.active).map(c => (
+                                        <option key={c._id} value={c._id}>{c.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="form-group">
                                 <label>Carton Size (Pieces per Carton)</label>
                                 <input
                                     type="number"
@@ -292,16 +333,29 @@ const Products = () => {
 
 
 
-                            <div className="form-group">
-                                <label>Unit Wholesale Cost (per piece)</label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={formData.wholesaleCost || ''}
-                                    onChange={(e) => setFormData({ ...formData, wholesaleCost: parseFloat(e.target.value) || 0 })}
-                                    onWheel={(e) => e.target.blur()}
-                                />
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                <div className="form-group">
+                                    <label>Wholesale Cost (piece)</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={formData.wholesaleCost || ''}
+                                        onChange={(e) => setFormData({ ...formData, wholesaleCost: parseFloat(e.target.value) || 0 })}
+                                        onWheel={(e) => e.target.blur()}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Selling Price (piece)</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={formData.price || ''}
+                                        onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                                        onWheel={(e) => e.target.blur()}
+                                    />
+                                </div>
                             </div>
 
                             <div className="form-group">

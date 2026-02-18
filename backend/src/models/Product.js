@@ -21,6 +21,10 @@ const productSchema = new mongoose.Schema(
             ref: 'Brand',
             required: [true, 'Brand is required'],
         },
+        category: {
+            type: mongoose.Schema.ObjectId,
+            ref: 'Category',
+        },
         cartonSize: {
             type: Number,
             required: [true, 'Carton size is required'],
@@ -67,5 +71,6 @@ const productSchema = new mongoose.Schema(
 
 // Compound index if we frequently search by brand and status
 productSchema.index({ brand: 1, status: 1 });
+productSchema.index({ category: 1 });
 
 module.exports = mongoose.model('Product', productSchema);

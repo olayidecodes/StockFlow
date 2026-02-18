@@ -5,7 +5,7 @@ import { usePermissions } from '../hooks/usePermissions';
 
 import {
     FiHome, FiShoppingCart, FiPackage, FiBarChart2, FiUsers,
-    FiMapPin, FiLayers, FiBox, FiTag, FiTrendingUp, FiUserCheck, FiLogOut,
+    FiMapPin, FiLayers, FiBox, FiTag, FiGrid, FiTrendingUp, FiUserCheck, FiDollarSign, FiLogOut,
     FiMenu, FiChevronLeft, FiChevronRight, FiX
 } from 'react-icons/fi';
 
@@ -29,7 +29,8 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
             subItems: [
                 { to: '/inventory/balance', label: 'Stock Levels', icon: <FiLayers /> },
                 { to: '/inventory/products', label: 'Products', icon: <FiBox /> },
-                { to: '/inventory/brands', label: 'Brands', icon: <FiTag /> }
+                { to: '/inventory/brands', label: 'Brands', icon: <FiTag /> },
+                { to: '/inventory/categories', label: 'Categories', icon: <FiGrid /> }
             ]
         },
         {
@@ -38,7 +39,8 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
             permission: PERMISSIONS.VIEW_REPORTS,
             subItems: [
                 { to: '/analytics', label: 'Reports Dashboard', icon: <FiTrendingUp /> },
-                { to: '/analytics/customers', label: 'Customer Insights', icon: <FiUserCheck /> }
+                { to: '/analytics/customers', label: 'Customer Insights', icon: <FiUserCheck /> },
+                { to: '/analytics/financials', label: 'Financials', icon: <FiDollarSign />, adminOnly: true }
             ]
         },
         { to: '/users', label: 'Users', icon: <FiUsers />, permission: PERMISSIONS.MANAGE_USERS },
@@ -74,17 +76,22 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
                                     <span className="label">{item.label}</span>
                                 </div>
                                 <div className="nav-group-items">
-                                    {item.subItems.map(sub => (
-                                        <NavLink
-                                            key={sub.to}
-                                            to={sub.to}
-                                            className={({ isActive }) => `sidebar-link sub-link ${isActive ? 'active' : ''}`}
-                                            onClick={() => window.innerWidth < 768 && toggleSidebar()}
-                                        >
-                                            {sub.icon && <span className="icon" style={{ fontSize: '1rem' }}>{sub.icon}</span>}
-                                            <span className="label">{sub.label}</span>
-                                        </NavLink>
-                                    ))}
+                                    {item.subItems.map(sub => {
+                                        // Check admin-only restriction
+                                        if (sub.adminOnly && role !== 'ADMIN') return null;
+                                        
+                                        return (
+                                            <NavLink
+                                                key={sub.to}
+                                                to={sub.to}
+                                                className={({ isActive }) => `sidebar-link sub-link ${isActive ? 'active' : ''}`}
+                                                onClick={() => window.innerWidth < 768 && toggleSidebar()}
+                                            >
+                                                {sub.icon && <span className="icon" style={{ fontSize: '1rem' }}>{sub.icon}</span>}
+                                                <span className="label">{sub.label}</span>
+                                            </NavLink>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         );

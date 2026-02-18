@@ -105,10 +105,45 @@ exports.getStats = async (req, res, next) => {
                 },
             },
             { $unwind: '$productInfo' },
+            // Add fields for safe calculation (avoid extensive frontend logic replication)
+            {
+                $addFields: {
+                    // 1. Calculate volume from dimensions (dimensions are stored in meters, so m³ = length * breadth * height)
+                    calculatedVolume: {
+                        $multiply: [
+                            { $ifNull: ['$productInfo.dimensions.length', 0] },
+                            { $ifNull: ['$productInfo.dimensions.breadth', 0] },
+                            { $ifNull: ['$productInfo.dimensions.height', 0] }
+                        ]
+                    },
+                    // 2. Ensure carton size is valid for division
+                    safeCartonSize: {
+                        $cond: {
+                            if: { $gt: [{ $ifNull: ['$productInfo.cartonSize', 0] }, 0] },
+                            then: '$productInfo.cartonSize',
+                            else: 1
+                        }
+                    }
+                }
+            },
+            {
+                $addFields: {
+                    // 3. Determine final unit volume (use stored volume if > 0, else calculated)
+                    finalUnitVolume: {
+                        $cond: {
+                            if: { $gt: [{ $ifNull: ['$productInfo.volume', 0] }, 0] },
+                            then: '$productInfo.volume',
+                            else: '$calculatedVolume'
+                        }
+                    },
+                    // 4. Calculate number of cartons
+                    numCartons: { $divide: ['$quantity', '$safeCartonSize'] }
+                }
+            },
             {
                 $group: {
                     _id: '$warehouse',
-                    totalCBM: { $sum: { $multiply: ['$quantity', { $ifNull: ['$productInfo.volume', 0] }] } },
+                    totalCBM: { $sum: { $multiply: ['$numCartons', '$finalUnitVolume'] } },
                 },
             },
             {
@@ -123,7 +158,8 @@ exports.getStats = async (req, res, next) => {
             {
                 $project: {
                     name: '$warehouseInfo.name',
-                    value: { $round: ['$totalCBM', 2] },
+                    // Match Inventory UI precision (Inventory shows CBM to 3dp)
+                    value: { $round: ['$totalCBM', 3] },
                 },
             },
         ]);

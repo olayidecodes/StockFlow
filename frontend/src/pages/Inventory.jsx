@@ -236,13 +236,13 @@ const Inventory = () => {
                                         }}>
                                             {wh.value.toFixed(3)} m³
                                         </div>
-                                        <div style={{ 
+                                        {/* <div style={{ 
                                             fontSize: '10px', 
                                             color: '#A0AEC0', 
                                             marginTop: '2px' 
                                         }}>
                                             Matches Dashboard chart
-                                        </div>
+                                        </div> */}
                                     </div>
                                 ))}
                             </div>
@@ -295,23 +295,23 @@ const Inventory = () => {
                                             <span style={{ fontWeight: 600, color: '#10B981' }}>
                                                 ₦{calculateValue(bal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </span>
-                                            <div style={{ fontSize: '10px', color: '#999', marginTop: '2px' }}>
+                                            {/* <div style={{ fontSize: '10px', color: '#999', marginTop: '2px' }}>
                                                 {(() => {
                                                     const rp = getRealProduct(bal);
                                                     return `P:${rp?.price || 0} | C:${rp?.wholesaleCost || 0} | Q:${bal.quantity || 0}`;
                                                 })()}
-                                            </div>
+                                            </div> */}
                                         </td>
                                         <td>
                                             <span className="text-muted">
                                                 {calculateCBM(bal).toFixed(3)} m³
                                             </span>
-                                            <div style={{ fontSize: '10px', color: '#999', marginTop: '2px' }}>
+                                            {/* <div style={{ fontSize: '10px', color: '#999', marginTop: '2px' }}>
                                                 {(() => {
                                                     const rp = getRealProduct(bal);
                                                     return `V:${rp?.volume || 0} | D:${rp?.dimensions ? 'Y' : 'N'}`;
                                                 })()}
-                                            </div>
+                                            </div> */}
                                         </td>
                                         <td>
                                             {bal.warehouse?._id ? (

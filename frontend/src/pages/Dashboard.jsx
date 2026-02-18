@@ -12,7 +12,7 @@ const Dashboard = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
-    const [trendDays, setTrendDays] = useState(30);
+    const [trendPeriod, setTrendPeriod] = useState('past30'); // Changed from trendDays
     const [stats, setStats] = useState({
         summary: {
             totalOrders: 0,
@@ -25,10 +25,22 @@ const Dashboard = () => {
         topCustomers: []
     });
 
-    const fetchDashboardData = async (days) => {
+    // Time period options
+    const timePeriods = [
+        { value: 'today', label: 'Today', days: 1 },
+        { value: 'past7', label: 'Past 7 Days', days: 7 },
+        { value: 'thisWeek', label: 'This Week', days: 'thisWeek' },
+        { value: 'past30', label: 'Past 30 Days', days: 30 },
+        { value: 'thisMonth', label: 'This Month', days: 'thisMonth' },
+        { value: 'thisYear', label: 'This Year', days: 'thisYear' },
+        { value: 'past365', label: 'Past 365 Days', days: 365 }
+    ];
+
+    const fetchDashboardData = async (period) => {
         try {
             setLoading(true);
-            const response = await api.get(`/analytics?days=${days}`);
+            const selectedPeriod = timePeriods.find(p => p.value === period);
+            const response = await api.get(`/analytics?period=${period}&days=${selectedPeriod.days}`);
             setStats(response.data.data);
             setLoading(false);
         } catch (error) {
@@ -38,8 +50,8 @@ const Dashboard = () => {
     };
 
     useEffect(() => {
-        fetchDashboardData(trendDays);
-    }, [trendDays]);
+        fetchDashboardData(trendPeriod);
+    }, [trendPeriod]);
 
     if (loading && stats.summary.totalOrders === 0) return <Spinner fullPage />;
 
@@ -127,15 +139,37 @@ const Dashboard = () => {
                 <div className="chart-card">
                     <div className="chart-card-header">
                         <h3>Dispatch Trends</h3>
-                        <div className="filter-buttons" style={{ display: 'flex', gap: '4px' }}>
-                            {[7, 30, 60].map(d => (
+                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            {timePeriods.map(period => (
                                 <button
-                                    key={d}
-                                    className={`btn btn-xs ${trendDays === d ? 'btn-primary' : 'btn-outline'}`}
-                                    onClick={() => setTrendDays(d)}
-                                    style={{ fontSize: '0.7rem', padding: '2px 8px' }}
+                                    key={period.value}
+                                    onClick={() => setTrendPeriod(period.value)}
+                                    style={{
+                                        padding: '4px 10px',
+                                        borderRadius: '4px',
+                                        border: trendPeriod === period.value ? '1px solid #4880FF' : '1px solid #E2E8F0',
+                                        fontSize: '0.75rem',
+                                        color: trendPeriod === period.value ? '#4880FF' : '#64748B',
+                                        background: trendPeriod === period.value ? '#F0F4FF' : '#fff',
+                                        cursor: 'pointer',
+                                        fontWeight: trendPeriod === period.value ? 600 : 500,
+                                        transition: 'all 0.2s ease',
+                                        whiteSpace: 'nowrap'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (trendPeriod !== period.value) {
+                                            e.target.style.borderColor = '#CBD5E1';
+                                            e.target.style.background = '#F8FAFC';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (trendPeriod !== period.value) {
+                                            e.target.style.borderColor = '#E2E8F0';
+                                            e.target.style.background = '#fff';
+                                        }
+                                    }}
                                 >
-                                    {d}d
+                                    {period.label}
                                 </button>
                             ))}
                         </div>
@@ -144,7 +178,16 @@ const Dashboard = () => {
                         <ResponsiveContainer width="100%" height={260}>
                             <BarChart data={stats.dispatchTrends}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E9EDF5" />
-                                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#A3AED0', fontSize: 10 }} hide={trendDays > 30} />
+                                <XAxis 
+                                    dataKey="date" 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tick={{ fill: '#A3AED0', fontSize: 10 }} 
+                                    hide={stats.dispatchTrends?.length > 31}
+                                    angle={stats.dispatchTrends?.length > 15 ? -45 : 0}
+                                    textAnchor={stats.dispatchTrends?.length > 15 ? 'end' : 'middle'}
+                                    height={stats.dispatchTrends?.length > 15 ? 60 : 30}
+                                />
                                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#A3AED0', fontSize: 11 }} />
                                 <Tooltip />
                                 <Bar dataKey="orders" fill="#10b981" radius={[4, 4, 0, 0]} barSize={12} />

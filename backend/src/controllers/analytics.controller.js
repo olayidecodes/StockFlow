@@ -8,10 +8,43 @@ const mongoose = require('mongoose');
 // @access  Private (Admin/Manager)
 exports.getStats = async (req, res, next) => {
     try {
-        const { days = 30 } = req.query;
-        const trendDays = parseInt(days);
-        const today = new Date();
-        const trendStartDate = new Date(today.getTime() - trendDays * 24 * 60 * 60 * 1000);
+        const { days = 30, period = 'past30' } = req.query;
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999); // End of today
+        
+        let trendStartDate;
+        
+        // Calculate date range based on period
+        switch (period) {
+            case 'today':
+                trendStartDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+                break;
+                
+            case 'thisWeek':
+                // Start of current week (Sunday)
+                const dayOfWeek = now.getDay();
+                trendStartDate = new Date(now);
+                trendStartDate.setDate(now.getDate() - dayOfWeek); // Go back to Sunday
+                trendStartDate.setHours(0, 0, 0, 0);
+                break;
+                
+            case 'thisMonth':
+                // Start of current month
+                trendStartDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+                break;
+                
+            case 'thisYear':
+                // Start of current year
+                trendStartDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+                break;
+                
+            default:
+                // For 'past7', 'past30', 'past365' or any numeric days
+                const trendDays = parseInt(days);
+                trendStartDate = new Date(now.getTime() - trendDays * 24 * 60 * 60 * 1000);
+                trendStartDate.setHours(0, 0, 0, 0);
+        }
+        
         const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
 
         // --- DASHBOARD V2 METRICS ---

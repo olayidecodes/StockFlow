@@ -295,8 +295,56 @@ exports.getStats = async (req, res, next) => {
 
         // 9. Stock Health / Financials
         const lowStockCount = await InventoryBalance.countDocuments({
-            quantity: { $lt: 50 },
+            quantity: { $lt: 100 },
         });
+
+        // Get low stock products with details
+        const lowStockProducts = await InventoryBalance.aggregate([
+            { $match: { quantity: { $lt: 100 } } },
+            {
+                $lookup: {
+                    from: 'products',
+                    localField: 'product',
+                    foreignField: '_id',
+                    as: 'productInfo',
+                },
+            },
+            { $unwind: { path: '$productInfo', preserveNullAndEmptyArrays: true } },
+            {
+                $lookup: {
+                    from: 'warehouses',
+                    localField: 'warehouse',
+                    foreignField: '_id',
+                    as: 'warehouseInfo',
+                },
+            },
+            { $unwind: { path: '$warehouseInfo', preserveNullAndEmptyArrays: true } },
+            {
+                $lookup: {
+                    from: 'brands',
+                    localField: 'productInfo.brand',
+                    foreignField: '_id',
+                    as: 'brandInfo',
+                },
+            },
+            {
+                $project: {
+                    productName: { $ifNull: ['$productInfo.name', 'Unknown Product'] },
+                    sku: { $ifNull: ['$productInfo.sku', 'N/A'] },
+                    brand: { 
+                        $cond: {
+                            if: { $gt: [{ $size: { $ifNull: ['$brandInfo', []] } }, 0] },
+                            then: { $arrayElemAt: ['$brandInfo.name', 0] },
+                            else: 'N/A'
+                        }
+                    },
+                    warehouse: { $ifNull: ['$warehouseInfo.name', 'Unknown Warehouse'] },
+                    quantity: 1,
+                    reorderLevel: { $ifNull: ['$productInfo.reorderLevel', 100] }
+                }
+            },
+            { $sort: { quantity: 1 } }
+        ]);
 
         const inventorySummary = await InventoryBalance.aggregate([
             {
@@ -337,7 +385,8 @@ exports.getStats = async (req, res, next) => {
                 regionalPerformance,
                 warehouseCBM,
                 dispatchTrends,
-                topCustomers
+                topCustomers,
+                lowStockProducts
             },
         });
     } catch (error) {

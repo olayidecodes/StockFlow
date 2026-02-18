@@ -6,6 +6,7 @@ const {
     createBrand,
     updateBrand,
     deleteBrand,
+    getBrandProducts,
 } = require('../controllers/brand.controller');
 const { protect } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/checkPermission');
@@ -27,6 +28,11 @@ router
         ],
         createBrand
     );
+
+// Get products by brand (must be before /:id route)
+router
+    .route('/:id/products')
+    .get(checkPermission(PERMISSIONS.VIEW_INVENTORY), getBrandProducts);
 
 router
     .route('/:id')

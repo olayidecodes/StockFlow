@@ -1,150 +1,216 @@
 import { useState, useEffect } from 'react';
 import api from '../utils/api';
-import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-    LineChart, Line, PieChart, Pie, Cell, AreaChart, Area
-} from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
+import { FiAlertTriangle, FiPackage, FiShoppingCart, FiTrendingUp, FiBox, FiFilter } from 'react-icons/fi';
 import Spinner from '../components/Spinner';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+const COLORS = ['#4880FF', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 const Analytics = () => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('overview');
+    const [stockFilter, setStockFilter] = useState('all');
 
     useEffect(() => {
-        console.log("Fetching analytics data...");
-        api.get('/analytics')
-            .then(res => {
-                console.log("Analytics data received:", res.data.data);
-                setData(res.data.data);
-                setLoading(false);
-            })
-            .catch(err => {
-                console.error("Analytics fetch error:", err);
-                setLoading(false);
-            });
+        api.get('/analytics').then(res => { setData(res.data.data); setLoading(false); }).catch(err => { console.error("Analytics fetch error:", err); setLoading(false); });
     }, []);
 
     if (loading) return <Spinner fullPage />;
-    if (!data) return <div className="p-xl text-center">Failed to load data</div>;
+    if (!data) return <div className="page-container"><div className="text-center">Failed to load data</div></div>;
 
-    const { topProducts, regionalPerformance, dispatchTrends, summary } = data;
+    const { topProducts, regionalPerformance, dispatchTrends, summary, lowStockProducts = [] } = data;
+    const filteredLowStock = lowStockProducts.filter(item => { if (stockFilter === 'critical') return item.quantity < 30; if (stockFilter === 'low') return item.quantity >= 30 && item.quantity < 100; return true; });
+    const criticalCount = lowStockProducts.filter(item => item.quantity < 30).length;
+    const lowCount = lowStockProducts.filter(item => item.quantity >= 30 && item.quantity < 100).length;
+
+    const statCards = [
+        { title: 'Total Orders', value: summary.totalOrders.toLocaleString(), icon: <FiShoppingCart />, color: '#4880FF', subtitle: 'All time orders' },
+        { title: 'Active Products', value: summary.totalProducts.toLocaleString(), icon: <FiPackage />, color: '#10b981', subtitle: 'SKUs in catalog' },
+        { title: 'Low Stock Alerts', value: summary.lowStock, icon: <FiAlertTriangle />, color: summary.lowStock > 0 ? '#ef4444' : '#10b981', subtitle: 'Items below threshold', alert: summary.lowStock > 0 },
+        { title: 'Inventory Value', value: `₦${(summary.totalValue || 0).toLocaleString()}`, icon: <FiTrendingUp />, color: '#8b5cf6', subtitle: 'Total stock value' }
+    ];
 
     return (
         <div className="page-container">
             <div className="page-header">
                 <h1>Operational Insights</h1>
+                <p style={{ color: '#64748B', fontSize: '0.9rem', marginTop: '0.5rem' }}>Real-time analytics and performance metrics</p>
             </div>
 
-            {/* Summary Cards */}
-            <div className="dashboard-grid mb-xl" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-                <div className="dashboard-card text-center">
-                    <h3>Total Orders</h3>
-                    <div className="display-value">{summary.totalOrders}</div>
-                    <div className="stat-label">Orders Across Warehouses</div>
-                </div>
-                <div className="dashboard-card text-center">
-                    <h3>Active SKU Count</h3>
-                    <div className="display-value">{summary.totalProducts}</div>
-                    <div className="stat-label">Available Products</div>
-                </div>
-                <div className="dashboard-card text-center" style={{ borderColor: summary.lowStock > 0 ? 'var(--color-error)' : undefined }}>
-                    <h3>Low Stock Alerts</h3>
-                    <div className="display-value" style={{ color: summary.lowStock > 0 ? 'var(--color-error)' : 'var(--color-success)' }}>
-                        {summary.lowStock}
-                    </div>
-                    <div className="stat-label">Inventory Count Low</div>
-                </div>
-                {/* Financials (v2) */}
-                <div className="dashboard-card text-center">
-                    <h3>Total Inventory Qty</h3>
-                    <div className="display-value">{summary.totalQuantity?.toLocaleString() || 0}</div>
-                    <div className="stat-label">Units Across Warehouses</div>
-                </div>
-
-                <div className="dashboard-card text-center">
-                    <h3>Total Inventory Value</h3>
-                    <div className="display-value" style={{ color: '#10B981' }}>
-                        ₦{summary.totalValue?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
-                    </div>
-                    <div className="stat-label">Cost Basis</div>
-                </div>
-
-                {/* <div className="dashboard-card text-center">
-                    <h3>Total Volume</h3>
-                    <div className="display-value">
-                        {summary.totalVolume?.toFixed(2) || 0} <span style={{ fontSize: '0.5em' }}>m³</span>
-                    </div>
-                    <div className="stat-label">Storage Usage</div>
-                </div> */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', borderBottom: '2px solid #E2E8F0', paddingBottom: '0' }}>
+                <button onClick={() => setActiveTab('overview')} style={{ padding: '0.75rem 1.5rem', border: 'none', background: 'transparent', color: activeTab === 'overview' ? '#4880FF' : '#64748B', fontWeight: activeTab === 'overview' ? 600 : 500, fontSize: '0.95rem', cursor: 'pointer', borderBottom: activeTab === 'overview' ? '2px solid #4880FF' : '2px solid transparent', marginBottom: '-2px', transition: 'all 0.2s' }}>Overview</button>
+                <button onClick={() => setActiveTab('lowstock')} style={{ padding: '0.75rem 1.5rem', border: 'none', background: 'transparent', color: activeTab === 'lowstock' ? '#4880FF' : '#64748B', fontWeight: activeTab === 'lowstock' ? 600 : 500, fontSize: '0.95rem', cursor: 'pointer', borderBottom: activeTab === 'lowstock' ? '2px solid #4880FF' : '2px solid transparent', marginBottom: '-2px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    Low Stock
+                    {summary.lowStock > 0 && <span style={{ background: '#FEE2E2', color: '#991B1B', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600 }}>{summary.lowStock}</span>}
+                </button>
             </div>
 
-            <div className="dashboard-grid two-col" style={{ gridTemplateColumns: '1fr 1fr' }}>
+            {activeTab === 'overview' && (
+                <>
+                    <div className="stat-cards-row" style={{ marginBottom: '2rem' }}>
+                        {statCards.map((card, i) => (
+                            <div className="stat-card" key={i} style={{ borderLeft: `3px solid ${card.color}` }}>
+                                <div className="stat-card-icon" style={{ color: card.color }}>{card.icon}</div>
+                                <div className="stat-card-label">{card.title}</div>
+                                <div className="stat-card-value" style={{ color: card.alert ? '#ef4444' : '#1E2640' }}>{card.value}</div>
+                                <div style={{ fontSize: '0.75rem', color: '#A3AED0', marginTop: '0.25rem' }}>{card.subtitle}</div>
+                            </div>
+                        ))}
+                    </div>
 
-                {/* Top Products */}
-                <div className="dashboard-card" style={{ height: '400px' }}>
-                    <h3>Top Selling Products</h3>
-                    <ResponsiveContainer width="100%" height="90%">
-                        <BarChart data={topProducts} layout="vertical" margin={{ left: 40 }}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis type="number" />
-                            <YAxis dataKey="name" type="category" width={100} style={{ fontSize: '0.8em' }} />
-                            <Tooltip />
-                            <Bar dataKey="value" fill="#4DADF7" name="Units Sold" radius={[0, 4, 4, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
+                    {summary.lowStock > 0 && (
+                        <div onClick={() => setActiveTab('lowstock')} style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '8px', padding: '1rem 1.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#FEE2E2'} onMouseLeave={(e) => e.currentTarget.style.background = '#FEF2F2'}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <FiAlertTriangle size={24} style={{ color: '#DC2626' }} />
+                                <div>
+                                    <h3 style={{ margin: 0, color: '#991B1B', fontSize: '1rem' }}>{summary.lowStock} Product{summary.lowStock !== 1 ? 's' : ''} Running Low</h3>
+                                    <p style={{ margin: '0.25rem 0 0 0', color: '#7F1D1D', fontSize: '0.875rem' }}>Click to view details and take action</p>
+                                </div>
+                            </div>
+                            <div style={{ padding: '0.5rem 1rem', background: '#DC2626', color: '#fff', borderRadius: '6px', fontSize: '0.875rem', fontWeight: 600 }}>View Details →</div>
+                        </div>
+                    )}
 
-                {/* Regional Distribution */}
-                <div className="dashboard-card" style={{ height: '400px' }}>
-                    <h3>Regional Volume</h3>
-                    <ResponsiveContainer width="100%" height="90%">
-                        <PieChart>
-                            <Pie
-                                data={regionalPerformance}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={60}
-                                outerRadius={100}
-                                fill="#8884d8"
-                                paddingAngle={5}
-                                dataKey="value"
-                                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                            >
-                                {regionalPerformance.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                            </Pie>
-                            <Tooltip />
-                        </PieChart>
-                    </ResponsiveContainer>
-                </div>
+                    <div className="charts-row" style={{ marginBottom: '2rem' }}>
+                        <div className="chart-card">
+                            <div className="chart-card-header">
+                                <h3>Top Selling Products</h3>
+                                <span style={{ fontSize: '0.8rem', color: '#A3AED0' }}>By quantity sold</span>
+                            </div>
+                            <div className="chart-body">
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart data={topProducts} layout="vertical" barCategoryGap="20%">
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E9EDF5" />
+                                        <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#A3AED0', fontSize: 11 }} />
+                                        <YAxis dataKey="name" type="category" width={120} axisLine={false} tickLine={false} tick={{ fill: '#1E2640', fontSize: 11, fontWeight: 500 }} />
+                                        <Tooltip />
+                                        <Bar dataKey="value" fill="#4880FF" radius={[0, 4, 4, 0]} barSize={14} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
 
-                {/* Dispatch Trends (Full Width) */}
-                <div className="dashboard-card main-col" style={{ height: '400px', gridColumn: 'span 2' }}>
-                    <h3>Dispatch Trends (30 Days)</h3>
-                    <ResponsiveContainer width="100%" height="90%">
-                        <AreaChart data={dispatchTrends}>
-                            <defs>
-                                <linearGradient id="colorOrders" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#82ca9d" stopOpacity={0.8} />
-                                    <stop offset="95%" stopColor="#82ca9d" stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
-                            <XAxis dataKey="date" />
-                            <YAxis />
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <Tooltip />
-                            <Area type="monotone" dataKey="orders" stroke="#82ca9d" fillOpacity={1} fill="url(#colorOrders)" />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </div>
-            </div>
+                        <div className="chart-card">
+                            <div className="chart-card-header">
+                                <h3>Regional Distribution</h3>
+                                <span style={{ fontSize: '0.8rem', color: '#A3AED0' }}>Order volume by region</span>
+                            </div>
+                            <div className="chart-body">
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <PieChart>
+                                        <Pie data={regionalPerformance} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={3} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                                            {regionalPerformance.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                                        </Pie>
+                                        <Tooltip />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    </div>
 
-            <style jsx>{`
-                .display-value { font-size: 2.5em; font-weight: bold; margin-top: 10px; }
-            `}</style>
+                    <div className="chart-card">
+                        <div className="chart-card-header">
+                            <h3>Dispatch Trends</h3>
+                            <span style={{ fontSize: '0.8rem', color: '#A3AED0' }}>Last 30 days order activity</span>
+                        </div>
+                        <div className="chart-body">
+                            <ResponsiveContainer width="100%" height={300}>
+                                <AreaChart data={dispatchTrends}>
+                                    <defs><linearGradient id="colorOrders" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10b981" stopOpacity={0.3} /><stop offset="95%" stopColor="#10b981" stopOpacity={0} /></linearGradient></defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E9EDF5" />
+                                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#A3AED0', fontSize: 10 }} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#A3AED0', fontSize: 11 }} />
+                                    <Tooltip />
+                                    <Area type="monotone" dataKey="orders" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorOrders)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: '2rem', padding: '1.5rem', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                        <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: '#1E293B' }}><FiBox style={{ verticalAlign: 'middle', marginRight: '0.5rem' }} />Inventory Summary</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                            <div><div style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '0.25rem' }}>Total Units in Stock</div><div style={{ fontSize: '1.5rem', fontWeight: 600, color: '#1E293B' }}>{summary.totalQuantity?.toLocaleString() || 0}</div></div>
+                            <div><div style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '0.25rem' }}>Total Inventory Value</div><div style={{ fontSize: '1.5rem', fontWeight: 600, color: '#10b981' }}>₦{(summary.totalValue || 0).toLocaleString()}</div></div>
+                            <div><div style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '0.25rem' }}>Top Selling Brand</div><div style={{ fontSize: '1.5rem', fontWeight: 600, color: '#1E293B' }}>{summary.topSellingBrand}</div></div>
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {activeTab === 'lowstock' && (
+                <>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+                        <div style={{ padding: '1.5rem', background: '#FEF2F2', border: '2px solid #FCA5A5', borderRadius: '8px' }}>
+                            <div style={{ fontSize: '0.875rem', color: '#991B1B', marginBottom: '0.5rem' }}>Critical Stock</div>
+                            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#DC2626' }}>{criticalCount}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#7F1D1D', marginTop: '0.25rem' }}>Below 30 units</div>
+                        </div>
+                        <div style={{ padding: '1.5rem', background: '#FEF3C7', border: '2px solid #FCD34D', borderRadius: '8px' }}>
+                            <div style={{ fontSize: '0.875rem', color: '#92400E', marginBottom: '0.5rem' }}>Low Stock</div>
+                            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#F59E0B' }}>{lowCount}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#78350F', marginTop: '0.25rem' }}>30-99 units</div>
+                        </div>
+                        <div style={{ padding: '1.5rem', background: '#F0F9FF', border: '2px solid #BAE6FD', borderRadius: '8px' }}>
+                            <div style={{ fontSize: '0.875rem', color: '#075985', marginBottom: '0.5rem' }}>Total Affected</div>
+                            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#0284C7' }}>{lowStockProducts.length}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#0C4A6E', marginTop: '0.25rem' }}>Products below threshold</div>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', padding: '1rem', background: '#F8FAFC', borderRadius: '8px' }}>
+                        <FiFilter style={{ color: '#64748B' }} />
+                        <span style={{ fontSize: '0.875rem', color: '#64748B', fontWeight: 500 }}>Filter:</span>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            {[{ value: 'all', label: 'All', count: lowStockProducts.length }, { value: 'critical', label: 'Critical', count: criticalCount }, { value: 'low', label: 'Low', count: lowCount }].map(filter => (
+                                <button key={filter.value} onClick={() => setStockFilter(filter.value)} style={{ padding: '0.5rem 1rem', border: stockFilter === filter.value ? '2px solid #4880FF' : '1px solid #E2E8F0', background: stockFilter === filter.value ? '#F0F4FF' : '#fff', color: stockFilter === filter.value ? '#4880FF' : '#64748B', borderRadius: '6px', fontSize: '0.875rem', fontWeight: stockFilter === filter.value ? 600 : 500, cursor: 'pointer', transition: 'all 0.2s' }}>
+                                    {filter.label} ({filter.count})
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {filteredLowStock.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '4rem 2rem', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                            <FiPackage size={48} style={{ color: '#CBD5E1', marginBottom: '1rem' }} />
+                            <h3 style={{ color: '#475569', marginBottom: '0.5rem' }}>No Low Stock Items</h3>
+                            <p style={{ color: '#94A3B8', fontSize: '0.875rem' }}>All products are adequately stocked</p>
+                        </div>
+                    ) : (
+                        <div className="table-container">
+                            <table className="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>SKU</th>
+                                        <th>Product</th>
+                                        <th>Brand</th>
+                                        <th>Warehouse</th>
+                                        <th>Current Stock</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredLowStock.map((item, idx) => (
+                                        <tr key={idx}>
+                                            <td><span style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#64748B' }}>{item.sku}</span></td>
+                                            <td style={{ fontWeight: 500 }}>{item.productName}</td>
+                                            <td>{item.brand}</td>
+                                            <td>{item.warehouse}</td>
+                                            <td><span style={{ fontWeight: 600, color: item.quantity < 30 ? '#DC2626' : '#F59E0B' }}>{item.quantity} units</span></td>
+                                            <td><span style={{ padding: '4px 12px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, background: item.quantity < 30 ? '#FEE2E2' : '#FEF3C7', color: item.quantity < 30 ? '#991B1B' : '#92400E' }}>{item.quantity < 30 ? 'Critical' : 'Low'}</span></td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            <div style={{ marginTop: '1rem', padding: '1rem', background: '#F8FAFC', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.875rem', color: '#64748B' }}>Showing {filteredLowStock.length} of {lowStockProducts.length} low stock items</span>
+                                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Minimum threshold: 100 units</span>
+                            </div>
+                        </div>
+                    )}
+                </>
+            )}
         </div>
     );
 };

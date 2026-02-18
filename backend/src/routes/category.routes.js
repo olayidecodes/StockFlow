@@ -6,6 +6,7 @@ const {
     createCategory,
     updateCategory,
     deleteCategory,
+    getCategoryProducts,
 } = require('../controllers/category.controller');
 const { protect } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/checkPermission');
@@ -27,6 +28,11 @@ router
         ],
         createCategory
     );
+
+// Get products by category (must be before /:id route)
+router
+    .route('/:id/products')
+    .get(checkPermission(PERMISSIONS.VIEW_INVENTORY), getCategoryProducts);
 
 router
     .route('/:id')

@@ -10,9 +10,32 @@ const StockAdjustmentModal = ({ isOpen, onClose, product, warehouse, onSuccess }
         cartons: 0,
         pieces: 0,
         reason: '',
+        selectedProduct: product?._id || '',
+        selectedWarehouse: warehouse?._id || ''
     });
 
     const [loading, setLoading] = useState(false);
+    const [products, setProducts] = useState([]);
+    const [warehouses, setWarehouses] = useState([]);
+    const [loadingData, setLoadingData] = useState(false);
+
+    // Fetch products and warehouses if not provided
+    useEffect(() => {
+        if (isOpen && (!product || !warehouse)) {
+            setLoadingData(true);
+            Promise.all([
+                api.get('/products?limit=1000'),
+                api.get('/warehouses')
+            ]).then(([prodRes, whRes]) => {
+                setProducts(prodRes.data.data);
+                setWarehouses(whRes.data.data);
+                setLoadingData(false);
+            }).catch(err => {
+                console.error('Failed to load data', err);
+                setLoadingData(false);
+            });
+        }
+    }, [isOpen, product, warehouse]);
 
     // Reset form when modal opens
     useEffect(() => {
@@ -22,13 +45,18 @@ const StockAdjustmentModal = ({ isOpen, onClose, product, warehouse, onSuccess }
                 cartons: 0,
                 pieces: 0,
                 reason: '',
+                selectedProduct: product?._id || '',
+                selectedWarehouse: warehouse?._id || ''
             });
         }
-    }, [isOpen]);
+    }, [isOpen, product, warehouse]);
 
-    if (!isOpen || !product || !warehouse) return null;
+    if (!isOpen) return null;
 
-    const cartonSize = product.cartonSize || 1;
+    // Get the actual product and warehouse objects
+    const currentProduct = product || products.find(p => p._id === formData.selectedProduct);
+    const currentWarehouse = warehouse || warehouses.find(w => w._id === formData.selectedWarehouse);
+    const cartonSize = currentProduct?.cartonSize || 1;
 
     // Calculate total change preview
     const totalChange = (Number(formData.cartons) * cartonSize) + Number(formData.pieces);
@@ -40,6 +68,11 @@ const StockAdjustmentModal = ({ isOpen, onClose, product, warehouse, onSuccess }
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        if (!currentProduct || !currentWarehouse) {
+            toast.error('Please select both product and warehouse');
+            return;
+        }
+
         if (totalChange === 0) {
             toast.error('Adjustment amount cannot be zero');
             return;
@@ -49,8 +82,8 @@ const StockAdjustmentModal = ({ isOpen, onClose, product, warehouse, onSuccess }
         try {
             // Send total pieces to backend
             const payload = {
-                product: product._id,
-                warehouse: warehouse._id,
+                product: currentProduct._id,
+                warehouse: currentWarehouse._id,
                 change: displayChange,
                 type: formData.type,
                 reason: formData.reason,
@@ -76,9 +109,45 @@ const StockAdjustmentModal = ({ isOpen, onClose, product, warehouse, onSuccess }
                     <button onClick={onClose} className="btn-close" title="Close"><FiX /></button>
                 </div>
                 <div className="stock-context">
-                    <p><strong>Product:</strong> {product.name} (SKU: {product.sku})</p>
-                    <p><strong>Warehouse:</strong> {warehouse.name}</p>
-                    <p><strong>Carton Size:</strong> {cartonSize} pieces</p>
+                    {!product && (
+                        <div className="form-group">
+                            <label>Product</label>
+                            <select
+                                value={formData.selectedProduct}
+                                onChange={(e) => setFormData({ ...formData, selectedProduct: e.target.value })}
+                                required
+                                disabled={loadingData}
+                            >
+                                <option value="">Select a product...</option>
+                                {products.map(p => (
+                                    <option key={p._id} value={p._id}>{p.name} ({p.sku})</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                    {!warehouse && (
+                        <div className="form-group">
+                            <label>Warehouse</label>
+                            <select
+                                value={formData.selectedWarehouse}
+                                onChange={(e) => setFormData({ ...formData, selectedWarehouse: e.target.value })}
+                                required
+                                disabled={loadingData}
+                            >
+                                <option value="">Select a warehouse...</option>
+                                {warehouses.map(w => (
+                                    <option key={w._id} value={w._id}>{w.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                    {currentProduct && currentWarehouse && (
+                        <>
+                            <p><strong>Product:</strong> {currentProduct.name} (SKU: {currentProduct.sku})</p>
+                            <p><strong>Warehouse:</strong> {currentWarehouse.name}</p>
+                            <p><strong>Carton Size:</strong> {cartonSize} pieces</p>
+                        </>
+                    )}
                 </div>
 
                 <form onSubmit={handleSubmit}>
@@ -119,8 +188,15 @@ const StockAdjustmentModal = ({ isOpen, onClose, product, warehouse, onSuccess }
                     </div>
 
                     <div className="preview-box">
-                        <span>Total Change:</span>
-                        <span className={`change-value ${isNegative ? 'negative' : 'positive'}`}>
+                        <span>Total Change: </span>
+                        <span 
+                            className={`change-value ${isNegative ? 'negative' : 'positive'}`}
+                            style={{ 
+                                color: displayChange === 0 ? '#64748B' : (isNegative ? '#DC2626' : '#10B981'),
+                                fontWeight: 600,
+                                fontSize: '1.1rem'
+                            }}
+                        >
                             {displayChange > 0 ? '+' : ''}{displayChange} Pieces
                         </span>
                     </div>

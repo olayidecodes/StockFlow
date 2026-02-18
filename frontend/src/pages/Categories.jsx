@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { FiEdit2, FiTrash2, FiPlus, FiX } from 'react-icons/fi';
+import { FiEdit2, FiTrash2, FiPlus, FiX, FiPackage } from 'react-icons/fi';
 import api from '../utils/api';
 import Spinner from '../components/Spinner';
 import PermissionGuard from '../components/PermissionGuard';
@@ -12,6 +12,9 @@ const Categories = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState(null);
     const [formData, setFormData] = useState({ name: '', description: '', active: true });
+    const [viewingProducts, setViewingProducts] = useState(null);
+    const [categoryProducts, setCategoryProducts] = useState([]);
+    const [loadingProducts, setLoadingProducts] = useState(false);
 
     useEffect(() => {
         fetchCategories();
@@ -77,6 +80,25 @@ const Categories = () => {
         }
     };
 
+    const viewProducts = async (category) => {
+        setViewingProducts(category);
+        setLoadingProducts(true);
+        try {
+            const res = await api.get(`/categories/${category._id}/products`);
+            setCategoryProducts(res.data.data);
+        } catch (err) {
+            toast.error('Failed to load products');
+            setCategoryProducts([]);
+        } finally {
+            setLoadingProducts(false);
+        }
+    };
+
+    const closeProductsModal = () => {
+        setViewingProducts(null);
+        setCategoryProducts([]);
+    };
+
     return (
         <div className="page-container">
             <div className="page-header">
@@ -98,6 +120,7 @@ const Categories = () => {
                                 <th>Name</th>
                                 <th>Description</th>
                                 <th>Status</th>
+                                <th>Products</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -114,6 +137,22 @@ const Categories = () => {
                                         <span className={`status-badge ${category.active ? 'active' : 'inactive'}`}>
                                             {category.active ? 'Active' : 'Inactive'}
                                         </span>
+                                    </td>
+                                    <td>
+                                        <button
+                                            onClick={() => viewProducts(category)}
+                                            className="btn-icon"
+                                            title="View Products"
+                                            style={{ 
+                                                color: '#4880FF',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '4px',
+                                                fontSize: '0.85rem'
+                                            }}
+                                        >
+                                            <FiPackage /> View
+                                        </button>
                                     </td>
                                     <td>
                                         <PermissionGuard permission={PERMISSIONS.MANAGE_INVENTORY}>
@@ -188,6 +227,89 @@ const Categories = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Products Modal */}
+            {viewingProducts && (
+                <div className="modal-overlay">
+                    <div className="modal-content" style={{ maxWidth: '900px' }}>
+                        <div className="modal-header">
+                            <h2>
+                                <FiPackage style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
+                                Products in "{viewingProducts.name}"
+                            </h2>
+                            <button onClick={closeProductsModal} className="btn-close" title="Close"><FiX /></button>
+                        </div>
+                        <div style={{ padding: '1.5rem' }}>
+                            {loadingProducts ? (
+                                <div style={{ textAlign: 'center', padding: '2rem' }}>
+                                    <Spinner />
+                                </div>
+                            ) : categoryProducts.length === 0 ? (
+                                <div style={{ 
+                                    textAlign: 'center', 
+                                    padding: '3rem 1rem',
+                                    color: '#64748B'
+                                }}>
+                                    <FiPackage size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
+                                    <p style={{ fontSize: '1rem', fontWeight: 500 }}>No products in this category</p>
+                                    <p style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>
+                                        Products can be assigned to this category from the Products page
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="table-container" style={{ border: 'none', boxShadow: 'none' }}>
+                                    <table className="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>SKU</th>
+                                                <th>Product Name</th>
+                                                <th>Brand</th>
+                                                <th>Price</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {categoryProducts.map((product) => (
+                                                <tr key={product._id}>
+                                                    <td>
+                                                        <span style={{ 
+                                                            fontFamily: 'monospace',
+                                                            fontSize: '0.85rem',
+                                                            color: '#64748B'
+                                                        }}>
+                                                            {product.sku}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ fontWeight: 500 }}>{product.name}</td>
+                                                    <td>{product.brand?.name || 'N/A'}</td>
+                                                    <td style={{ fontWeight: 600 }}>
+                                                        ₦{product.price?.toLocaleString() || '0'}
+                                                    </td>
+                                                    <td>
+                                                        <span className={`status-badge ${product.active ? 'active' : 'inactive'}`}>
+                                                            {product.active ? 'Active' : 'Inactive'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                    <div style={{ 
+                                        marginTop: '1rem', 
+                                        padding: '0.75rem',
+                                        background: '#F8FAFC',
+                                        borderRadius: '6px',
+                                        fontSize: '0.875rem',
+                                        color: '#64748B'
+                                    }}>
+                                        Total: {categoryProducts.length} product{categoryProducts.length !== 1 ? 's' : ''}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

@@ -95,17 +95,21 @@ const Inventory = () => {
         setIsTransferModalOpen(true);
     };
 
-    // Manual "Add Stock" for empty state (requires selecting wh and product first)
+    // Manual "Add Stock" - opens modal for user to select product and warehouse
     const handleManualAdd = () => {
-        // Find full objects
-        const prod = products.find(p => p._id === filterProduct);
-        const wh = warehouses.find(w => w._id === filterWarehouse);
-        if (prod && wh) {
-            setSelectedItem({ product: prod, warehouse: wh });
-            setIsAdjustModalOpen(true);
-        } else {
-            toast.info("Please select a specific Warehouse and Product filter to add new stock.");
+        // If filters are selected, pre-populate the modal
+        if (filterProduct && filterWarehouse) {
+            const prod = products.find(p => p._id === filterProduct);
+            const wh = warehouses.find(w => w._id === filterWarehouse);
+            if (prod && wh) {
+                setSelectedItem({ product: prod, warehouse: wh });
+                setIsAdjustModalOpen(true);
+                return;
+            }
         }
+        // Otherwise, open modal with no pre-selection (user will select in modal)
+        setSelectedItem(null);
+        setIsAdjustModalOpen(true);
     };
 
     const formatQuantity = (qty, cartonSize) => {
@@ -167,11 +171,9 @@ const Inventory = () => {
             <div className="page-header">
                 <h1>Inventory Overview</h1>
                 <PermissionGuard permission={PERMISSIONS.MANAGE_INVENTORY}>
-                    {filterProduct && filterWarehouse && (
-                        <button onClick={handleManualAdd} className="btn btn-primary">
-                            <FiPlus /> Add Stock for Selected
-                        </button>
-                    )}
+                    <button onClick={handleManualAdd} className="btn btn-primary">
+                        <FiPlus /> Add Inventory
+                    </button>
                 </PermissionGuard>
             </div>
 

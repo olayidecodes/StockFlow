@@ -118,3 +118,34 @@ exports.deleteBrand = async (req, res, next) => {
         next(error);
     }
 };
+
+// @desc    Get products by brand
+// @route   GET /api/brands/:id/products
+// @access  Private
+exports.getBrandProducts = async (req, res, next) => {
+    try {
+        const Product = require('../models/Product');
+        
+        const brand = await Brand.findById(req.params.id);
+
+        if (!brand) {
+            return res.status(404).json({
+                success: false,
+                message: `Brand not found with id of ${req.params.id}`,
+            });
+        }
+
+        const products = await Product.find({ brand: req.params.id })
+            .populate('brand', 'name')
+            .populate('category', 'name')
+            .sort({ name: 1 });
+
+        res.status(200).json({
+            success: true,
+            count: products.length,
+            data: products,
+        });
+    } catch (error) {
+        next(error);
+    }
+};

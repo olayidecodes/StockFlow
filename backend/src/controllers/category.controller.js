@@ -118,3 +118,34 @@ exports.deleteCategory = async (req, res, next) => {
         next(error);
     }
 };
+
+// @desc    Get products by category
+// @route   GET /api/categories/:id/products
+// @access  Private
+exports.getCategoryProducts = async (req, res, next) => {
+    try {
+        const Product = require('../models/Product');
+        
+        const category = await Category.findById(req.params.id);
+
+        if (!category) {
+            return res.status(404).json({
+                success: false,
+                message: `Category not found with id of ${req.params.id}`,
+            });
+        }
+
+        const products = await Product.find({ category: req.params.id })
+            .populate('brand', 'name')
+            .populate('category', 'name')
+            .sort({ name: 1 });
+
+        res.status(200).json({
+            success: true,
+            count: products.length,
+            data: products,
+        });
+    } catch (error) {
+        next(error);
+    }
+};

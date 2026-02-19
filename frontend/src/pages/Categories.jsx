@@ -268,7 +268,7 @@ const Categories = () => {
                                                 <th>Product Name</th>
                                                 <th>Brand</th>
                                                 <th>Price</th>
-                                                <th>Status</th>
+                                                {/* <th>Status</th> */}
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -288,11 +288,11 @@ const Categories = () => {
                                                     <td style={{ fontWeight: 600 }}>
                                                         ₦{product.price?.toLocaleString() || '0'}
                                                     </td>
-                                                    <td>
+                                                    {/* <td>
                                                         <span className={`status-badge ${product.active ? 'active' : 'inactive'}`}>
                                                             {product.active ? 'Active' : 'Inactive'}
                                                         </span>
-                                                    </td>
+                                                    </td> */}
                                                 </tr>
                                             ))}
                                         </tbody>

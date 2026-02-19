@@ -13,6 +13,7 @@ const Dashboard = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [trendPeriod, setTrendPeriod] = useState('past30'); // Changed from trendDays
+    const [burnRateFilter, setBurnRateFilter] = useState('all'); // all, fast, moderate, slow, stagnant
     const [stats, setStats] = useState({
         summary: {
             totalOrders: 0,
@@ -22,7 +23,8 @@ const Dashboard = () => {
         },
         warehouseCBM: [],
         dispatchTrends: [],
-        topCustomers: []
+        topCustomers: [],
+        burnRateData: []
     });
 
     // Time period options
@@ -54,6 +56,19 @@ const Dashboard = () => {
     }, [trendPeriod]);
 
     if (loading && stats.summary.totalOrders === 0) return <Spinner fullPage />;
+
+    // Filter burn rate data
+    const filteredBurnRate = (stats.burnRateData || []).filter(item => {
+        if (burnRateFilter === 'all') return true;
+        return item.burnRateCategory === burnRateFilter.toUpperCase();
+    });
+
+    const burnRateCounts = {
+        fast: (stats.burnRateData || []).filter(i => i.burnRateCategory === 'FAST').length,
+        moderate: (stats.burnRateData || []).filter(i => i.burnRateCategory === 'MODERATE').length,
+        slow: (stats.burnRateData || []).filter(i => i.burnRateCategory === 'SLOW').length,
+        stagnant: (stats.burnRateData || []).filter(i => i.burnRateCategory === 'STAGNANT').length
+    };
 
     const statCards = [
         {
@@ -239,6 +254,128 @@ const Dashboard = () => {
                             )}
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            {/* Burn Rate Analysis */}
+            <div className="chart-card">
+                <div className="chart-card-header">
+                    <h3>Stock Movement Analysis</h3>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {[
+                            { value: 'all', label: 'All', count: stats.burnRateData?.length || 0, color: '#64748B' },
+                            { value: 'fast', label: 'Fast Moving', count: burnRateCounts.fast, color: '#10B981' },
+                            { value: 'moderate', label: 'Moderate', count: burnRateCounts.moderate, color: '#F59E0B' },
+                            { value: 'slow', label: 'Slow Moving', count: burnRateCounts.slow, color: '#EF4444' },
+                            { value: 'stagnant', label: 'Stagnant', count: burnRateCounts.stagnant, color: '#94A3B8' }
+                        ].map(filter => (
+                            <button
+                                key={filter.value}
+                                onClick={() => setBurnRateFilter(filter.value)}
+                                style={{
+                                    padding: '6px 12px',
+                                    borderRadius: '6px',
+                                    border: burnRateFilter === filter.value ? `2px solid ${filter.color}` : '1px solid #E2E8F0',
+                                    fontSize: '0.75rem',
+                                    color: burnRateFilter === filter.value ? filter.color : '#64748B',
+                                    background: burnRateFilter === filter.value ? `${filter.color}15` : '#fff',
+                                    cursor: 'pointer',
+                                    fontWeight: burnRateFilter === filter.value ? 600 : 500,
+                                    transition: 'all 0.2s ease',
+                                    whiteSpace: 'nowrap',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px'
+                                }}
+                            >
+                                {filter.label}
+                                <span style={{ 
+                                    background: burnRateFilter === filter.value ? filter.color : '#E2E8F0',
+                                    color: burnRateFilter === filter.value ? '#fff' : '#64748B',
+                                    padding: '2px 6px',
+                                    borderRadius: '10px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 600
+                                }}>
+                                    {filter.count}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#64748B', padding: '0 1.5rem 1rem', borderBottom: '1px solid #E2E8F0' }}>
+                    Based on last 30 days sales velocity. Fast: &lt;30 days stock, Moderate: 30-90 days, Slow: &gt;90 days, Stagnant: No sales
+                </div>
+                <div className="table-container" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
+                    <table className="data-table">
+                        <thead>
+                            <tr>
+                                <th>SKU</th>
+                                <th>Product</th>
+                                <th>Brand</th>
+                                <th>Current Stock</th>
+                                <th>Sold (30d)</th>
+                                <th>Daily Rate</th>
+                                <th>Days Until Stockout</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredBurnRate.length > 0 ? (
+                                filteredBurnRate.slice(0, 10).map((item, idx) => {
+                                    const statusConfig = {
+                                        FAST: { bg: '#D1FAE5', color: '#065F46', label: 'Fast Moving' },
+                                        MODERATE: { bg: '#FEF3C7', color: '#92400E', label: 'Moderate' },
+                                        SLOW: { bg: '#FEE2E2', color: '#991B1B', label: 'Slow Moving' },
+                                        STAGNANT: { bg: '#F1F5F9', color: '#475569', label: 'Stagnant' }
+                                    };
+                                    const status = statusConfig[item.burnRateCategory] || statusConfig.STAGNANT;
+                                    
+                                    return (
+                                        <tr key={idx}>
+                                            <td><span style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#64748B' }}>{item.sku}</span></td>
+                                            <td style={{ fontWeight: 500 }}>{item.productName}</td>
+                                            <td>{item.brand}</td>
+                                            <td><span style={{ fontWeight: 600 }}>{item.currentStock?.toLocaleString() || 0}</span></td>
+                                            <td><span style={{ color: '#10B981', fontWeight: 600 }}>{item.totalSold?.toLocaleString() || 0}</span></td>
+                                            <td><span style={{ color: '#4880FF', fontWeight: 600 }}>{item.dailySalesRate || 0}</span> /day</td>
+                                            <td>
+                                                <span style={{ 
+                                                    fontWeight: 600,
+                                                    color: item.daysUntilStockout < 30 ? '#DC2626' : item.daysUntilStockout < 90 ? '#F59E0B' : '#64748B'
+                                                }}>
+                                                    {item.daysUntilStockout > 999 ? '∞' : `${item.daysUntilStockout} days`}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span style={{
+                                                    padding: '4px 12px',
+                                                    borderRadius: '4px',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 600,
+                                                    background: status.bg,
+                                                    color: status.color
+                                                }}>
+                                                    {status.label}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            ) : (
+                                <tr>
+                                    <td colSpan="8" className="text-center" style={{ color: '#A3AED0', fontStyle: 'italic', padding: '2rem' }}>
+                                        No stock movement data available
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                    {filteredBurnRate.length > 10 && (
+                        <div style={{ padding: '1rem', textAlign: 'center', borderTop: '1px solid #E2E8F0', fontSize: '0.875rem', color: '#64748B' }}>
+                            Showing top 10 of {filteredBurnRate.length} products. View full analysis in Operational Insights.
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

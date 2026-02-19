@@ -411,6 +411,126 @@ exports.getStats = async (req, res, next) => {
         const totalOrders = await Order.countDocuments({ status: { $ne: 'CANCELLED' } });
         const totalProducts = await Product.countDocuments();
 
+        // 10. Burn Rate Analysis (Stock Movement Velocity)
+        // Calculate sales velocity for last 30 days and compare with current stock
+        const thirtyDaysAgoDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        
+        const burnRateData = await Order.aggregate([
+            { 
+                $match: { 
+                    status: { $ne: 'CANCELLED' },
+                    createdAt: { $gte: thirtyDaysAgoDate }
+                } 
+            },
+            { $unwind: '$items' },
+            {
+                $group: {
+                    _id: '$items.product',
+                    totalSold: { $sum: '$items.quantity' },
+                    orderCount: { $sum: 1 }
+                }
+            },
+            {
+                $lookup: {
+                    from: 'products',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'productInfo'
+                }
+            },
+            { $unwind: '$productInfo' },
+            {
+                $lookup: {
+                    from: 'brands',
+                    localField: 'productInfo.brand',
+                    foreignField: '_id',
+                    as: 'brandInfo'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'inventorybalances',
+                    localField: '_id',
+                    foreignField: 'product',
+                    as: 'inventoryInfo'
+                }
+            },
+            {
+                $addFields: {
+                    currentStock: {
+                        $reduce: {
+                            input: '$inventoryInfo',
+                            initialValue: 0,
+                            in: { $add: ['$$value', '$$this.quantity'] }
+                        }
+                    }
+                }
+            },
+            {
+                $addFields: {
+                    // Daily sales rate (units per day)
+                    dailySalesRate: { $divide: ['$totalSold', 30] },
+                    // Days until stock out (current stock / daily rate)
+                    daysUntilStockout: {
+                        $cond: {
+                            if: { $gt: ['$totalSold', 0] },
+                            then: { $divide: ['$currentStock', { $divide: ['$totalSold', 30] }] },
+                            else: 999999 // No sales = infinite days
+                        }
+                    },
+                    // Burn rate category
+                    burnRateCategory: {
+                        $cond: {
+                            if: { $eq: ['$totalSold', 0] },
+                            then: 'STAGNANT',
+                            else: {
+                                $cond: {
+                                    if: { 
+                                        $lte: [
+                                            { $divide: ['$currentStock', { $divide: ['$totalSold', 30] }] },
+                                            30
+                                        ]
+                                    },
+                                    then: 'FAST',
+                                    else: {
+                                        $cond: {
+                                            if: {
+                                                $lte: [
+                                                    { $divide: ['$currentStock', { $divide: ['$totalSold', 30] }] },
+                                                    90
+                                                ]
+                                            },
+                                            then: 'MODERATE',
+                                            else: 'SLOW'
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                    productName: '$productInfo.name',
+                    sku: '$productInfo.sku',
+                    brand: {
+                        $cond: {
+                            if: { $gt: [{ $size: { $ifNull: ['$brandInfo', []] } }, 0] },
+                            then: { $arrayElemAt: ['$brandInfo.name', 0] },
+                            else: 'N/A'
+                        }
+                    },
+                    currentStock: 1,
+                    totalSold: 1,
+                    dailySalesRate: { $round: ['$dailySalesRate', 2] },
+                    daysUntilStockout: { $round: ['$daysUntilStockout', 0] },
+                    burnRateCategory: 1
+                }
+            },
+            { $sort: { dailySalesRate: -1 } }
+        ]);
+
         res.status(200).json({
             success: true,
             data: {
@@ -430,7 +550,8 @@ exports.getStats = async (req, res, next) => {
                 dispatchTrends,
                 topCustomers,
                 lowStockProducts,
-                aggregatedLowStock
+                aggregatedLowStock,
+                burnRateData
             },
         });
     } catch (error) {

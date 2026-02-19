@@ -19,10 +19,19 @@ const Analytics = () => {
     if (loading) return <Spinner fullPage />;
     if (!data) return <div className="page-container"><div className="text-center">Failed to load data</div></div>;
 
-    const { topProducts, regionalPerformance, dispatchTrends, summary, lowStockProducts = [] } = data;
-    const filteredLowStock = lowStockProducts.filter(item => { if (stockFilter === 'critical') return item.quantity < 30; if (stockFilter === 'low') return item.quantity >= 30 && item.quantity < 100; return true; });
-    const criticalCount = lowStockProducts.filter(item => item.quantity < 30).length;
-    const lowCount = lowStockProducts.filter(item => item.quantity >= 30 && item.quantity < 100).length;
+    const { topProducts, regionalPerformance, dispatchTrends, summary, lowStockProducts = [], aggregatedLowStock = [] } = data;
+    const filteredLowStock = lowStockProducts.filter(item => { if (stockFilter === 'critical') return item.quantity < 50; if (stockFilter === 'low') return item.quantity >= 50 && item.quantity < 150; return true; });
+    const criticalCount = lowStockProducts.filter(item => item.quantity < 50).length;
+    const lowCount = lowStockProducts.filter(item => item.quantity >= 50 && item.quantity < 150).length;
+
+    // Aggregated low stock filtering
+    const filteredAggregatedLowStock = aggregatedLowStock.filter(item => {
+        if (stockFilter === 'critical') return item.totalQuantity < 200;
+        if (stockFilter === 'low') return item.totalQuantity >= 200 && item.totalQuantity < 400;
+        return true;
+    });
+    const aggregatedCriticalCount = aggregatedLowStock.filter(item => item.totalQuantity < 200).length;
+    const aggregatedLowCount = aggregatedLowStock.filter(item => item.totalQuantity >= 200 && item.totalQuantity < 400).length;
 
     const statCards = [
         { title: 'Total Orders', value: summary.totalOrders.toLocaleString(), icon: <FiShoppingCart />, color: '#4880FF', subtitle: 'All time orders' },
@@ -41,8 +50,12 @@ const Analytics = () => {
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', borderBottom: '2px solid #E2E8F0', paddingBottom: '0' }}>
                 <button onClick={() => setActiveTab('overview')} style={{ padding: '0.75rem 1.5rem', border: 'none', background: 'transparent', color: activeTab === 'overview' ? '#4880FF' : '#64748B', fontWeight: activeTab === 'overview' ? 600 : 500, fontSize: '0.95rem', cursor: 'pointer', borderBottom: activeTab === 'overview' ? '2px solid #4880FF' : '2px solid transparent', marginBottom: '-2px', transition: 'all 0.2s' }}>Overview</button>
                 <button onClick={() => setActiveTab('lowstock')} style={{ padding: '0.75rem 1.5rem', border: 'none', background: 'transparent', color: activeTab === 'lowstock' ? '#4880FF' : '#64748B', fontWeight: activeTab === 'lowstock' ? 600 : 500, fontSize: '0.95rem', cursor: 'pointer', borderBottom: activeTab === 'lowstock' ? '2px solid #4880FF' : '2px solid transparent', marginBottom: '-2px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    Low Stock
+                    Low Stock (Per Warehouse)
                     {summary.lowStock > 0 && <span style={{ background: '#FEE2E2', color: '#991B1B', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600 }}>{summary.lowStock}</span>}
+                </button>
+                <button onClick={() => setActiveTab('aggregated')} style={{ padding: '0.75rem 1.5rem', border: 'none', background: 'transparent', color: activeTab === 'aggregated' ? '#4880FF' : '#64748B', fontWeight: activeTab === 'aggregated' ? 600 : 500, fontSize: '0.95rem', cursor: 'pointer', borderBottom: activeTab === 'aggregated' ? '2px solid #4880FF' : '2px solid transparent', marginBottom: '-2px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    Low Stock (All Warehouses)
+                    {aggregatedLowStock.length > 0 && <span style={{ background: '#FEE2E2', color: '#991B1B', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600 }}>{aggregatedLowStock.length}</span>}
                 </button>
             </div>
 
@@ -145,12 +158,12 @@ const Analytics = () => {
                         <div style={{ padding: '1.5rem', background: '#FEF2F2', border: '2px solid #FCA5A5', borderRadius: '8px' }}>
                             <div style={{ fontSize: '0.875rem', color: '#991B1B', marginBottom: '0.5rem' }}>Critical Stock</div>
                             <div style={{ fontSize: '2rem', fontWeight: 700, color: '#DC2626' }}>{criticalCount}</div>
-                            <div style={{ fontSize: '0.75rem', color: '#7F1D1D', marginTop: '0.25rem' }}>Below 30 units</div>
+                            <div style={{ fontSize: '0.75rem', color: '#7F1D1D', marginTop: '0.25rem' }}>Below 50 units per warehouse</div>
                         </div>
                         <div style={{ padding: '1.5rem', background: '#FEF3C7', border: '2px solid #FCD34D', borderRadius: '8px' }}>
                             <div style={{ fontSize: '0.875rem', color: '#92400E', marginBottom: '0.5rem' }}>Low Stock</div>
                             <div style={{ fontSize: '2rem', fontWeight: 700, color: '#F59E0B' }}>{lowCount}</div>
-                            <div style={{ fontSize: '0.75rem', color: '#78350F', marginTop: '0.25rem' }}>30-99 units</div>
+                            <div style={{ fontSize: '0.75rem', color: '#78350F', marginTop: '0.25rem' }}>50-149 units per warehouse</div>
                         </div>
                         <div style={{ padding: '1.5rem', background: '#F0F9FF', border: '2px solid #BAE6FD', borderRadius: '8px' }}>
                             <div style={{ fontSize: '0.875rem', color: '#075985', marginBottom: '0.5rem' }}>Total Affected</div>
@@ -197,15 +210,86 @@ const Analytics = () => {
                                             <td style={{ fontWeight: 500 }}>{item.productName}</td>
                                             <td>{item.brand}</td>
                                             <td>{item.warehouse}</td>
-                                            <td><span style={{ fontWeight: 600, color: item.quantity < 30 ? '#DC2626' : '#F59E0B' }}>{item.quantity} units</span></td>
-                                            <td><span style={{ padding: '4px 12px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, background: item.quantity < 30 ? '#FEE2E2' : '#FEF3C7', color: item.quantity < 30 ? '#991B1B' : '#92400E' }}>{item.quantity < 30 ? 'Critical' : 'Low'}</span></td>
+                                            <td><span style={{ fontWeight: 600, color: item.quantity < 50 ? '#DC2626' : '#F59E0B' }}>{item.quantity} units</span></td>
+                                            <td><span style={{ padding: '4px 12px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, background: item.quantity < 50 ? '#FEE2E2' : '#FEF3C7', color: item.quantity < 50 ? '#991B1B' : '#92400E' }}>{item.quantity < 50 ? 'Critical' : 'Low'}</span></td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
                             <div style={{ marginTop: '1rem', padding: '1rem', background: '#F8FAFC', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ fontSize: '0.875rem', color: '#64748B' }}>Showing {filteredLowStock.length} of {lowStockProducts.length} low stock items</span>
-                                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Minimum threshold: 100 units</span>
+                                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Thresholds: Critical less than 50, Low less than 150 units per warehouse</span>
+                            </div>
+                        </div>
+                    )}
+                </>
+            )}
+
+            {activeTab === 'aggregated' && (
+                <>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+                        <div style={{ padding: '1.5rem', background: '#FEF2F2', border: '2px solid #FCA5A5', borderRadius: '8px' }}>
+                            <div style={{ fontSize: '0.875rem', color: '#991B1B', marginBottom: '0.5rem' }}>Critical Stock</div>
+                            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#DC2626' }}>{aggregatedCriticalCount}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#7F1D1D', marginTop: '0.25rem' }}>Below 200 units total</div>
+                        </div>
+                        <div style={{ padding: '1.5rem', background: '#FEF3C7', border: '2px solid #FCD34D', borderRadius: '8px' }}>
+                            <div style={{ fontSize: '0.875rem', color: '#92400E', marginBottom: '0.5rem' }}>Low Stock</div>
+                            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#F59E0B' }}>{aggregatedLowCount}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#78350F', marginTop: '0.25rem' }}>200-399 units total</div>
+                        </div>
+                        <div style={{ padding: '1.5rem', background: '#F0F9FF', border: '2px solid #BAE6FD', borderRadius: '8px' }}>
+                            <div style={{ fontSize: '0.875rem', color: '#075985', marginBottom: '0.5rem' }}>Total Affected</div>
+                            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#0284C7' }}>{aggregatedLowStock.length}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#0C4A6E', marginTop: '0.25rem' }}>Products below threshold</div>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', padding: '1rem', background: '#F8FAFC', borderRadius: '8px' }}>
+                        <FiFilter style={{ color: '#64748B' }} />
+                        <span style={{ fontSize: '0.875rem', color: '#64748B', fontWeight: 500 }}>Filter:</span>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            {[{ value: 'all', label: 'All', count: aggregatedLowStock.length }, { value: 'critical', label: 'Critical', count: aggregatedCriticalCount }, { value: 'low', label: 'Low', count: aggregatedLowCount }].map(filter => (
+                                <button key={filter.value} onClick={() => setStockFilter(filter.value)} style={{ padding: '0.5rem 1rem', border: stockFilter === filter.value ? '2px solid #4880FF' : '1px solid #E2E8F0', background: stockFilter === filter.value ? '#F0F4FF' : '#fff', color: stockFilter === filter.value ? '#4880FF' : '#64748B', borderRadius: '6px', fontSize: '0.875rem', fontWeight: stockFilter === filter.value ? 600 : 500, cursor: 'pointer', transition: 'all 0.2s' }}>
+                                    {filter.label} ({filter.count})
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {filteredAggregatedLowStock.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '4rem 2rem', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                            <FiPackage size={48} style={{ color: '#CBD5E1', marginBottom: '1rem' }} />
+                            <h3 style={{ color: '#475569', marginBottom: '0.5rem' }}>No Low Stock Items</h3>
+                            <p style={{ color: '#94A3B8', fontSize: '0.875rem' }}>All products are adequately stocked across all warehouses</p>
+                        </div>
+                    ) : (
+                        <div className="table-container">
+                            <table className="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>SKU</th>
+                                        <th>Product</th>
+                                        <th>Brand</th>
+                                        <th>Total Stock (All Warehouses)</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredAggregatedLowStock.map((item, idx) => (
+                                        <tr key={idx}>
+                                            <td><span style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#64748B' }}>{item.sku}</span></td>
+                                            <td style={{ fontWeight: 500 }}>{item.productName}</td>
+                                            <td>{item.brand}</td>
+                                            <td><span style={{ fontWeight: 600, color: item.totalQuantity < 200 ? '#DC2626' : '#F59E0B' }}>{item.totalQuantity} units</span></td>
+                                            <td><span style={{ padding: '4px 12px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, background: item.totalQuantity < 200 ? '#FEE2E2' : '#FEF3C7', color: item.totalQuantity < 200 ? '#991B1B' : '#92400E' }}>{item.totalQuantity < 200 ? 'Critical' : 'Low'}</span></td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            <div style={{ marginTop: '1rem', padding: '1rem', background: '#F8FAFC', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.875rem', color: '#64748B' }}>Showing {filteredAggregatedLowStock.length} of {aggregatedLowStock.length} low stock items</span>
+                                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Thresholds: Critical less than 200, Low less than 400 units across all warehouses</span>
                             </div>
                         </div>
                     )}

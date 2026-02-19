@@ -1,6 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import RoleRoute from './components/RoleRoute';
+import { ROLES } from './utils/constants';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -36,19 +38,117 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <Routes>
+                    {/* Dashboard - All roles */}
                     <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/analytics" element={<Analytics />} />
-                    <Route path="/analytics/customers" element={<CustomerAnalytics />} />
-                    <Route path="/analytics/financials" element={<Financials />} />
-                    <Route path="/orders" element={<Orders />} />
-                    <Route path="/orders/new" element={<OrderCreate />} />
-                    <Route path="/orders/:id" element={<OrderDetail />} />
-                    <Route path="/inventory/brands" element={<Brands />} />
-                    <Route path="/inventory/categories" element={<Categories />} />
-                    <Route path="/inventory/products" element={<Products />} />
-                    <Route path="/inventory/balance" element={<Inventory />} />
-                    <Route path="/settings/locations" element={<Locations />} />
-                    <Route path="/users" element={<Users />} />
+                    
+                    {/* Analytics - All except VIEWER (only Dashboard + Operational Insights) */}
+                    <Route 
+                      path="/analytics" 
+                      element={
+                        <RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.INVENTORY_MANAGER, ROLES.SALES, ROLES.VIEWER]}>
+                          <Analytics />
+                        </RoleRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/analytics/customers" 
+                      element={
+                        <RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.INVENTORY_MANAGER, ROLES.SALES]}>
+                          <CustomerAnalytics />
+                        </RoleRoute>
+                      } 
+                    />
+                    
+                    {/* Financials - Admin only */}
+                    <Route 
+                      path="/analytics/financials" 
+                      element={
+                        <RoleRoute allowedRoles={[ROLES.ADMIN]}>
+                          <Financials />
+                        </RoleRoute>
+                      } 
+                    />
+                    
+                    {/* Orders - All except VIEWER */}
+                    <Route 
+                      path="/orders" 
+                      element={
+                        <RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.INVENTORY_MANAGER, ROLES.SALES]}>
+                          <Orders />
+                        </RoleRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/orders/new" 
+                      element={
+                        <RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.INVENTORY_MANAGER, ROLES.SALES]}>
+                          <OrderCreate />
+                        </RoleRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/orders/:id" 
+                      element={
+                        <RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.INVENTORY_MANAGER, ROLES.SALES]}>
+                          <OrderDetail />
+                        </RoleRoute>
+                      } 
+                    />
+                    
+                    {/* Inventory - Admin and Inventory Manager only */}
+                    <Route 
+                      path="/inventory/brands" 
+                      element={
+                        <RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.INVENTORY_MANAGER]}>
+                          <Brands />
+                        </RoleRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/inventory/categories" 
+                      element={
+                        <RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.INVENTORY_MANAGER]}>
+                          <Categories />
+                        </RoleRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/inventory/products" 
+                      element={
+                        <RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.INVENTORY_MANAGER]}>
+                          <Products />
+                        </RoleRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/inventory/balance" 
+                      element={
+                        <RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.INVENTORY_MANAGER]}>
+                          <Inventory />
+                        </RoleRoute>
+                      } 
+                    />
+                    
+                    {/* Settings - Admin and Inventory Manager */}
+                    <Route 
+                      path="/settings/locations" 
+                      element={
+                        <RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.INVENTORY_MANAGER]}>
+                          <Locations />
+                        </RoleRoute>
+                      } 
+                    />
+                    
+                    {/* Users - Admin only */}
+                    <Route 
+                      path="/users" 
+                      element={
+                        <RoleRoute allowedRoles={[ROLES.ADMIN]}>
+                          <Users />
+                        </RoleRoute>
+                      } 
+                    />
+                    
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   </Routes>
                 </Layout>

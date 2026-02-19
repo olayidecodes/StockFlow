@@ -105,14 +105,14 @@ exports.adjustStock = async (req, res, next) => {
 // @access  Private (View Inventory)
 exports.getBalance = async (req, res, next) => {
     try {
-        const { warehouseId, productId } = req.query;
+        const { warehouseId, productId, categoryId } = req.query;
 
         if (!warehouseId || warehouseId === '') {
             // Aggregated View - Group by product
             const match = {};
             if (productId && productId !== '') match.product = new mongoose.Types.ObjectId(productId);
 
-            const balances = await InventoryBalance.aggregate([
+            const pipeline = [
                 { $match: match },
                 {
                     $group: {
@@ -129,7 +129,19 @@ exports.getBalance = async (req, res, next) => {
                         as: 'product'
                     }
                 },
-                { $unwind: '$product' },
+                { $unwind: '$product' }
+            ];
+
+            // Add category filter if provided
+            if (categoryId && categoryId !== '') {
+                pipeline.push({
+                    $match: {
+                        'product.category': new mongoose.Types.ObjectId(categoryId)
+                    }
+                });
+            }
+
+            pipeline.push(
                 {
                     $project: {
                         _id: 1,
@@ -143,13 +155,16 @@ exports.getBalance = async (req, res, next) => {
                             wholesaleCost: '$product.wholesaleCost',
                             price: '$product.price',
                             volume: '$product.volume',
-                            dimensions: '$product.dimensions'
+                            dimensions: '$product.dimensions',
+                            category: '$product.category'
                         },
                         warehouse: { name: 'All Warehouses' }
                     }
                 },
                 { $sort: { 'product.name': 1 } }
-            ]);
+            );
+
+            const balances = await InventoryBalance.aggregate(pipeline);
 
             return res.status(200).json({
                 success: true,
@@ -162,9 +177,64 @@ exports.getBalance = async (req, res, next) => {
         const query = { warehouse: warehouseId };
         if (productId) query.product = productId;
 
-        const balances = await InventoryBalance.find(query)
-            .populate('product', 'name sku cartonSize wholesaleCost price volume dimensions')
-            .populate('warehouse', 'name');
+        let balances;
+        if (categoryId && categoryId !== '') {
+            // Need to filter by category - use aggregation
+            const matchStage = { ...query };
+            
+            balances = await InventoryBalance.aggregate([
+                { $match: matchStage },
+                {
+                    $lookup: {
+                        from: 'products',
+                        localField: 'product',
+                        foreignField: '_id',
+                        as: 'productInfo'
+                    }
+                },
+                { $unwind: '$productInfo' },
+                {
+                    $match: {
+                        'productInfo.category': new mongoose.Types.ObjectId(categoryId)
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'warehouses',
+                        localField: 'warehouse',
+                        foreignField: '_id',
+                        as: 'warehouseInfo'
+                    }
+                },
+                { $unwind: '$warehouseInfo' },
+                {
+                    $project: {
+                        _id: 1,
+                        quantity: 1,
+                        allocated: 1,
+                        product: {
+                            _id: '$productInfo._id',
+                            name: '$productInfo.name',
+                            sku: '$productInfo.sku',
+                            cartonSize: '$productInfo.cartonSize',
+                            wholesaleCost: '$productInfo.wholesaleCost',
+                            price: '$productInfo.price',
+                            volume: '$productInfo.volume',
+                            dimensions: '$productInfo.dimensions',
+                            category: '$productInfo.category'
+                        },
+                        warehouse: {
+                            _id: '$warehouseInfo._id',
+                            name: '$warehouseInfo.name'
+                        }
+                    }
+                }
+            ]);
+        } else {
+            balances = await InventoryBalance.find(query)
+                .populate('product', 'name sku cartonSize wholesaleCost price volume dimensions category')
+                .populate('warehouse', 'name');
+        }
 
         res.status(200).json({
             success: true,

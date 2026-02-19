@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
+import { ROLES } from '../utils/constants';
 
 import {
     FiHome, FiShoppingCart, FiPackage, FiBarChart2, FiUsers,
@@ -19,13 +20,28 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
         navigate('/login');
     };
 
+    // Helper function to check if user can access a route
+    const canAccess = (allowedRoles) => {
+        return allowedRoles.includes(role);
+    };
+
     const navItems = [
-        { to: '/dashboard', label: 'Dashboard', icon: <FiHome /> },
-        { to: '/orders', label: 'Orders', icon: <FiShoppingCart />, permission: PERMISSIONS.VIEW_ORDERS },
+        { 
+            to: '/dashboard', 
+            label: 'Dashboard', 
+            icon: <FiHome />,
+            allowedRoles: [ROLES.ADMIN, ROLES.INVENTORY_MANAGER, ROLES.SALES, ROLES.VIEWER]
+        },
+        { 
+            to: '/orders', 
+            label: 'Orders', 
+            icon: <FiShoppingCart />,
+            allowedRoles: [ROLES.ADMIN, ROLES.INVENTORY_MANAGER, ROLES.SALES]
+        },
         {
             label: 'Inventory',
             icon: <FiPackage />,
-            permission: PERMISSIONS.MANAGE_INVENTORY,
+            allowedRoles: [ROLES.ADMIN, ROLES.INVENTORY_MANAGER],
             subItems: [
                 { to: '/inventory/balance', label: 'Stock Levels', icon: <FiLayers /> },
                 { to: '/inventory/products', label: 'Products', icon: <FiBox /> },
@@ -36,15 +52,40 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
         {
             label: 'Analytics',
             icon: <FiBarChart2 />,
-            permission: PERMISSIONS.VIEW_REPORTS,
+            allowedRoles: [ROLES.ADMIN, ROLES.INVENTORY_MANAGER, ROLES.SALES, ROLES.VIEWER],
             subItems: [
-                { to: '/analytics', label: 'Reports Dashboard', icon: <FiTrendingUp /> },
-                { to: '/analytics/customers', label: 'Customer Insights', icon: <FiUserCheck /> },
-                { to: '/analytics/financials', label: 'Financials', icon: <FiDollarSign />, adminOnly: true }
+                { 
+                    to: '/analytics', 
+                    label: 'Operational Insights', 
+                    icon: <FiTrendingUp />,
+                    allowedRoles: [ROLES.ADMIN, ROLES.INVENTORY_MANAGER, ROLES.SALES, ROLES.VIEWER]
+                },
+                { 
+                    to: '/analytics/customers', 
+                    label: 'Customer Insights', 
+                    icon: <FiUserCheck />,
+                    allowedRoles: [ROLES.ADMIN, ROLES.INVENTORY_MANAGER, ROLES.SALES]
+                },
+                { 
+                    to: '/analytics/financials', 
+                    label: 'Financials', 
+                    icon: <FiDollarSign />,
+                    allowedRoles: [ROLES.ADMIN]
+                }
             ]
         },
-        { to: '/users', label: 'Users', icon: <FiUsers />, permission: PERMISSIONS.MANAGE_USERS },
-        { to: '/settings/locations', label: 'Locations', icon: <FiMapPin />, permission: PERMISSIONS.MANAGE_SETTINGS },
+        { 
+            to: '/users', 
+            label: 'Users', 
+            icon: <FiUsers />,
+            allowedRoles: [ROLES.ADMIN]
+        },
+        { 
+            to: '/settings/locations', 
+            label: 'Locations', 
+            icon: <FiMapPin />,
+            allowedRoles: [ROLES.ADMIN, ROLES.INVENTORY_MANAGER]
+        },
     ];
 
     return (
@@ -65,10 +106,18 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
 
             <nav className="sidebar-nav">
                 {navItems.map((item, index) => {
-                    const hasPermission = !item.permission || role.includes('ADMIN') || user?.permissions?.includes(item.permission);
-                    if (!hasPermission) return null;
+                    // Check if user has access to this item
+                    if (!canAccess(item.allowedRoles)) return null;
 
                     if (item.subItems) {
+                        // Filter sub-items based on role
+                        const visibleSubItems = item.subItems.filter(sub => 
+                            !sub.allowedRoles || canAccess(sub.allowedRoles)
+                        );
+
+                        // Don't show group if no sub-items are visible
+                        if (visibleSubItems.length === 0) return null;
+
                         return (
                             <div key={index} className="nav-group">
                                 <div className="nav-group-label">
@@ -76,22 +125,17 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
                                     <span className="label">{item.label}</span>
                                 </div>
                                 <div className="nav-group-items">
-                                    {item.subItems.map(sub => {
-                                        // Check admin-only restriction
-                                        if (sub.adminOnly && role !== 'ADMIN') return null;
-                                        
-                                        return (
-                                            <NavLink
-                                                key={sub.to}
-                                                to={sub.to}
-                                                className={({ isActive }) => `sidebar-link sub-link ${isActive ? 'active' : ''}`}
-                                                onClick={() => window.innerWidth < 768 && toggleSidebar()}
-                                            >
-                                                {sub.icon && <span className="icon" style={{ fontSize: '1rem' }}>{sub.icon}</span>}
-                                                <span className="label">{sub.label}</span>
-                                            </NavLink>
-                                        );
-                                    })}
+                                    {visibleSubItems.map(sub => (
+                                        <NavLink
+                                            key={sub.to}
+                                            to={sub.to}
+                                            className={({ isActive }) => `sidebar-link sub-link ${isActive ? 'active' : ''}`}
+                                            onClick={() => window.innerWidth < 768 && toggleSidebar()}
+                                        >
+                                            {sub.icon && <span className="icon" style={{ fontSize: '1rem' }}>{sub.icon}</span>}
+                                            <span className="label">{sub.label}</span>
+                                        </NavLink>
+                                    ))}
                                 </div>
                             </div>
                         );

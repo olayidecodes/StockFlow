@@ -295,12 +295,12 @@ exports.getStats = async (req, res, next) => {
 
         // 9. Stock Health / Financials
         const lowStockCount = await InventoryBalance.countDocuments({
-            quantity: { $lt: 100 },
+            quantity: { $lt: 150 },
         });
 
         // Get low stock products with details
         const lowStockProducts = await InventoryBalance.aggregate([
-            { $match: { quantity: { $lt: 100 } } },
+            { $match: { quantity: { $lt: 150 } } },
             {
                 $lookup: {
                     from: 'products',
@@ -340,10 +340,53 @@ exports.getStats = async (req, res, next) => {
                     },
                     warehouse: { $ifNull: ['$warehouseInfo.name', 'Unknown Warehouse'] },
                     quantity: 1,
-                    reorderLevel: { $ifNull: ['$productInfo.reorderLevel', 100] }
+                    reorderLevel: { $ifNull: ['$productInfo.reorderLevel', 150] }
                 }
             },
             { $sort: { quantity: 1 } }
+        ]);
+
+        // Get aggregated low stock products (total across all warehouses)
+        const aggregatedLowStock = await InventoryBalance.aggregate([
+            {
+                $group: {
+                    _id: '$product',
+                    totalQuantity: { $sum: '$quantity' }
+                }
+            },
+            { $match: { totalQuantity: { $lt: 400 } } },
+            {
+                $lookup: {
+                    from: 'products',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'productInfo'
+                }
+            },
+            { $unwind: '$productInfo' },
+            {
+                $lookup: {
+                    from: 'brands',
+                    localField: 'productInfo.brand',
+                    foreignField: '_id',
+                    as: 'brandInfo'
+                }
+            },
+            {
+                $project: {
+                    productName: '$productInfo.name',
+                    sku: '$productInfo.sku',
+                    brand: {
+                        $cond: {
+                            if: { $gt: [{ $size: { $ifNull: ['$brandInfo', []] } }, 0] },
+                            then: { $arrayElemAt: ['$brandInfo.name', 0] },
+                            else: 'N/A'
+                        }
+                    },
+                    totalQuantity: 1
+                }
+            },
+            { $sort: { totalQuantity: 1 } }
         ]);
 
         const inventorySummary = await InventoryBalance.aggregate([
@@ -386,7 +429,8 @@ exports.getStats = async (req, res, next) => {
                 warehouseCBM,
                 dispatchTrends,
                 topCustomers,
-                lowStockProducts
+                lowStockProducts,
+                aggregatedLowStock
             },
         });
     } catch (error) {

@@ -13,18 +13,23 @@ const Inventory = () => {
     const [balances, setBalances] = useState([]);
     const [warehouses, setWarehouses] = useState([]);
     const [products, setProducts] = useState([]);
-    const [warehouseTotals, setWarehouseTotals] = useState([]); // Total CBM per warehouse (matches Dashboard)
+    const [categories, setCategories] = useState([]);
+    const [warehouseTotals, setWarehouseTotals] = useState([]);
     const [loading, setLoading] = useState(true);
 
     // Filters
     const [filterWarehouse, setFilterWarehouse] = useState('');
     const [filterProduct, setFilterProduct] = useState('');
+    const [filterCategory, setFilterCategory] = useState('');
+    
+    // Sorting
+    const [sortBy, setSortBy] = useState(''); // 'cbm-asc', 'cbm-desc', 'value-asc', 'value-desc'
 
     // Modals
     const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
-    const [selectedItem, setSelectedItem] = useState(null); // { product, warehouse }
+    const [selectedItem, setSelectedItem] = useState(null);
 
     useEffect(() => {
         fetchInitialData();
@@ -32,16 +37,18 @@ const Inventory = () => {
 
     useEffect(() => {
         fetchBalances();
-    }, [filterWarehouse, filterProduct]);
+    }, [filterWarehouse, filterProduct, filterCategory]);
 
     const fetchInitialData = async () => {
         try {
-            const [whRes, prodRes] = await Promise.all([
+            const [whRes, prodRes, catRes] = await Promise.all([
                 api.get('/warehouses'),
-                api.get('/products?limit=1000')
+                api.get('/products?limit=1000'),
+                api.get('/categories')
             ]);
             setWarehouses(whRes.data.data);
             setProducts(prodRes.data.data);
+            setCategories(catRes.data.data);
         } catch (err) {
             console.error('Failed to load filters', err);
         }
@@ -54,6 +61,7 @@ const Inventory = () => {
             const params = [];
             if (filterWarehouse) params.push(`warehouseId=${filterWarehouse}`);
             if (filterProduct) params.push(`productId=${filterProduct}`);
+            if (filterCategory) params.push(`categoryId=${filterCategory}`);
             if (params.length > 0) query = `?${params.join('&')}`;
 
             // Fetch both balance data and warehouse totals (for Dashboard correlation)
@@ -166,6 +174,28 @@ const Inventory = () => {
         return cartons * unitVol;
     };
 
+    // Sort balances based on sortBy state
+    const getSortedBalances = () => {
+        if (!sortBy) return balances;
+
+        const sorted = [...balances].sort((a, b) => {
+            if (sortBy === 'cbm-asc') {
+                return calculateCBM(a) - calculateCBM(b);
+            } else if (sortBy === 'cbm-desc') {
+                return calculateCBM(b) - calculateCBM(a);
+            } else if (sortBy === 'value-asc') {
+                return calculateValue(a) - calculateValue(b);
+            } else if (sortBy === 'value-desc') {
+                return calculateValue(b) - calculateValue(a);
+            }
+            return 0;
+        });
+
+        return sorted;
+    };
+
+    const sortedBalances = getSortedBalances();
+
     return (
         <div className="page-container">
             <div className="page-header">
@@ -179,14 +209,27 @@ const Inventory = () => {
 
             <div className="filters-bar">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#6B7A99' }}>Product Filter:</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#6B7A99' }}>Category:</span>
+                    <select
+                        value={filterCategory}
+                        onChange={(e) => setFilterCategory(e.target.value)}
+                        className="filter-select"
+                    >
+                        <option value="">All Categories</option>
+                        {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                    </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#6B7A99' }}>Product:</span>
                     <select
                         value={filterProduct}
                         onChange={(e) => setFilterProduct(e.target.value)}
                         className="filter-select"
                     >
                         <option value="">All Products</option>
-                        {products.map(p => <option key={p._id} value={p._id}>{p.name} ({p.sku})</option>)}
+                        {products
+                            .filter(p => !filterCategory || p.category?._id === filterCategory || p.category === filterCategory)
+                            .map(p => <option key={p._id} value={p._id}>{p.name} ({p.sku})</option>)}
                     </select>
                 </div>
             </div>
@@ -269,14 +312,26 @@ const Inventory = () => {
                                 </th>
                                 <th>Carton Size</th>
                                 <th>Current Balance</th>
-                                <th>Total Value</th>
-                                <th>Total CBM</th>
+                                <th 
+                                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                                    onClick={() => setSortBy(sortBy === 'value-asc' ? 'value-desc' : 'value-asc')}
+                                    title="Click to sort"
+                                >
+                                    Total Value {sortBy === 'value-asc' ? '↑' : sortBy === 'value-desc' ? '↓' : '↕'}
+                                </th>
+                                <th 
+                                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                                    onClick={() => setSortBy(sortBy === 'cbm-asc' ? 'cbm-desc' : 'cbm-asc')}
+                                    title="Click to sort"
+                                >
+                                    Total CBM {sortBy === 'cbm-asc' ? '↑' : sortBy === 'cbm-desc' ? '↓' : '↕'}
+                                </th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {balances.length > 0 ? (
-                                balances.map((bal) => (
+                            {sortedBalances.length > 0 ? (
+                                sortedBalances.map((bal) => (
                                     <tr key={bal._id}>
                                         <td>
                                             <div className="cell-primary">{bal.product?.name}</div>

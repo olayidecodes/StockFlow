@@ -12,7 +12,7 @@ const mongoose = require('mongoose');
 // @access  Private (Admin only)
 exports.getFinancials = async (req, res, next) => {
     try {
-        const { startDate, endDate } = req.query;
+        const { startDate, endDate, trendPeriod = 'past365' } = req.query;
         
         // Date range for orders (default to all time)
         const orderDateFilter = {};
@@ -43,10 +43,42 @@ exports.getFinancials = async (req, res, next) => {
             },
             { $unwind: '$warehouseInfo' },
             {
+                $addFields: {
+                    // Calculate volume from dimensions if needed
+                    calculatedVolume: {
+                        $multiply: [
+                            { $ifNull: ['$productInfo.dimensions.length', 0] },
+                            { $ifNull: ['$productInfo.dimensions.breadth', 0] },
+                            { $ifNull: ['$productInfo.dimensions.height', 0] }
+                        ]
+                    },
+                    safeCartonSize: {
+                        $cond: {
+                            if: { $gt: [{ $ifNull: ['$productInfo.cartonSize', 0] }, 0] },
+                            then: '$productInfo.cartonSize',
+                            else: 1
+                        }
+                    }
+                }
+            },
+            {
+                $addFields: {
+                    finalUnitVolume: {
+                        $cond: {
+                            if: { $gt: [{ $ifNull: ['$productInfo.volume', 0] }, 0] },
+                            then: '$productInfo.volume',
+                            else: '$calculatedVolume'
+                        }
+                    },
+                    numCartons: { $divide: ['$quantity', '$safeCartonSize'] }
+                }
+            },
+            {
                 $group: {
                     _id: '$warehouse',
                     warehouseName: { $first: '$warehouseInfo.name' },
                     totalUnits: { $sum: '$quantity' },
+                    totalCBM: { $sum: { $multiply: ['$numCartons', '$finalUnitVolume'] } },
                     totalCost: { 
                         $sum: { 
                             $multiply: [
@@ -64,6 +96,7 @@ exports.getFinancials = async (req, res, next) => {
                 $project: {
                     warehouseName: 1,
                     totalUnits: 1,
+                    totalCBM: { $round: ['$totalCBM', 3] },
                     totalCost: { $round: ['$totalCost', 2] },
                     totalRetailValue: { $round: ['$totalRetailValue', 2] },
                     potentialProfit: { 
@@ -117,10 +150,41 @@ exports.getFinancials = async (req, res, next) => {
             },
             { $unwind: '$brandInfo' },
             {
+                $addFields: {
+                    calculatedVolume: {
+                        $multiply: [
+                            { $ifNull: ['$productInfo.dimensions.length', 0] },
+                            { $ifNull: ['$productInfo.dimensions.breadth', 0] },
+                            { $ifNull: ['$productInfo.dimensions.height', 0] }
+                        ]
+                    },
+                    safeCartonSize: {
+                        $cond: {
+                            if: { $gt: [{ $ifNull: ['$productInfo.cartonSize', 0] }, 0] },
+                            then: '$productInfo.cartonSize',
+                            else: 1
+                        }
+                    }
+                }
+            },
+            {
+                $addFields: {
+                    finalUnitVolume: {
+                        $cond: {
+                            if: { $gt: [{ $ifNull: ['$productInfo.volume', 0] }, 0] },
+                            then: '$productInfo.volume',
+                            else: '$calculatedVolume'
+                        }
+                    },
+                    numCartons: { $divide: ['$quantity', '$safeCartonSize'] }
+                }
+            },
+            {
                 $group: {
                     _id: '$productInfo.brand',
                     brandName: { $first: '$brandInfo.name' },
                     totalUnits: { $sum: '$quantity' },
+                    totalCBM: { $sum: { $multiply: ['$numCartons', '$finalUnitVolume'] } },
                     totalCost: { 
                         $sum: { 
                             $multiply: [
@@ -139,6 +203,7 @@ exports.getFinancials = async (req, res, next) => {
                 $project: {
                     brandName: 1,
                     totalUnits: 1,
+                    totalCBM: { $round: ['$totalCBM', 3] },
                     productCount: { $size: '$productCount' },
                     totalCost: { $round: ['$totalCost', 2] },
                     totalRetailValue: { $round: ['$totalRetailValue', 2] },
@@ -170,6 +235,36 @@ exports.getFinancials = async (req, res, next) => {
                 }
             },
             {
+                $addFields: {
+                    calculatedVolume: {
+                        $multiply: [
+                            { $ifNull: ['$productInfo.dimensions.length', 0] },
+                            { $ifNull: ['$productInfo.dimensions.breadth', 0] },
+                            { $ifNull: ['$productInfo.dimensions.height', 0] }
+                        ]
+                    },
+                    safeCartonSize: {
+                        $cond: {
+                            if: { $gt: [{ $ifNull: ['$productInfo.cartonSize', 0] }, 0] },
+                            then: '$productInfo.cartonSize',
+                            else: 1
+                        }
+                    }
+                }
+            },
+            {
+                $addFields: {
+                    finalUnitVolume: {
+                        $cond: {
+                            if: { $gt: [{ $ifNull: ['$productInfo.volume', 0] }, 0] },
+                            then: '$productInfo.volume',
+                            else: '$calculatedVolume'
+                        }
+                    },
+                    numCartons: { $divide: ['$quantity', '$safeCartonSize'] }
+                }
+            },
+            {
                 $group: {
                     _id: '$productInfo.category',
                     categoryName: { 
@@ -181,6 +276,7 @@ exports.getFinancials = async (req, res, next) => {
                         } 
                     },
                     totalUnits: { $sum: '$quantity' },
+                    totalCBM: { $sum: { $multiply: ['$numCartons', '$finalUnitVolume'] } },
                     totalCost: { 
                         $sum: { 
                             $multiply: [
@@ -198,6 +294,7 @@ exports.getFinancials = async (req, res, next) => {
                 $project: {
                     categoryName: 1,
                     totalUnits: 1,
+                    totalCBM: { $round: ['$totalCBM', 3] },
                     totalCost: { $round: ['$totalCost', 2] },
                     totalRetailValue: { $round: ['$totalRetailValue', 2] },
                     potentialProfit: { 
@@ -220,10 +317,41 @@ exports.getFinancials = async (req, res, next) => {
             },
             { $unwind: '$productInfo' },
             {
+                $addFields: {
+                    calculatedVolume: {
+                        $multiply: [
+                            { $ifNull: ['$productInfo.dimensions.length', 0] },
+                            { $ifNull: ['$productInfo.dimensions.breadth', 0] },
+                            { $ifNull: ['$productInfo.dimensions.height', 0] }
+                        ]
+                    },
+                    safeCartonSize: {
+                        $cond: {
+                            if: { $gt: [{ $ifNull: ['$productInfo.cartonSize', 0] }, 0] },
+                            then: '$productInfo.cartonSize',
+                            else: 1
+                        }
+                    }
+                }
+            },
+            {
+                $addFields: {
+                    finalUnitVolume: {
+                        $cond: {
+                            if: { $gt: [{ $ifNull: ['$productInfo.volume', 0] }, 0] },
+                            then: '$productInfo.volume',
+                            else: '$calculatedVolume'
+                        }
+                    },
+                    numCartons: { $divide: ['$quantity', '$safeCartonSize'] }
+                }
+            },
+            {
                 $project: {
                     productName: '$productInfo.name',
                     sku: '$productInfo.sku',
                     quantity: 1,
+                    totalCBM: { $multiply: ['$numCartons', '$finalUnitVolume'] },
                     unitCost: { $ifNull: ['$productInfo.wholesaleCost', '$productInfo.price'] },
                     unitPrice: '$productInfo.price',
                     totalCost: { 
@@ -242,6 +370,7 @@ exports.getFinancials = async (req, res, next) => {
                     productName: 1,
                     sku: 1,
                     quantity: 1,
+                    totalCBM: { $round: ['$totalCBM', 3] },
                     unitCost: { $round: ['$unitCost', 2] },
                     unitPrice: { $round: ['$unitPrice', 2] },
                     totalCost: { $round: ['$totalCost', 2] },
@@ -500,43 +629,151 @@ exports.getFinancials = async (req, res, next) => {
             }
         ]);
 
-        // 11. MONTHLY REVENUE TREND (Last 12 months)
-        const twelveMonthsAgo = new Date();
-        twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+        // 11. MONTHLY REVENUE TREND - Dynamic based on period
+        const now = new Date();
+        let trendStartDate;
+        let groupByFormat;
+        
+        switch (trendPeriod) {
+            case 'today':
+                trendStartDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+                groupByFormat = { year: { $year: '$createdAt' }, month: { $month: '$createdAt' }, day: { $dayOfMonth: '$createdAt' }, hour: { $hour: '$createdAt' } };
+                break;
+                
+            case 'past7':
+                trendStartDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                trendStartDate.setHours(0, 0, 0, 0);
+                groupByFormat = { year: { $year: '$createdAt' }, month: { $month: '$createdAt' }, day: { $dayOfMonth: '$createdAt' } };
+                break;
+                
+            case 'thisWeek':
+                // Start of current week (Sunday)
+                const dayOfWeek = now.getDay();
+                trendStartDate = new Date(now);
+                trendStartDate.setDate(now.getDate() - dayOfWeek);
+                trendStartDate.setHours(0, 0, 0, 0);
+                groupByFormat = { year: { $year: '$createdAt' }, month: { $month: '$createdAt' }, day: { $dayOfMonth: '$createdAt' } };
+                break;
+                
+            case 'past30':
+                trendStartDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                trendStartDate.setHours(0, 0, 0, 0);
+                groupByFormat = { year: { $year: '$createdAt' }, month: { $month: '$createdAt' }, day: { $dayOfMonth: '$createdAt' } };
+                break;
+                
+            case 'thisMonth':
+                // Start of current month
+                trendStartDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+                groupByFormat = { year: { $year: '$createdAt' }, month: { $month: '$createdAt' }, day: { $dayOfMonth: '$createdAt' } };
+                break;
+                
+            case 'thisYear':
+                // Start of current year
+                trendStartDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+                groupByFormat = { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } };
+                break;
+                
+            case 'past365':
+            default:
+                trendStartDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+                trendStartDate.setHours(0, 0, 0, 0);
+                groupByFormat = { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } };
+        }
         
         const monthlyRevenue = await Order.aggregate([
             { 
                 $match: { 
-                    createdAt: { $gte: twelveMonthsAgo },
+                    createdAt: { $gte: trendStartDate },
                     status: { $ne: 'CANCELLED' }
                 } 
             },
             {
                 $group: {
-                    _id: {
-                        year: { $year: '$createdAt' },
-                        month: { $month: '$createdAt' }
-                    },
+                    _id: groupByFormat,
                     totalRevenue: { $sum: '$totalAmount' },
                     orderCount: { $sum: 1 }
                 }
             },
-            { $sort: { '_id.year': 1, '_id.month': 1 } },
+            { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1, '_id.hour': 1 } },
             {
                 $project: {
                     _id: 0,
-                    month: {
-                        $concat: [
-                            { $toString: '$_id.year' },
-                            '-',
-                            { 
+                    period: {
+                        $cond: {
+                            if: { $ifNull: ['$_id.hour', false] },
+                            then: {
+                                // Hour format for 'today'
+                                $concat: [
+                                    { $toString: '$_id.year' },
+                                    '-',
+                                    { 
+                                        $cond: {
+                                            if: { $lt: ['$_id.month', 10] },
+                                            then: { $concat: ['0', { $toString: '$_id.month' }] },
+                                            else: { $toString: '$_id.month' }
+                                        }
+                                    },
+                                    '-',
+                                    { 
+                                        $cond: {
+                                            if: { $lt: ['$_id.day', 10] },
+                                            then: { $concat: ['0', { $toString: '$_id.day' }] },
+                                            else: { $toString: '$_id.day' }
+                                        }
+                                    },
+                                    ' ',
+                                    { 
+                                        $cond: {
+                                            if: { $lt: ['$_id.hour', 10] },
+                                            then: { $concat: ['0', { $toString: '$_id.hour' }] },
+                                            else: { $toString: '$_id.hour' }
+                                        }
+                                    },
+                                    ':00'
+                                ]
+                            },
+                            else: {
                                 $cond: {
-                                    if: { $lt: ['$_id.month', 10] },
-                                    then: { $concat: ['0', { $toString: '$_id.month' }] },
-                                    else: { $toString: '$_id.month' }
+                                    if: { $ifNull: ['$_id.day', false] },
+                                    then: {
+                                        // Day format
+                                        $concat: [
+                                            { $toString: '$_id.year' },
+                                            '-',
+                                            { 
+                                                $cond: {
+                                                    if: { $lt: ['$_id.month', 10] },
+                                                    then: { $concat: ['0', { $toString: '$_id.month' }] },
+                                                    else: { $toString: '$_id.month' }
+                                                }
+                                            },
+                                            '-',
+                                            { 
+                                                $cond: {
+                                                    if: { $lt: ['$_id.day', 10] },
+                                                    then: { $concat: ['0', { $toString: '$_id.day' }] },
+                                                    else: { $toString: '$_id.day' }
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    else: {
+                                        // Month format
+                                        $concat: [
+                                            { $toString: '$_id.year' },
+                                            '-',
+                                            { 
+                                                $cond: {
+                                                    if: { $lt: ['$_id.month', 10] },
+                                                    then: { $concat: ['0', { $toString: '$_id.month' }] },
+                                                    else: { $toString: '$_id.month' }
+                                                }
+                                            }
+                                        ]
+                                    }
                                 }
                             }
-                        ]
+                        }
                     },
                     totalRevenue: { $round: ['$totalRevenue', 2] },
                     orderCount: 1

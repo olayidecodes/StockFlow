@@ -16,12 +16,13 @@ const Financials = () => {
     const [loading, setLoading] = useState(true);
     const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
     const [activeView, setActiveView] = useState('overview'); // overview, inventory, sales, profit, trends
+    const [trendPeriod, setTrendPeriod] = useState('past365');
 
     useEffect(() => {
         console.log('Current user:', user);
         console.log('User role:', user?.role);
         fetchFinancials();
-    }, []);
+    }, [trendPeriod]);
 
     const fetchFinancials = async () => {
         setLoading(true);
@@ -29,6 +30,7 @@ const Financials = () => {
             const params = new URLSearchParams();
             if (dateRange.startDate) params.append('startDate', dateRange.startDate);
             if (dateRange.endDate) params.append('endDate', dateRange.endDate);
+            params.append('trendPeriod', trendPeriod);
             
             console.log('Fetching financials from:', `/financials?${params.toString()}`);
             const res = await api.get(`/financials?${params.toString()}`);
@@ -346,11 +348,12 @@ const Financials = () => {
                     <div className="dashboard-card" style={{ marginBottom: '20px' }}>
                         <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>Inventory Valuation by Warehouse</h3>
                         <div style={{ overflowX: 'auto' }}>
-                            <table className="data-table" style={{ minWidth: '700px' }}>
+                            <table className="data-table" style={{ minWidth: '800px' }}>
                                 <thead>
                                     <tr>
                                         <th>Warehouse</th>
                                         <th>Total Units</th>
+                                        <th>Total CBM</th>
                                         <th>Total Value</th>
                                         <th>% of Total Inventory</th>
                                     </tr>
@@ -360,6 +363,7 @@ const Financials = () => {
                                         <tr key={idx}>
                                             <td><strong>{wh.warehouseName}</strong></td>
                                             <td>{formatNumber(wh.totalUnits)}</td>
+                                            <td><span style={{ color: '#8B5CF6', fontWeight: 600 }}>{wh.totalCBM?.toFixed(3) || '0.000'} m³</span></td>
                                             <td style={{ color: '#4880FF', fontWeight: 600 }}>{formatCurrency(wh.totalCost)}</td>
                                             <td>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -398,6 +402,7 @@ const Financials = () => {
                                         <tr>
                                             <th>Brand</th>
                                             <th>Units</th>
+                                            <th>CBM</th>
                                             <th>Total Value</th>
                                         </tr>
                                     </thead>
@@ -406,6 +411,7 @@ const Financials = () => {
                                             <tr key={idx}>
                                                 <td><strong>{brand.brandName}</strong></td>
                                                 <td>{formatNumber(brand.totalUnits)}</td>
+                                                <td><span style={{ color: '#8B5CF6' }}>{brand.totalCBM?.toFixed(3) || '0.000'} m³</span></td>
                                                 <td style={{ color: '#4880FF' }}>{formatCurrency(brand.totalCost)}</td>
                                             </tr>
                                         ))}
@@ -422,6 +428,7 @@ const Financials = () => {
                                         <tr>
                                             <th>Category</th>
                                             <th>Units</th>
+                                            <th>CBM</th>
                                             <th>Total Value</th>
                                         </tr>
                                     </thead>
@@ -430,6 +437,7 @@ const Financials = () => {
                                             <tr key={idx}>
                                                 <td><strong>{cat.categoryName}</strong></td>
                                                 <td>{formatNumber(cat.totalUnits)}</td>
+                                                <td><span style={{ color: '#8B5CF6' }}>{cat.totalCBM?.toFixed(3) || '0.000'} m³</span></td>
                                                 <td style={{ color: '#4880FF' }}>{formatCurrency(cat.totalCost)}</td>
                                             </tr>
                                         ))}
@@ -442,12 +450,13 @@ const Financials = () => {
                     <div className="dashboard-card">
                         <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>Top 20 Products by Inventory Value</h3>
                         <div style={{ overflowX: 'auto' }}>
-                            <table className="data-table" style={{ minWidth: '700px' }}>
+                            <table className="data-table" style={{ minWidth: '800px' }}>
                                 <thead>
                                     <tr>
                                         <th>SKU</th>
                                         <th>Product Name</th>
                                         <th>Quantity</th>
+                                        <th>CBM</th>
                                         <th>Unit Price</th>
                                         <th>Total Value</th>
                                     </tr>
@@ -458,6 +467,7 @@ const Financials = () => {
                                             <td><code style={{ fontSize: '0.75rem' }}>{prod.sku}</code></td>
                                             <td><strong>{prod.productName}</strong></td>
                                             <td>{formatNumber(prod.quantity)}</td>
+                                            <td><span style={{ color: '#8B5CF6' }}>{prod.totalCBM?.toFixed(3) || '0.000'} m³</span></td>
                                             <td>{formatCurrency(prod.unitPrice)}</td>
                                             <td style={{ color: '#4880FF', fontWeight: 600 }}>{formatCurrency(prod.totalRetailValue)}</td>
                                         </tr>
@@ -685,9 +695,41 @@ const Financials = () => {
             {activeView === 'trends' && (
                 <div>
                     <div className="dashboard-card" style={{ marginBottom: '20px' }}>
-                        <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>
-                            Monthly Revenue Trend (Last 12 Months)
-                        </h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
+                            <h3 style={{ fontSize: '1rem', color: '#1E293B', margin: 0 }}>
+                                Revenue Trend
+                            </h3>
+                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                {[
+                                    { value: 'today', label: 'Today' },
+                                    { value: 'past7', label: 'Past 7 Days' },
+                                    { value: 'thisWeek', label: 'This Week' },
+                                    { value: 'past30', label: 'Past 30 Days' },
+                                    { value: 'thisMonth', label: 'This Month' },
+                                    { value: 'thisYear', label: 'This Year' },
+                                    { value: 'past365', label: 'Past 365 Days' }
+                                ].map(period => (
+                                    <button
+                                        key={period.value}
+                                        onClick={() => setTrendPeriod(period.value)}
+                                        style={{
+                                            padding: '4px 10px',
+                                            borderRadius: '4px',
+                                            border: trendPeriod === period.value ? '1px solid #4880FF' : '1px solid #E2E8F0',
+                                            fontSize: '0.75rem',
+                                            color: trendPeriod === period.value ? '#4880FF' : '#64748B',
+                                            background: trendPeriod === period.value ? '#F0F4FF' : '#fff',
+                                            cursor: 'pointer',
+                                            fontWeight: trendPeriod === period.value ? 600 : 500,
+                                            transition: 'all 0.2s ease',
+                                            whiteSpace: 'nowrap'
+                                        }}
+                                    >
+                                        {period.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                         <ResponsiveContainer width="100%" height={350}>
                             <ComposedChart data={trends.monthlyRevenue}>
                                 <defs>
@@ -697,13 +739,22 @@ const Financials = () => {
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                                <XAxis dataKey="month" tick={{ fill: '#64748B', fontSize: 11 }} />
+                                <XAxis 
+                                    dataKey="period" 
+                                    tick={{ fill: '#64748B', fontSize: 11 }}
+                                    angle={trends.monthlyRevenue?.length > 15 ? -45 : 0}
+                                    textAnchor={trends.monthlyRevenue?.length > 15 ? 'end' : 'middle'}
+                                    height={trends.monthlyRevenue?.length > 15 ? 80 : 30}
+                                />
                                 <YAxis yAxisId="left" tick={{ fill: '#64748B', fontSize: 11 }} />
                                 <YAxis yAxisId="right" orientation="right" tick={{ fill: '#64748B', fontSize: 11 }} />
-                                <Tooltip formatter={(value, name) => {
-                                    if (name === 'Revenue') return formatCurrency(value);
-                                    return formatNumber(value);
-                                }} />
+                                <Tooltip 
+                                    formatter={(value, name) => {
+                                        if (name === 'Revenue') return formatCurrency(value);
+                                        return formatNumber(value);
+                                    }} 
+                                    contentStyle={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: '6px' }}
+                                />
                                 <Legend />
                                 <Area 
                                     yAxisId="left"
@@ -728,12 +779,12 @@ const Financials = () => {
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                         <div className="dashboard-card">
-                            <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>Monthly Summary</h3>
+                            <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>Period Summary</h3>
                             <div style={{ overflowX: 'auto', maxHeight: '400px' }}>
                                 <table className="data-table">
                                     <thead>
                                         <tr>
-                                            <th>Month</th>
+                                            <th>Period</th>
                                             <th>Orders</th>
                                             <th>Revenue</th>
                                         </tr>
@@ -741,7 +792,7 @@ const Financials = () => {
                                     <tbody>
                                         {trends.monthlyRevenue.slice().reverse().map((month, idx) => (
                                             <tr key={idx}>
-                                                <td><strong>{month.month}</strong></td>
+                                                <td><strong>{month.period}</strong></td>
                                                 <td>{formatNumber(month.orderCount)}</td>
                                                 <td style={{ color: '#10B981', fontWeight: 600 }}>
                                                     {formatCurrency(month.totalRevenue)}
@@ -757,7 +808,7 @@ const Financials = () => {
                             <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>Trend Insights</h3>
                             <div style={{ padding: '12px', background: '#F8FAFC', borderRadius: '6px', marginBottom: '12px' }}>
                                 <div style={{ fontSize: '0.85rem', color: '#64748B', marginBottom: '8px' }}>
-                                    Average Monthly Revenue
+                                    Average Revenue per Period
                                 </div>
                                 <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1E293B' }}>
                                     {formatCurrency(
@@ -768,7 +819,7 @@ const Financials = () => {
                             </div>
                             <div style={{ padding: '12px', background: '#F8FAFC', borderRadius: '6px', marginBottom: '12px' }}>
                                 <div style={{ fontSize: '0.85rem', color: '#64748B', marginBottom: '8px' }}>
-                                    Average Monthly Orders
+                                    Average Orders per Period
                                 </div>
                                 <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1E293B' }}>
                                     {formatNumber(
@@ -781,13 +832,13 @@ const Financials = () => {
                             </div>
                             <div style={{ padding: '12px', background: '#F8FAFC', borderRadius: '6px' }}>
                                 <div style={{ fontSize: '0.85rem', color: '#64748B', marginBottom: '8px' }}>
-                                    Best Month
+                                    Best Period
                                 </div>
                                 <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#10B981' }}>
                                     {trends.monthlyRevenue.length > 0 
                                         ? trends.monthlyRevenue.reduce((max, m) => 
                                             m.totalRevenue > max.totalRevenue ? m : max
-                                        ).month
+                                        ).period
                                         : 'N/A'
                                     }
                                 </div>

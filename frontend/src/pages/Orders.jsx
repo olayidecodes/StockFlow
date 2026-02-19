@@ -125,27 +125,193 @@ const Orders = () => {
                                         </tr>
                                         {expandedOrders.includes(order._id) && (
                                             <tr className="expanded-row">
-                                                <td colSpan="6">
-                                                    <div className="expanded-content">
-                                                        <div className="expanded-header">
-                                                            <div className="warehouse-info">
-                                                                <span className="info-label">Warehouse:</span>
-                                                                <span className="warehouse-name">{order.warehouse?.name}</span>
+                                                <td colSpan="7" style={{ padding: 0, background: '#F8FAFC', borderTop: '2px solid #E2E8F0' }}>
+                                                    <div style={{ padding: '20px 24px' }}>
+                                                        {/* Order Details Grid */}
+                                                        <div style={{ 
+                                                            display: 'grid', 
+                                                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                                                            gap: '16px',
+                                                            marginBottom: '20px',
+                                                            padding: '16px',
+                                                            background: '#fff',
+                                                            borderRadius: '8px',
+                                                            border: '1px solid #E2E8F0'
+                                                        }}>
+                                                            <div>
+                                                                <div style={{ fontSize: '0.75rem', color: '#64748B', marginBottom: '4px', fontWeight: 500 }}>
+                                                                    Warehouse
+                                                                </div>
+                                                                <div style={{ fontSize: '0.9rem', color: '#1E293B', fontWeight: 600 }}>
+                                                                    {order.warehouse?.name || 'N/A'}
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <div style={{ fontSize: '0.75rem', color: '#64748B', marginBottom: '4px', fontWeight: 500 }}>
+                                                                    Region
+                                                                </div>
+                                                                <div style={{ fontSize: '0.9rem', color: '#1E293B', fontWeight: 600 }}>
+                                                                    {order.region?.name || 'N/A'}
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <div style={{ fontSize: '0.75rem', color: '#64748B', marginBottom: '4px', fontWeight: 500 }}>
+                                                                    Customer Phone
+                                                                </div>
+                                                                <div style={{ fontSize: '0.9rem', color: '#1E293B', fontWeight: 600 }}>
+                                                                    {order.customer?.phone || 'N/A'}
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <div style={{ fontSize: '0.75rem', color: '#64748B', marginBottom: '4px', fontWeight: 500 }}>
+                                                                    Customer Email
+                                                                </div>
+                                                                <div style={{ fontSize: '0.9rem', color: '#1E293B', fontWeight: 600 }}>
+                                                                    {order.customer?.email || 'N/A'}
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                        <div className="order-items-minimal">
-                                                            {order.items.map((item, idx) => (
-                                                                <div key={idx} className="minimal-item">
-                                                                    <div className="item-info">
-                                                                        <span className="item-name">{item.product?.name}</span>
-                                                                        <span className="item-sku text-muted">{item.product?.sku}</span>
-                                                                    </div>
-                                                                    <div className="item-stats">
-                                                                        <span className="item-qty"><strong>{item.quantity}</strong> pcs</span>
-                                                                        <span className="item-total">₦{(item.quantity * (item.price || 0)).toLocaleString()}</span>
-                                                                    </div>
-                                                                </div>
-                                                            ))}
+
+                                                        {/* Order Items */}
+                                                        <div style={{ 
+                                                            background: '#fff',
+                                                            borderRadius: '8px',
+                                                            border: '1px solid #E2E8F0',
+                                                            overflow: 'hidden'
+                                                        }}>
+                                                            <div style={{ 
+                                                                padding: '12px 16px',
+                                                                background: '#F8FAFC',
+                                                                borderBottom: '1px solid #E2E8F0',
+                                                                fontSize: '0.85rem',
+                                                                fontWeight: 600,
+                                                                color: '#1E293B'
+                                                            }}>
+                                                                Order Items ({order.items?.length || 0})
+                                                            </div>
+                                                            <div style={{ padding: '12px' }}>
+                                                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                                                    <thead>
+                                                                        <tr style={{ borderBottom: '1px solid #E2E8F0' }}>
+                                                                            <th style={{ 
+                                                                                padding: '8px 12px', 
+                                                                                textAlign: 'left', 
+                                                                                fontSize: '0.75rem', 
+                                                                                fontWeight: 600, 
+                                                                                color: '#64748B',
+                                                                                textTransform: 'uppercase',
+                                                                                letterSpacing: '0.5px'
+                                                                            }}>Product</th>
+                                                                            <th style={{ 
+                                                                                padding: '8px 12px', 
+                                                                                textAlign: 'left', 
+                                                                                fontSize: '0.75rem', 
+                                                                                fontWeight: 600, 
+                                                                                color: '#64748B',
+                                                                                textTransform: 'uppercase',
+                                                                                letterSpacing: '0.5px'
+                                                                            }}>SKU</th>
+                                                                            <th style={{ 
+                                                                                padding: '8px 12px', 
+                                                                                textAlign: 'right', 
+                                                                                fontSize: '0.75rem', 
+                                                                                fontWeight: 600, 
+                                                                                color: '#64748B',
+                                                                                textTransform: 'uppercase',
+                                                                                letterSpacing: '0.5px'
+                                                                            }}>Quantity</th>
+                                                                            <th style={{ 
+                                                                                padding: '8px 12px', 
+                                                                                textAlign: 'right', 
+                                                                                fontSize: '0.75rem', 
+                                                                                fontWeight: 600, 
+                                                                                color: '#64748B',
+                                                                                textTransform: 'uppercase',
+                                                                                letterSpacing: '0.5px'
+                                                                            }}>Unit Price</th>
+                                                                            <th style={{ 
+                                                                                padding: '8px 12px', 
+                                                                                textAlign: 'right', 
+                                                                                fontSize: '0.75rem', 
+                                                                                fontWeight: 600, 
+                                                                                color: '#64748B',
+                                                                                textTransform: 'uppercase',
+                                                                                letterSpacing: '0.5px'
+                                                                            }}>Subtotal</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {order.items?.map((item, idx) => (
+                                                                            <tr key={idx} style={{ 
+                                                                                borderBottom: idx < order.items.length - 1 ? '1px solid #F1F5F9' : 'none'
+                                                                            }}>
+                                                                                <td style={{ padding: '12px', fontSize: '0.85rem', color: '#1E293B', fontWeight: 500 }}>
+                                                                                    {item.product?.name || 'Unknown Product'}
+                                                                                </td>
+                                                                                <td style={{ padding: '12px' }}>
+                                                                                    <code style={{ 
+                                                                                        fontSize: '0.75rem', 
+                                                                                        color: '#64748B',
+                                                                                        background: '#F1F5F9',
+                                                                                        padding: '2px 6px',
+                                                                                        borderRadius: '4px'
+                                                                                    }}>
+                                                                                        {item.product?.sku || 'N/A'}
+                                                                                    </code>
+                                                                                </td>
+                                                                                <td style={{ 
+                                                                                    padding: '12px', 
+                                                                                    textAlign: 'right', 
+                                                                                    fontSize: '0.85rem',
+                                                                                    color: '#1E293B',
+                                                                                    fontWeight: 600
+                                                                                }}>
+                                                                                    {item.quantity?.toLocaleString() || 0}
+                                                                                </td>
+                                                                                <td style={{ 
+                                                                                    padding: '12px', 
+                                                                                    textAlign: 'right', 
+                                                                                    fontSize: '0.85rem',
+                                                                                    color: '#64748B'
+                                                                                }}>
+                                                                                    ₦{(item.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                                </td>
+                                                                                <td style={{ 
+                                                                                    padding: '12px', 
+                                                                                    textAlign: 'right', 
+                                                                                    fontSize: '0.85rem',
+                                                                                    color: '#10B981',
+                                                                                    fontWeight: 600
+                                                                                }}>
+                                                                                    ₦{((item.quantity || 0) * (item.price || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                                </td>
+                                                                            </tr>
+                                                                        ))}
+                                                                    </tbody>
+                                                                    <tfoot>
+                                                                        <tr style={{ borderTop: '2px solid #E2E8F0' }}>
+                                                                            <td colSpan="4" style={{ 
+                                                                                padding: '12px', 
+                                                                                textAlign: 'right',
+                                                                                fontSize: '0.9rem',
+                                                                                fontWeight: 600,
+                                                                                color: '#1E293B'
+                                                                            }}>
+                                                                                Total Amount:
+                                                                            </td>
+                                                                            <td style={{ 
+                                                                                padding: '12px', 
+                                                                                textAlign: 'right',
+                                                                                fontSize: '1rem',
+                                                                                fontWeight: 700,
+                                                                                color: '#4880FF'
+                                                                            }}>
+                                                                                ₦{(order.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                            </td>
+                                                                        </tr>
+                                                                    </tfoot>
+                                                                </table>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </td>

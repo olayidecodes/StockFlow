@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import { FiAlertTriangle, FiPackage, FiShoppingCart, FiTrendingUp, FiBox, FiFilter } from 'react-icons/fi';
 import Spinner from '../components/Spinner';
+import { ROLES } from '../utils/constants';
 
 const COLORS = ['#4880FF', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 const Analytics = () => {
+    const { user } = useAuth();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('overview');
@@ -51,7 +54,7 @@ const Analytics = () => {
         { title: 'Total Orders', value: summary.totalOrders.toLocaleString(), icon: <FiShoppingCart />, color: '#4880FF', subtitle: 'All time orders' },
         { title: 'Active Products', value: summary.totalProducts.toLocaleString(), icon: <FiPackage />, color: '#10b981', subtitle: 'SKUs in catalog' },
         { title: 'Low Stock Alerts', value: summary.lowStock, icon: <FiAlertTriangle />, color: summary.lowStock > 0 ? '#ef4444' : '#10b981', subtitle: 'Items below threshold', alert: summary.lowStock > 0 },
-        { title: 'Inventory Value', value: `₦${(summary.totalValue || 0).toLocaleString()}`, icon: <FiTrendingUp />, color: '#8b5cf6', subtitle: 'Total stock value' }
+        ...(user?.role === ROLES.ADMIN ? [{ title: 'Inventory Value', value: `₦${(summary.totalValue || 0).toLocaleString()}`, icon: <FiTrendingUp />, color: '#8b5cf6', subtitle: 'Total stock value' }] : [])
     ];
 
     return (
@@ -163,7 +166,9 @@ const Analytics = () => {
                         <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: '#1E293B' }}><FiBox style={{ verticalAlign: 'middle', marginRight: '0.5rem' }} />Inventory Summary</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                             <div><div style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '0.25rem' }}>Total Units in Stock</div><div style={{ fontSize: '1.5rem', fontWeight: 600, color: '#1E293B' }}>{summary.totalQuantity?.toLocaleString() || 0}</div></div>
-                            <div><div style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '0.25rem' }}>Total Inventory Value</div><div style={{ fontSize: '1.5rem', fontWeight: 600, color: '#10b981' }}>₦{(summary.totalValue || 0).toLocaleString()}</div></div>
+                            {user?.role === ROLES.ADMIN && (
+                                <div><div style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '0.25rem' }}>Total Inventory Value</div><div style={{ fontSize: '1.5rem', fontWeight: 600, color: '#10b981' }}>₦{(summary.totalValue || 0).toLocaleString()}</div></div>
+                            )}
                             <div><div style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '0.25rem' }}>Top Selling Brand</div><div style={{ fontSize: '1.5rem', fontWeight: 600, color: '#1E293B' }}>{summary.topSellingBrand}</div></div>
                         </div>
                     </div>

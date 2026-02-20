@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
 import { FiPlus } from 'react-icons/fi';
+import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import Spinner from '../components/Spinner';
 import PermissionGuard from '../components/PermissionGuard';
-import { PERMISSIONS } from '../utils/constants';
+import { PERMISSIONS, ROLES } from '../utils/constants';
 import StockAdjustmentModal from '../components/StockAdjustmentModal';
 import StockHistoryModal from '../components/StockHistoryModal';
 import StockTransferModal from '../components/StockTransferModal';
 
 const Inventory = () => {
+    const { user } = useAuth();
     const [balances, setBalances] = useState([]);
     const [warehouses, setWarehouses] = useState([]);
     const [products, setProducts] = useState([]);
@@ -312,13 +313,15 @@ const Inventory = () => {
                                 </th>
                                 <th>Carton Size</th>
                                 <th>Current Balance</th>
-                                <th 
-                                    style={{ cursor: 'pointer', userSelect: 'none' }}
-                                    onClick={() => setSortBy(sortBy === 'value-asc' ? 'value-desc' : 'value-asc')}
-                                    title="Click to sort"
-                                >
-                                    Total Value {sortBy === 'value-asc' ? '↑' : sortBy === 'value-desc' ? '↓' : '↕'}
-                                </th>
+                                {user?.role === ROLES.ADMIN && (
+                                    <th 
+                                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                                        onClick={() => setSortBy(sortBy === 'value-asc' ? 'value-desc' : 'value-asc')}
+                                        title="Click to sort"
+                                    >
+                                        Total Value {sortBy === 'value-asc' ? '↑' : sortBy === 'value-desc' ? '↓' : '↕'}
+                                    </th>
+                                )}
                                 <th 
                                     style={{ cursor: 'pointer', userSelect: 'none' }}
                                     onClick={() => setSortBy(sortBy === 'cbm-asc' ? 'cbm-desc' : 'cbm-asc')}
@@ -348,27 +351,17 @@ const Inventory = () => {
                                         </td>
                                         <td>{bal.product?.cartonSize}</td>
                                         <td>{formatQuantity(bal.quantity, bal.product?.cartonSize || 1)}</td>
-                                        <td>
-                                            <span style={{ fontWeight: 600, color: '#10B981' }}>
-                                                ₦{calculateValue(bal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                            </span>
-                                            {/* <div style={{ fontSize: '10px', color: '#999', marginTop: '2px' }}>
-                                                {(() => {
-                                                    const rp = getRealProduct(bal);
-                                                    return `P:${rp?.price || 0} | C:${rp?.wholesaleCost || 0} | Q:${bal.quantity || 0}`;
-                                                })()}
-                                            </div> */}
-                                        </td>
+                                        {user?.role === ROLES.ADMIN && (
+                                            <td>
+                                                <span style={{ fontWeight: 600, color: '#10B981' }}>
+                                                    ₦{calculateValue(bal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </span>
+                                            </td>
+                                        )}
                                         <td>
                                             <span className="text-muted">
                                                 {calculateCBM(bal).toFixed(3)} m³
                                             </span>
-                                            {/* <div style={{ fontSize: '10px', color: '#999', marginTop: '2px' }}>
-                                                {(() => {
-                                                    const rp = getRealProduct(bal);
-                                                    return `V:${rp?.volume || 0} | D:${rp?.dimensions ? 'Y' : 'N'}`;
-                                                })()}
-                                            </div> */}
                                         </td>
                                         <td>
                                             {bal.warehouse?._id ? (
@@ -407,7 +400,7 @@ const Inventory = () => {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="7" className="text-center">
+                                    <td colSpan={user?.role === ROLES.ADMIN ? "7" : "6"} className="text-center">
                                         No stock found. {(!filterProduct || !filterWarehouse) && "Use filters to add new stock."}
                                     </td>
                                 </tr>
@@ -417,10 +410,12 @@ const Inventory = () => {
                                     <td colSpan="4" style={{ textAlign: 'right' }}>
                                         {filterWarehouse || filterProduct ? 'Filtered Total:' : 'Grand Total:'}
                                     </td>
-                                    <td>
-                                        ₦{balances.reduce((sum, b) => sum + calculateValue(b), 0)
-                                            .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </td>
+                                    {user?.role === ROLES.ADMIN && (
+                                        <td>
+                                            ₦{balances.reduce((sum, b) => sum + calculateValue(b), 0)
+                                                .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </td>
+                                    )}
                                     <td>
                                         {balances.reduce((sum, b) => sum + calculateCBM(b), 0).toFixed(3)} m³
                                         {(filterWarehouse || filterProduct) && (

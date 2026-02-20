@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { FiEdit2, FiTrash2, FiX } from 'react-icons/fi';
 import Spinner from '../components/Spinner';
+import ExportButton from '../components/ExportButton';
 
 const Users = () => {
     const [users, setUsers] = useState([]);
@@ -66,6 +67,25 @@ const Users = () => {
         }
     }
 
+    // Prepare export data
+    const getExportData = () => {
+        return users.map(user => ({
+            name: user.name || '',
+            email: user.email || '',
+            role: user.role || '',
+            status: user.isActive ? 'Active' : 'Inactive',
+            createdAt: new Date(user.createdAt).toLocaleDateString()
+        }));
+    };
+
+    const exportColumns = [
+        { key: 'name', label: 'Name' },
+        { key: 'email', label: 'Email' },
+        { key: 'role', label: 'Role' },
+        { key: 'status', label: 'Status' },
+        { key: 'createdAt', label: 'Created Date' }
+    ];
+
     if (loading) return <div className="p-xl text-center">Loading users...</div>;
 
     return (
@@ -75,6 +95,14 @@ const Users = () => {
                     <h1>User Management</h1>
                     <p>Manage access and permissions</p>
                 </div>
+                {users.length > 0 && (
+                    <ExportButton
+                        data={getExportData()}
+                        columns={exportColumns}
+                        filename={`users-${new Date().toISOString().split('T')[0]}`}
+                        label="Export"
+                    />
+                )}
             </div>
 
             <div className="card-container" style={{ overflowX: 'auto' }}>

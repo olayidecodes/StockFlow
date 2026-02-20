@@ -7,6 +7,7 @@ import {
 } from 'recharts';
 import { FiDollarSign, FiTrendingUp, FiPackage, FiShoppingCart, FiAlertCircle, FiFilter } from 'react-icons/fi';
 import Spinner from '../components/Spinner';
+import ExportButton from '../components/ExportButton';
 
 const COLORS = ['#4880FF', '#10B981', '#64748B', '#8B5CF6', '#F59E0B', '#EC4899'];
 
@@ -346,7 +347,29 @@ const Financials = () => {
             {activeView === 'inventory' && (
                 <div>
                     <div className="dashboard-card" style={{ marginBottom: '20px' }}>
-                        <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>Inventory Valuation by Warehouse</h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                            <h3 style={{ fontSize: '1rem', color: '#1E293B', margin: 0 }}>Inventory Valuation by Warehouse</h3>
+                            {inventory.byWarehouse?.length > 0 && (
+                                <ExportButton
+                                    data={inventory.byWarehouse.map(wh => ({
+                                        warehouse: wh.warehouseName || '',
+                                        totalUnits: wh.totalUnits || 0,
+                                        totalCBM: parseFloat((wh.totalCBM || 0).toFixed(3)),
+                                        totalValue: parseFloat((wh.totalCost || 0).toFixed(2)),
+                                        percentOfTotal: parseFloat(((wh.totalCost / summary.totalInventoryValue * 100) || 0).toFixed(2))
+                                    }))}
+                                    columns={[
+                                        { key: 'warehouse', label: 'Warehouse' },
+                                        { key: 'totalUnits', label: 'Total Units' },
+                                        { key: 'totalCBM', label: 'Total CBM (m³)' },
+                                        { key: 'totalValue', label: 'Total Value (₦)' },
+                                        { key: 'percentOfTotal', label: '% of Total Inventory' }
+                                    ]}
+                                    filename={`inventory-by-warehouse-${new Date().toISOString().split('T')[0]}`}
+                                    label="Export"
+                                />
+                            )}
+                        </div>
                         <div style={{ overflowX: 'auto' }}>
                             <table className="data-table" style={{ minWidth: '800px' }}>
                                 <thead>
@@ -395,7 +418,27 @@ const Financials = () => {
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                         <div className="dashboard-card">
-                            <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>By Brand</h3>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                                <h3 style={{ fontSize: '1rem', color: '#1E293B', margin: 0 }}>By Brand</h3>
+                                {inventory.byBrand?.length > 0 && (
+                                    <ExportButton
+                                        data={inventory.byBrand.map(b => ({
+                                            brand: b.brandName || '',
+                                            units: b.totalUnits || 0,
+                                            cbm: parseFloat((b.totalCBM || 0).toFixed(3)),
+                                            totalValue: parseFloat((b.totalCost || 0).toFixed(2))
+                                        }))}
+                                        columns={[
+                                            { key: 'brand', label: 'Brand' },
+                                            { key: 'units', label: 'Units' },
+                                            { key: 'cbm', label: 'CBM (m³)' },
+                                            { key: 'totalValue', label: 'Total Value (₦)' }
+                                        ]}
+                                        filename={`inventory-by-brand-${new Date().toISOString().split('T')[0]}`}
+                                        label="Export"
+                                    />
+                                )}
+                            </div>
                             <div style={{ overflowX: 'auto', maxHeight: '400px' }}>
                                 <table className="data-table">
                                     <thead>
@@ -421,7 +464,27 @@ const Financials = () => {
                         </div>
 
                         <div className="dashboard-card">
-                            <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>By Category</h3>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                                <h3 style={{ fontSize: '1rem', color: '#1E293B', margin: 0 }}>By Category</h3>
+                                {inventory.byCategory?.length > 0 && (
+                                    <ExportButton
+                                        data={inventory.byCategory.map(c => ({
+                                            category: c.categoryName || '',
+                                            units: c.totalUnits || 0,
+                                            cbm: parseFloat((c.totalCBM || 0).toFixed(3)),
+                                            totalValue: parseFloat((c.totalCost || 0).toFixed(2))
+                                        }))}
+                                        columns={[
+                                            { key: 'category', label: 'Category' },
+                                            { key: 'units', label: 'Units' },
+                                            { key: 'cbm', label: 'CBM (m³)' },
+                                            { key: 'totalValue', label: 'Total Value (₦)' }
+                                        ]}
+                                        filename={`inventory-by-category-${new Date().toISOString().split('T')[0]}`}
+                                        label="Export"
+                                    />
+                                )}
+                            </div>
                             <div style={{ overflowX: 'auto', maxHeight: '400px' }}>
                                 <table className="data-table">
                                     <thead>
@@ -448,7 +511,31 @@ const Financials = () => {
                     </div>
 
                     <div className="dashboard-card">
-                        <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>Top 20 Products by Inventory Value</h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                            <h3 style={{ fontSize: '1rem', color: '#1E293B', margin: 0 }}>Top 20 Products by Inventory Value</h3>
+                            {inventory.topProducts?.length > 0 && (
+                                <ExportButton
+                                    data={inventory.topProducts.map(p => ({
+                                        sku: p.sku || '',
+                                        productName: p.productName || '',
+                                        quantity: p.totalQuantity || 0,
+                                        cbm: parseFloat((p.totalCBM || 0).toFixed(3)),
+                                        unitPrice: parseFloat((p.unitPrice || 0).toFixed(2)),
+                                        totalValue: parseFloat((p.totalValue || 0).toFixed(2))
+                                    }))}
+                                    columns={[
+                                        { key: 'sku', label: 'SKU' },
+                                        { key: 'productName', label: 'Product Name' },
+                                        { key: 'quantity', label: 'Quantity' },
+                                        { key: 'cbm', label: 'CBM (m³)' },
+                                        { key: 'unitPrice', label: 'Unit Price (₦)' },
+                                        { key: 'totalValue', label: 'Total Value (₦)' }
+                                    ]}
+                                    filename={`top-products-by-value-${new Date().toISOString().split('T')[0]}`}
+                                    label="Export"
+                                />
+                            )}
+                        </div>
                         <div style={{ overflowX: 'auto' }}>
                             <table className="data-table" style={{ minWidth: '800px' }}>
                                 <thead>
@@ -483,7 +570,27 @@ const Financials = () => {
             {activeView === 'sales' && (
                 <div>
                     <div className="dashboard-card" style={{ marginBottom: '20px' }}>
-                        <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>Sales Revenue by Warehouse</h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                            <h3 style={{ fontSize: '1rem', color: '#1E293B', margin: 0 }}>Sales Revenue by Warehouse</h3>
+                            {sales.byWarehouse?.length > 0 && (
+                                <ExportButton
+                                    data={sales.byWarehouse.map(wh => ({
+                                        warehouse: wh.warehouseName || '',
+                                        totalOrders: wh.totalOrders || 0,
+                                        totalRevenue: parseFloat((wh.totalRevenue || 0).toFixed(2)),
+                                        avgOrderValue: parseFloat((wh.avgOrderValue || 0).toFixed(2))
+                                    }))}
+                                    columns={[
+                                        { key: 'warehouse', label: 'Warehouse' },
+                                        { key: 'totalOrders', label: 'Total Orders' },
+                                        { key: 'totalRevenue', label: 'Total Revenue (₦)' },
+                                        { key: 'avgOrderValue', label: 'Avg Order Value (₦)' }
+                                    ]}
+                                    filename={`sales-by-warehouse-${new Date().toISOString().split('T')[0]}`}
+                                    label="Export"
+                                />
+                            )}
+                        </div>
                         <div style={{ overflowX: 'auto' }}>
                             <table className="data-table">
                                 <thead>
@@ -523,7 +630,25 @@ const Financials = () => {
                         </div>
 
                         <div className="dashboard-card">
-                            <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>By Category</h3>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                                <h3 style={{ fontSize: '1rem', color: '#1E293B', margin: 0 }}>By Category</h3>
+                                {sales.byCategory?.length > 0 && (
+                                    <ExportButton
+                                        data={sales.byCategory.map(c => ({
+                                            category: c.categoryName || '',
+                                            unitsSold: c.totalUnitsSold || 0,
+                                            revenue: parseFloat((c.totalRevenue || 0).toFixed(2))
+                                        }))}
+                                        columns={[
+                                            { key: 'category', label: 'Category' },
+                                            { key: 'unitsSold', label: 'Units Sold' },
+                                            { key: 'revenue', label: 'Revenue (₦)' }
+                                        ]}
+                                        filename={`sales-by-category-${new Date().toISOString().split('T')[0]}`}
+                                        label="Export"
+                                    />
+                                )}
+                            </div>
                             <div style={{ overflowX: 'auto', maxHeight: '300px' }}>
                                 <table className="data-table">
                                     <thead>
@@ -548,7 +673,31 @@ const Financials = () => {
                     </div>
 
                     <div className="dashboard-card">
-                        <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>Top 20 Selling Products (by Revenue)</h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                            <h3 style={{ fontSize: '1rem', color: '#1E293B', margin: 0 }}>Top 20 Selling Products (by Revenue)</h3>
+                            {sales.topProducts?.length > 0 && (
+                                <ExportButton
+                                    data={sales.topProducts.map((p, idx) => ({
+                                        rank: idx + 1,
+                                        sku: p.sku || '',
+                                        productName: p.productName || '',
+                                        unitsSold: p.totalUnitsSold || 0,
+                                        avgPrice: parseFloat((p.avgPrice || 0).toFixed(2)),
+                                        totalRevenue: parseFloat((p.totalRevenue || 0).toFixed(2))
+                                    }))}
+                                    columns={[
+                                        { key: 'rank', label: 'Rank' },
+                                        { key: 'sku', label: 'SKU' },
+                                        { key: 'productName', label: 'Product Name' },
+                                        { key: 'unitsSold', label: 'Units Sold' },
+                                        { key: 'avgPrice', label: 'Avg Price (₦)' },
+                                        { key: 'totalRevenue', label: 'Total Revenue (₦)' }
+                                    ]}
+                                    filename={`top-selling-products-${new Date().toISOString().split('T')[0]}`}
+                                    label="Export"
+                                />
+                            )}
+                        </div>
                         <div style={{ overflowX: 'auto' }}>
                             <table className="data-table" style={{ minWidth: '700px' }}>
                                 <thead>
@@ -629,9 +778,39 @@ const Financials = () => {
                     </div>
 
                     <div className="dashboard-card">
-                        <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>
-                            Brand Performance: Inventory vs Sales
-                        </h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                            <h3 style={{ fontSize: '1rem', color: '#1E293B', margin: 0 }}>
+                                Brand Performance: Inventory vs Sales
+                            </h3>
+                            {inventory.byBrand?.length > 0 && (
+                                <ExportButton
+                                    data={inventory.byBrand.map(invBrand => {
+                                        const salesBrand = sales.byBrand.find(s => s.brandName === invBrand.brandName);
+                                        const turnoverRatio = invBrand.totalUnits > 0 
+                                            ? ((salesBrand?.totalUnitsSold || 0) / invBrand.totalUnits * 100).toFixed(1)
+                                            : '0.0';
+                                        return {
+                                            brand: invBrand.brandName || '',
+                                            inventoryUnits: invBrand.totalUnits || 0,
+                                            inventoryValue: parseFloat((invBrand.totalCost || 0).toFixed(2)),
+                                            unitsSold: salesBrand?.totalUnitsSold || 0,
+                                            salesRevenue: parseFloat((salesBrand?.totalRevenue || 0).toFixed(2)),
+                                            turnoverPercent: parseFloat(turnoverRatio)
+                                        };
+                                    })}
+                                    columns={[
+                                        { key: 'brand', label: 'Brand' },
+                                        { key: 'inventoryUnits', label: 'Inventory Units' },
+                                        { key: 'inventoryValue', label: 'Inventory Value (₦)' },
+                                        { key: 'unitsSold', label: 'Units Sold' },
+                                        { key: 'salesRevenue', label: 'Sales Revenue (₦)' },
+                                        { key: 'turnoverPercent', label: 'Turnover %' }
+                                    ]}
+                                    filename={`brand-performance-${new Date().toISOString().split('T')[0]}`}
+                                    label="Export"
+                                />
+                            )}
+                        </div>
                         <div style={{ overflowX: 'auto' }}>
                             <table className="data-table" style={{ minWidth: '800px' }}>
                                 <thead>
@@ -779,7 +958,25 @@ const Financials = () => {
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                         <div className="dashboard-card">
-                            <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>Period Summary</h3>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                                <h3 style={{ fontSize: '1rem', color: '#1E293B', margin: 0 }}>Period Summary</h3>
+                                {trends.monthlyRevenue?.length > 0 && (
+                                    <ExportButton
+                                        data={trends.monthlyRevenue.map(m => ({
+                                            period: m.period || '',
+                                            orders: m.orderCount || 0,
+                                            revenue: parseFloat((m.totalRevenue || 0).toFixed(2))
+                                        }))}
+                                        columns={[
+                                            { key: 'period', label: 'Period' },
+                                            { key: 'orders', label: 'Orders' },
+                                            { key: 'revenue', label: 'Revenue (₦)' }
+                                        ]}
+                                        filename={`revenue-trends-${new Date().toISOString().split('T')[0]}`}
+                                        label="Export"
+                                    />
+                                )}
+                            </div>
                             <div style={{ overflowX: 'auto', maxHeight: '400px' }}>
                                 <table className="data-table">
                                     <thead>

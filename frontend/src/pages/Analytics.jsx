@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { FiAlertTriangle, FiPackage, FiShoppingCart, FiTrendingUp, FiBox, FiFilter } from 'react-icons/fi';
 import Spinner from '../components/Spinner';
 import { ROLES } from '../utils/constants';
+import ExportButton from '../components/ExportButton';
 
 const COLORS = ['#4880FF', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
@@ -49,6 +50,69 @@ const Analytics = () => {
         slow: burnRateData.filter(i => i.burnRateCategory === 'SLOW').length,
         stagnant: burnRateData.filter(i => i.burnRateCategory === 'STAGNANT').length
     };
+
+    // Export data preparation functions
+    const getBurnRateExportData = () => {
+        return filteredBurnRate.map(item => ({
+            sku: item.sku || '',
+            productName: item.productName || '',
+            brand: item.brand || '',
+            currentStock: item.currentStock || 0,
+            totalSold: item.totalSold || 0,
+            dailySalesRate: item.dailySalesRate || 0,
+            daysUntilStockout: item.daysUntilStockout > 999 ? 'Infinite' : item.daysUntilStockout,
+            status: item.burnRateCategory || ''
+        }));
+    };
+
+    const burnRateExportColumns = [
+        { key: 'sku', label: 'SKU' },
+        { key: 'productName', label: 'Product' },
+        { key: 'brand', label: 'Brand' },
+        { key: 'currentStock', label: 'Current Stock' },
+        { key: 'totalSold', label: 'Sold (30 days)' },
+        { key: 'dailySalesRate', label: 'Daily Sales Rate' },
+        { key: 'daysUntilStockout', label: 'Days Until Stockout' },
+        { key: 'status', label: 'Status' }
+    ];
+
+    const getLowStockExportData = () => {
+        return filteredLowStock.map(item => ({
+            sku: item.sku || '',
+            productName: item.productName || '',
+            brand: item.brand || '',
+            warehouse: item.warehouse || '',
+            quantity: item.quantity || 0,
+            status: item.quantity < 50 ? 'Critical' : 'Low'
+        }));
+    };
+
+    const lowStockExportColumns = [
+        { key: 'sku', label: 'SKU' },
+        { key: 'productName', label: 'Product' },
+        { key: 'brand', label: 'Brand' },
+        { key: 'warehouse', label: 'Warehouse' },
+        { key: 'quantity', label: 'Current Stock' },
+        { key: 'status', label: 'Status' }
+    ];
+
+    const getAggregatedLowStockExportData = () => {
+        return filteredAggregatedLowStock.map(item => ({
+            sku: item.sku || '',
+            productName: item.productName || '',
+            brand: item.brand || '',
+            totalQuantity: item.totalQuantity || 0,
+            status: item.totalQuantity < 200 ? 'Critical' : 'Low'
+        }));
+    };
+
+    const aggregatedLowStockExportColumns = [
+        { key: 'sku', label: 'SKU' },
+        { key: 'productName', label: 'Product' },
+        { key: 'brand', label: 'Brand' },
+        { key: 'totalQuantity', label: 'Total Stock (All Warehouses)' },
+        { key: 'status', label: 'Status' }
+    ];
 
     const statCards = [
         { title: 'Total Orders', value: summary.totalOrders.toLocaleString(), icon: <FiShoppingCart />, color: '#4880FF', subtitle: 'All time orders' },
@@ -200,22 +264,32 @@ const Analytics = () => {
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', padding: '1rem', background: '#F8FAFC', borderRadius: '8px' }}>
-                        <FiFilter style={{ color: '#64748B' }} />
-                        <span style={{ fontSize: '0.875rem', color: '#64748B', fontWeight: 500 }}>Filter:</span>
-                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            {[
-                                { value: 'all', label: 'All', count: burnRateData.length },
-                                { value: 'fast', label: 'Fast Moving', count: burnRateCounts.fast },
-                                { value: 'moderate', label: 'Moderate', count: burnRateCounts.moderate },
-                                { value: 'slow', label: 'Slow Moving', count: burnRateCounts.slow },
-                                { value: 'stagnant', label: 'Stagnant', count: burnRateCounts.stagnant }
-                            ].map(filter => (
-                                <button key={filter.value} onClick={() => setBurnRateFilter(filter.value)} style={{ padding: '0.5rem 1rem', border: burnRateFilter === filter.value ? '2px solid #4880FF' : '1px solid #E2E8F0', background: burnRateFilter === filter.value ? '#F0F4FF' : '#fff', color: burnRateFilter === filter.value ? '#4880FF' : '#64748B', borderRadius: '6px', fontSize: '0.875rem', fontWeight: burnRateFilter === filter.value ? 600 : 500, cursor: 'pointer', transition: 'all 0.2s' }}>
-                                    {filter.label} ({filter.count})
-                                </button>
-                            ))}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.5rem', padding: '1rem', background: '#F8FAFC', borderRadius: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                            <FiFilter style={{ color: '#64748B' }} />
+                            <span style={{ fontSize: '0.875rem', color: '#64748B', fontWeight: 500 }}>Filter:</span>
+                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                {[
+                                    { value: 'all', label: 'All', count: burnRateData.length },
+                                    { value: 'fast', label: 'Fast Moving', count: burnRateCounts.fast },
+                                    { value: 'moderate', label: 'Moderate', count: burnRateCounts.moderate },
+                                    { value: 'slow', label: 'Slow Moving', count: burnRateCounts.slow },
+                                    { value: 'stagnant', label: 'Stagnant', count: burnRateCounts.stagnant }
+                                ].map(filter => (
+                                    <button key={filter.value} onClick={() => setBurnRateFilter(filter.value)} style={{ padding: '0.5rem 1rem', border: burnRateFilter === filter.value ? '2px solid #4880FF' : '1px solid #E2E8F0', background: burnRateFilter === filter.value ? '#F0F4FF' : '#fff', color: burnRateFilter === filter.value ? '#4880FF' : '#64748B', borderRadius: '6px', fontSize: '0.875rem', fontWeight: burnRateFilter === filter.value ? 600 : 500, cursor: 'pointer', transition: 'all 0.2s' }}>
+                                        {filter.label} ({filter.count})
+                                    </button>
+                                ))}
+                            </div>
                         </div>
+                        {filteredBurnRate.length > 0 && (
+                            <ExportButton
+                                data={getBurnRateExportData()}
+                                columns={burnRateExportColumns}
+                                filename={`stock-movement-${new Date().toISOString().split('T')[0]}`}
+                                label="Export"
+                            />
+                        )}
                     </div>
 
                     <div style={{ marginBottom: '1rem', padding: '1rem', background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '8px', fontSize: '0.875rem', color: '#1E40AF' }}>
@@ -315,16 +389,26 @@ const Analytics = () => {
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', padding: '1rem', background: '#F8FAFC', borderRadius: '8px' }}>
-                        <FiFilter style={{ color: '#64748B' }} />
-                        <span style={{ fontSize: '0.875rem', color: '#64748B', fontWeight: 500 }}>Filter:</span>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            {[{ value: 'all', label: 'All', count: lowStockProducts.length }, { value: 'critical', label: 'Critical', count: criticalCount }, { value: 'low', label: 'Low', count: lowCount }].map(filter => (
-                                <button key={filter.value} onClick={() => setStockFilter(filter.value)} style={{ padding: '0.5rem 1rem', border: stockFilter === filter.value ? '2px solid #4880FF' : '1px solid #E2E8F0', background: stockFilter === filter.value ? '#F0F4FF' : '#fff', color: stockFilter === filter.value ? '#4880FF' : '#64748B', borderRadius: '6px', fontSize: '0.875rem', fontWeight: stockFilter === filter.value ? 600 : 500, cursor: 'pointer', transition: 'all 0.2s' }}>
-                                    {filter.label} ({filter.count})
-                                </button>
-                            ))}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.5rem', padding: '1rem', background: '#F8FAFC', borderRadius: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                            <FiFilter style={{ color: '#64748B' }} />
+                            <span style={{ fontSize: '0.875rem', color: '#64748B', fontWeight: 500 }}>Filter:</span>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                {[{ value: 'all', label: 'All', count: lowStockProducts.length }, { value: 'critical', label: 'Critical', count: criticalCount }, { value: 'low', label: 'Low', count: lowCount }].map(filter => (
+                                    <button key={filter.value} onClick={() => setStockFilter(filter.value)} style={{ padding: '0.5rem 1rem', border: stockFilter === filter.value ? '2px solid #4880FF' : '1px solid #E2E8F0', background: stockFilter === filter.value ? '#F0F4FF' : '#fff', color: stockFilter === filter.value ? '#4880FF' : '#64748B', borderRadius: '6px', fontSize: '0.875rem', fontWeight: stockFilter === filter.value ? 600 : 500, cursor: 'pointer', transition: 'all 0.2s' }}>
+                                        {filter.label} ({filter.count})
+                                    </button>
+                                ))}
+                            </div>
                         </div>
+                        {filteredLowStock.length > 0 && (
+                            <ExportButton
+                                data={getLowStockExportData()}
+                                columns={lowStockExportColumns}
+                                filename={`low-stock-per-warehouse-${new Date().toISOString().split('T')[0]}`}
+                                label="Export"
+                            />
+                        )}
                     </div>
 
                     {filteredLowStock.length === 0 ? (
@@ -388,16 +472,26 @@ const Analytics = () => {
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', padding: '1rem', background: '#F8FAFC', borderRadius: '8px' }}>
-                        <FiFilter style={{ color: '#64748B' }} />
-                        <span style={{ fontSize: '0.875rem', color: '#64748B', fontWeight: 500 }}>Filter:</span>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            {[{ value: 'all', label: 'All', count: aggregatedLowStock.length }, { value: 'critical', label: 'Critical', count: aggregatedCriticalCount }, { value: 'low', label: 'Low', count: aggregatedLowCount }].map(filter => (
-                                <button key={filter.value} onClick={() => setStockFilter(filter.value)} style={{ padding: '0.5rem 1rem', border: stockFilter === filter.value ? '2px solid #4880FF' : '1px solid #E2E8F0', background: stockFilter === filter.value ? '#F0F4FF' : '#fff', color: stockFilter === filter.value ? '#4880FF' : '#64748B', borderRadius: '6px', fontSize: '0.875rem', fontWeight: stockFilter === filter.value ? 600 : 500, cursor: 'pointer', transition: 'all 0.2s' }}>
-                                    {filter.label} ({filter.count})
-                                </button>
-                            ))}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.5rem', padding: '1rem', background: '#F8FAFC', borderRadius: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                            <FiFilter style={{ color: '#64748B' }} />
+                            <span style={{ fontSize: '0.875rem', color: '#64748B', fontWeight: 500 }}>Filter:</span>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                {[{ value: 'all', label: 'All', count: aggregatedLowStock.length }, { value: 'critical', label: 'Critical', count: aggregatedCriticalCount }, { value: 'low', label: 'Low', count: aggregatedLowCount }].map(filter => (
+                                    <button key={filter.value} onClick={() => setStockFilter(filter.value)} style={{ padding: '0.5rem 1rem', border: stockFilter === filter.value ? '2px solid #4880FF' : '1px solid #E2E8F0', background: stockFilter === filter.value ? '#F0F4FF' : '#fff', color: stockFilter === filter.value ? '#4880FF' : '#64748B', borderRadius: '6px', fontSize: '0.875rem', fontWeight: stockFilter === filter.value ? 600 : 500, cursor: 'pointer', transition: 'all 0.2s' }}>
+                                        {filter.label} ({filter.count})
+                                    </button>
+                                ))}
+                            </div>
                         </div>
+                        {filteredAggregatedLowStock.length > 0 && (
+                            <ExportButton
+                                data={getAggregatedLowStockExportData()}
+                                columns={aggregatedLowStockExportColumns}
+                                filename={`low-stock-all-warehouses-${new Date().toISOString().split('T')[0]}`}
+                                label="Export"
+                            />
+                        )}
                     </div>
 
                     {filteredAggregatedLowStock.length === 0 ? (

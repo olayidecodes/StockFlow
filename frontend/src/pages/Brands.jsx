@@ -5,6 +5,7 @@ import api from '../utils/api';
 import Spinner from '../components/Spinner';
 import PermissionGuard from '../components/PermissionGuard';
 import { PERMISSIONS } from '../utils/constants';
+import ExportButton from '../components/ExportButton';
 
 const Brands = () => {
     const [brands, setBrands] = useState([]);
@@ -95,15 +96,42 @@ const Brands = () => {
         setBrandProducts([]);
     };
 
+    // Prepare export data
+    const getExportData = () => {
+        return brands.map(brand => ({
+            name: brand.name || '',
+            status: brand.active ? 'Active' : 'Inactive',
+            productCount: brand.productCount || 0,
+            createdAt: new Date(brand.createdAt).toLocaleDateString()
+        }));
+    };
+
+    const exportColumns = [
+        { key: 'name', label: 'Brand Name' },
+        { key: 'status', label: 'Status' },
+        { key: 'productCount', label: 'Product Count' },
+        { key: 'createdAt', label: 'Created Date' }
+    ];
+
     return (
         <div className="page-container">
             <div className="page-header">
                 <h1>Brand Management</h1>
-                <PermissionGuard permission={PERMISSIONS.MANAGE_INVENTORY}>
-                    <button onClick={() => openModal()} className="btn btn-primary">
-                        <FiPlus style={{ marginRight: '0.5rem' }} /> Add Brand
-                    </button>
-                </PermissionGuard>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {brands.length > 0 && (
+                        <ExportButton
+                            data={getExportData()}
+                            columns={exportColumns}
+                            filename={`brands-${new Date().toISOString().split('T')[0]}`}
+                            label="Export"
+                        />
+                    )}
+                    <PermissionGuard permission={PERMISSIONS.MANAGE_INVENTORY}>
+                        <button onClick={() => openModal()} className="btn btn-primary">
+                            <FiPlus style={{ marginRight: '0.5rem' }} /> Add Brand
+                        </button>
+                    </PermissionGuard>
+                </div>
             </div>
 
 

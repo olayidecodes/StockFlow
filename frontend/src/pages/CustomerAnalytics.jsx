@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import api from '../utils/api';
 import Spinner from '../components/Spinner';
+import ExportButton from '../components/ExportButton';
 
 const CustomerAnalytics = () => {
     const [customers, setCustomers] = useState([]);
@@ -25,18 +26,51 @@ const CustomerAnalytics = () => {
         }
     };
 
+    // Prepare export data
+    const getExportData = () => {
+        return customers.map(customer => ({
+            name: customer.name || '',
+            phone: customer.phone || '',
+            email: customer.email || '',
+            orderCount: customer.orderCount || 0,
+            totalSpent: parseFloat((customer.totalSpent || 0).toFixed(2)),
+            avgOrderValue: parseFloat((customer.avgOrderValue || 0).toFixed(2)),
+            lastOrderDate: customer.lastOrderDate ? new Date(customer.lastOrderDate).toLocaleDateString() : ''
+        }));
+    };
+
+    const exportColumns = [
+        { key: 'name', label: 'Customer Name' },
+        { key: 'phone', label: 'Phone' },
+        { key: 'email', label: 'Email' },
+        { key: 'orderCount', label: 'Total Orders' },
+        { key: 'totalSpent', label: 'Total Spent (₦)' },
+        { key: 'avgOrderValue', label: 'Avg Order Value (₦)' },
+        { key: 'lastOrderDate', label: 'Last Order Date' }
+    ];
+
     return (
         <div className="page-container">
             <div className="page-header">
                 <h1>Customer Analytics</h1>
-                <div className="checkbox-group">
-                    <input
-                        type="checkbox"
-                        id="recurringOnly"
-                        checked={showRecurringOnly}
-                        onChange={(e) => setShowRecurringOnly(e.target.checked)}
-                    />
-                    <label htmlFor="recurringOnly">Show Recurring Customers Only</label>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    {customers.length > 0 && (
+                        <ExportButton
+                            data={getExportData()}
+                            columns={exportColumns}
+                            filename={`customer-analytics-${new Date().toISOString().split('T')[0]}`}
+                            label="Export"
+                        />
+                    )}
+                    <div className="checkbox-group">
+                        <input
+                            type="checkbox"
+                            id="recurringOnly"
+                            checked={showRecurringOnly}
+                            onChange={(e) => setShowRecurringOnly(e.target.checked)}
+                        />
+                        <label htmlFor="recurringOnly">Show Recurring Customers Only</label>
+                    </div>
                 </div>
             </div>
 

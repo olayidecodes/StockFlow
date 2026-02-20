@@ -5,6 +5,7 @@ import api from '../utils/api';
 import Spinner from '../components/Spinner';
 import PermissionGuard from '../components/PermissionGuard';
 import { PERMISSIONS } from '../utils/constants';
+import ExportButton from '../components/ExportButton';
 
 const Categories = () => {
     const [categories, setCategories] = useState([]);
@@ -99,15 +100,44 @@ const Categories = () => {
         setCategoryProducts([]);
     };
 
+    // Prepare export data
+    const getExportData = () => {
+        return categories.map(category => ({
+            name: category.name || '',
+            description: category.description || '',
+            status: category.active ? 'Active' : 'Inactive',
+            productCount: category.productCount || 0,
+            createdAt: new Date(category.createdAt).toLocaleDateString()
+        }));
+    };
+
+    const exportColumns = [
+        { key: 'name', label: 'Category Name' },
+        { key: 'description', label: 'Description' },
+        { key: 'status', label: 'Status' },
+        { key: 'productCount', label: 'Product Count' },
+        { key: 'createdAt', label: 'Created Date' }
+    ];
+
     return (
         <div className="page-container">
             <div className="page-header">
                 <h1>Category Management</h1>
-                <PermissionGuard permission={PERMISSIONS.MANAGE_INVENTORY}>
-                    <button onClick={() => openModal()} className="btn btn-primary">
-                        <FiPlus style={{ marginRight: '0.5rem' }} /> Add Category
-                    </button>
-                </PermissionGuard>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {categories.length > 0 && (
+                        <ExportButton
+                            data={getExportData()}
+                            columns={exportColumns}
+                            filename={`categories-${new Date().toISOString().split('T')[0]}`}
+                            label="Export"
+                        />
+                    )}
+                    <PermissionGuard permission={PERMISSIONS.MANAGE_INVENTORY}>
+                        <button onClick={() => openModal()} className="btn btn-primary">
+                            <FiPlus style={{ marginRight: '0.5rem' }} /> Add Category
+                        </button>
+                    </PermissionGuard>
+                </div>
             </div>
 
             {loading ? (

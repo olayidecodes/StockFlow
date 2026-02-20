@@ -8,6 +8,7 @@ import { PERMISSIONS, ROLES } from '../utils/constants';
 import StockAdjustmentModal from '../components/StockAdjustmentModal';
 import StockHistoryModal from '../components/StockHistoryModal';
 import StockTransferModal from '../components/StockTransferModal';
+import ExportButton from '../components/ExportButton';
 
 const Inventory = () => {
     const { user } = useAuth();
@@ -197,15 +198,70 @@ const Inventory = () => {
 
     const sortedBalances = getSortedBalances();
 
+    // Prepare export data
+    const getExportData = () => {
+        return sortedBalances.map(bal => {
+            const realProd = getRealProduct(bal);
+            const price = realProd?.price || realProd?.wholesaleCost || 0;
+            const value = (bal.quantity || 0) * price;
+            const cbm = calculateCBM(bal);
+            
+            const exportRow = {
+                sku: bal.product?.sku || '',
+                productName: bal.product?.name || '',
+                warehouse: bal.warehouse?.name || 'All Warehouses',
+                cartonSize: bal.product?.cartonSize || '',
+                quantity: bal.quantity || 0,
+                cbm: parseFloat(cbm.toFixed(3))
+            };
+
+            // Only include value for ADMIN users
+            if (user?.role === ROLES.ADMIN) {
+                exportRow.value = parseFloat(value.toFixed(2));
+            }
+
+            return exportRow;
+        });
+    };
+
+    const getExportColumns = () => {
+        const columns = [
+            { key: 'sku', label: 'SKU' },
+            { key: 'productName', label: 'Product Name' },
+            { key: 'warehouse', label: 'Warehouse' },
+            { key: 'cartonSize', label: 'Carton Size' },
+            { key: 'quantity', label: 'Quantity' }
+        ];
+
+        // Only include value column for ADMIN users
+        if (user?.role === ROLES.ADMIN) {
+            columns.push({ key: 'value', label: 'Total Value (₦)' });
+        }
+
+        columns.push({ key: 'cbm', label: 'Total CBM (m³)' });
+
+        return columns;
+    };
+
     return (
         <div className="page-container">
             <div className="page-header">
                 <h1>Inventory Overview</h1>
-                <PermissionGuard permission={PERMISSIONS.MANAGE_INVENTORY}>
-                    <button onClick={handleManualAdd} className="btn btn-primary">
-                        <FiPlus /> Add Inventory
-                    </button>
-                </PermissionGuard>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {balances.length > 0 && (
+                        <ExportButton
+                            data={getExportData()}
+                            columns={getExportColumns()}
+                            filename={`inventory-${new Date().toISOString().split('T')[0]}`}
+                            label="Export"
+                        />
+                    )}
+                    <PermissionGuard permission={PERMISSIONS.MANAGE_INVENTORY}>
+                        <button onClick={handleManualAdd} className="btn btn-primary">
+                            <FiPlus /> Add Inventory
+                        </button>
+                    </PermissionGuard>
+                </div>
             </div>
 
             <div className="filters-bar">

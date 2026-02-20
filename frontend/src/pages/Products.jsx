@@ -5,6 +5,7 @@ import api from '../utils/api';
 import Spinner from '../components/Spinner';
 import PermissionGuard from '../components/PermissionGuard';
 import { PERMISSIONS } from '../utils/constants';
+import ExportButton from '../components/ExportButton';
 
 const Products = () => {
     const [products, setProducts] = useState([]);
@@ -136,15 +137,58 @@ const Products = () => {
         }
     };
 
+    // Prepare export data
+    const getExportData = () => {
+        return products.map(product => ({
+            sku: product.sku || '',
+            name: product.name || '',
+            brand: product.brand?.name || '',
+            category: product.category?.name || '',
+            cartonSize: product.cartonSize || 0,
+            weight: product.weight || 0,
+            wholesaleCost: parseFloat((product.wholesaleCost || 0).toFixed(2)),
+            price: parseFloat((product.price || 0).toFixed(2)),
+            length: product.dimensions?.length || 0,
+            breadth: product.dimensions?.breadth || 0,
+            height: product.dimensions?.height || 0,
+            status: product.status || ''
+        }));
+    };
+
+    const exportColumns = [
+        { key: 'sku', label: 'SKU' },
+        { key: 'name', label: 'Product Name' },
+        { key: 'brand', label: 'Brand' },
+        { key: 'category', label: 'Category' },
+        { key: 'cartonSize', label: 'Carton Size' },
+        { key: 'weight', label: 'Weight (kg)' },
+        { key: 'wholesaleCost', label: 'Wholesale Cost (₦)' },
+        { key: 'price', label: 'Price (₦)' },
+        { key: 'length', label: 'Length (m)' },
+        { key: 'breadth', label: 'Breadth (m)' },
+        { key: 'height', label: 'Height (m)' },
+        { key: 'status', label: 'Status' }
+    ];
+
     return (
         <div className="page-container">
             <div className="page-header">
                 <h1>Product Management</h1>
-                <PermissionGuard permission={PERMISSIONS.MANAGE_INVENTORY}>
-                    <button onClick={() => openModal()} className="btn btn-primary">
-                        <FiPlus /> Add Product
-                    </button>
-                </PermissionGuard>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {products.length > 0 && (
+                        <ExportButton
+                            data={getExportData()}
+                            columns={exportColumns}
+                            filename={`products-${new Date().toISOString().split('T')[0]}`}
+                            label="Export"
+                        />
+                    )}
+                    <PermissionGuard permission={PERMISSIONS.MANAGE_INVENTORY}>
+                        <button onClick={() => openModal()} className="btn btn-primary">
+                            <FiPlus /> Add Product
+                        </button>
+                    </PermissionGuard>
+                </div>
             </div>
 
             <div className="filters">

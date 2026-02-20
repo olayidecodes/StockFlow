@@ -5,6 +5,7 @@ import api from '../utils/api';
 import Spinner from '../components/Spinner';
 import PermissionGuard from '../components/PermissionGuard';
 import { PERMISSIONS } from '../utils/constants';
+import ExportButton from '../components/ExportButton';
 
 const Orders = () => {
     const navigate = useNavigate();
@@ -49,15 +50,56 @@ const Orders = () => {
         }
     };
 
+    // Prepare export data
+    const getExportData = () => {
+        return orders.map(order => ({
+            orderId: `#${order._id.slice(-6).toUpperCase()}`,
+            customerName: order.customer?.name || '',
+            customerPhone: order.customer?.phone || '',
+            customerEmail: order.customer?.email || '',
+            status: order.status || '',
+            channel: order.channel || '',
+            warehouse: order.warehouse?.name || '',
+            region: order.region || '',
+            totalAmount: parseFloat((order.totalAmount || 0).toFixed(2)),
+            itemCount: order.items?.length || 0,
+            date: new Date(order.createdAt).toLocaleDateString()
+        }));
+    };
+
+    const exportColumns = [
+        { key: 'orderId', label: 'Order ID' },
+        { key: 'customerName', label: 'Customer Name' },
+        { key: 'customerPhone', label: 'Phone' },
+        { key: 'customerEmail', label: 'Email' },
+        { key: 'status', label: 'Status' },
+        { key: 'channel', label: 'Channel' },
+        { key: 'warehouse', label: 'Warehouse' },
+        { key: 'region', label: 'Region' },
+        { key: 'totalAmount', label: 'Total Amount (₦)' },
+        { key: 'itemCount', label: 'Items Count' },
+        { key: 'date', label: 'Date' }
+    ];
+
     return (
         <div className="page-container">
             <div className="page-header">
                 <h1>Orders</h1>
-                <PermissionGuard permission={PERMISSIONS.CREATE_ORDERS}>
-                    <button onClick={() => navigate('/orders/new')} className="btn btn-primary">
-                        <FiPlus /> New Order
-                    </button>
-                </PermissionGuard>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {orders.length > 0 && (
+                        <ExportButton
+                            data={getExportData()}
+                            columns={exportColumns}
+                            filename={`orders-${new Date().toISOString().split('T')[0]}`}
+                            label="Export"
+                        />
+                    )}
+                    <PermissionGuard permission={PERMISSIONS.CREATE_ORDERS}>
+                        <button onClick={() => navigate('/orders/new')} className="btn btn-primary">
+                            <FiPlus /> New Order
+                        </button>
+                    </PermissionGuard>
+                </div>
             </div>
 
             <div className="filters-bar">

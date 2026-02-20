@@ -7,6 +7,7 @@ import {
 import { FiShoppingCart, FiAward, FiTarget, FiActivity, FiUser } from 'react-icons/fi';
 import api from '../utils/api';
 import Spinner from '../components/Spinner';
+import ExportButton from '../components/ExportButton';
 
 const Dashboard = () => {
     const { user } = useAuth();
@@ -214,9 +215,29 @@ const Dashboard = () => {
 
             {/* Bottom Row: Top Customers */}
             <div className="chart-card">
-                <div className="chart-card-header">
-                    <h3>Top Customers</h3>
-                    <span className="text-secondary" style={{ fontSize: '0.8rem' }}>By Sales Value</span>
+                <div className="chart-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <h3>Top Customers</h3>
+                        <span className="text-secondary" style={{ fontSize: '0.8rem' }}>By Sales Value</span>
+                    </div>
+                    {stats.topCustomers?.length > 0 && (
+                        <ExportButton
+                            data={stats.topCustomers.map(c => ({
+                                customerName: c._id || '',
+                                orderCount: c.orderCount || 0,
+                                totalSpent: parseFloat((c.totalSpent || 0).toFixed(2)),
+                                lastOrder: new Date(c.lastOrder).toLocaleDateString()
+                            }))}
+                            columns={[
+                                { key: 'customerName', label: 'Customer Name' },
+                                { key: 'orderCount', label: 'Orders' },
+                                { key: 'totalSpent', label: 'Total Spent (₦)' },
+                                { key: 'lastOrder', label: 'Last Order' }
+                            ]}
+                            filename={`top-customers-${new Date().toISOString().split('T')[0]}`}
+                            label="Export"
+                        />
+                    )}
                 </div>
                 <div className="table-container" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
                     <table className="data-table">
@@ -259,49 +280,63 @@ const Dashboard = () => {
 
             {/* Burn Rate Analysis */}
             <div className="chart-card">
-                <div className="chart-card-header">
-                    <h3>Stock Movement Analysis</h3>
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                        {[
-                            { value: 'all', label: 'All', count: stats.burnRateData?.length || 0, color: '#64748B' },
-                            { value: 'fast', label: 'Fast Moving', count: burnRateCounts.fast, color: '#10B981' },
-                            { value: 'moderate', label: 'Moderate', count: burnRateCounts.moderate, color: '#F59E0B' },
-                            { value: 'slow', label: 'Slow Moving', count: burnRateCounts.slow, color: '#EF4444' },
-                            { value: 'stagnant', label: 'Stagnant', count: burnRateCounts.stagnant, color: '#94A3B8' }
-                        ].map(filter => (
-                            <button
-                                key={filter.value}
-                                onClick={() => setBurnRateFilter(filter.value)}
-                                style={{
-                                    padding: '6px 12px',
-                                    borderRadius: '6px',
-                                    border: burnRateFilter === filter.value ? `2px solid ${filter.color}` : '1px solid #E2E8F0',
-                                    fontSize: '0.75rem',
-                                    color: burnRateFilter === filter.value ? filter.color : '#64748B',
-                                    background: burnRateFilter === filter.value ? `${filter.color}15` : '#fff',
-                                    cursor: 'pointer',
-                                    fontWeight: burnRateFilter === filter.value ? 600 : 500,
-                                    transition: 'all 0.2s ease',
-                                    whiteSpace: 'nowrap',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '6px'
-                                }}
-                            >
-                                {filter.label}
-                                <span style={{ 
-                                    background: burnRateFilter === filter.value ? filter.color : '#E2E8F0',
-                                    color: burnRateFilter === filter.value ? '#fff' : '#64748B',
-                                    padding: '2px 6px',
-                                    borderRadius: '10px',
-                                    fontSize: '0.7rem',
-                                    fontWeight: 600
-                                }}>
-                                    {filter.count}
-                                </span>
-                            </button>
-                        ))}
+                <div className="chart-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div style={{ flex: 1 }}>
+                        <h3>Stock Movement Analysis</h3>
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
+                            {[
+                                { value: 'all', label: 'All', count: stats.burnRateData?.length || 0, color: '#64748B' },
+                                { value: 'fast', label: 'Fast Moving', count: burnRateCounts.fast, color: '#10B981' },
+                                { value: 'moderate', label: 'Moderate', count: burnRateCounts.moderate, color: '#F59E0B' },
+                                { value: 'slow', label: 'Slow Moving', count: burnRateCounts.slow, color: '#EF4444' },
+                                { value: 'stagnant', label: 'Stagnant', count: burnRateCounts.stagnant, color: '#94A3B8' }
+                            ].map(filter => (
+                                <button
+                                    key={filter.value}
+                                    onClick={() => setBurnRateFilter(filter.value)}
+                                    style={{
+                                        padding: '4px 10px',
+                                        border: burnRateFilter === filter.value ? `2px solid ${filter.color}` : '1px solid #E2E8F0',
+                                        background: burnRateFilter === filter.value ? `${filter.color}15` : '#fff',
+                                        color: filter.color,
+                                        borderRadius: '6px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: burnRateFilter === filter.value ? 600 : 500,
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    {filter.label} ({filter.count})
+                                </button>
+                            ))}
+                        </div>
                     </div>
+                    {filteredBurnRate.length > 0 && (
+                        <ExportButton
+                            data={filteredBurnRate.map(item => ({
+                                sku: item.sku || '',
+                                productName: item.productName || '',
+                                brand: item.brand || '',
+                                currentStock: item.currentStock || 0,
+                                totalSold: item.totalSold || 0,
+                                dailySalesRate: item.dailySalesRate || 0,
+                                daysUntilStockout: item.daysUntilStockout > 999 ? 'Infinite' : item.daysUntilStockout,
+                                status: item.burnRateCategory || ''
+                            }))}
+                            columns={[
+                                { key: 'sku', label: 'SKU' },
+                                { key: 'productName', label: 'Product' },
+                                { key: 'brand', label: 'Brand' },
+                                { key: 'currentStock', label: 'Current Stock' },
+                                { key: 'totalSold', label: 'Sold (30 days)' },
+                                { key: 'dailySalesRate', label: 'Daily Sales Rate' },
+                                { key: 'daysUntilStockout', label: 'Days Until Stockout' },
+                                { key: 'status', label: 'Status' }
+                            ]}
+                            filename={`stock-movement-${new Date().toISOString().split('T')[0]}`}
+                            label="Export"
+                        />
+                    )}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#64748B', padding: '0 1.5rem 1rem', borderBottom: '1px solid #E2E8F0' }}>
                     Based on last 30 days sales velocity. Fast: &lt;30 days stock, Moderate: 30-90 days, Slow: &gt;90 days, Stagnant: No sales

@@ -181,7 +181,11 @@ const Inventory = () => {
         if (!sortBy) return balances;
 
         const sorted = [...balances].sort((a, b) => {
-            if (sortBy === 'cbm-asc') {
+            if (sortBy === 'quantity-asc') {
+                return (a.quantity || 0) - (b.quantity || 0);
+            } else if (sortBy === 'quantity-desc') {
+                return (b.quantity || 0) - (a.quantity || 0);
+            } else if (sortBy === 'cbm-asc') {
                 return calculateCBM(a) - calculateCBM(b);
             } else if (sortBy === 'cbm-desc') {
                 return calculateCBM(b) - calculateCBM(a);
@@ -285,7 +289,20 @@ const Inventory = () => {
                     >
                         <option value="">All Products</option>
                         {products
-                            .filter(p => !filterCategory || p.category?._id === filterCategory || p.category === filterCategory)
+                            .filter(p => {
+                                // Filter by category if selected
+                                if (filterCategory) {
+                                    const productCategory = p.category?._id || p.category;
+                                    if (productCategory !== filterCategory) return false;
+                                }
+                                // If warehouse is selected, only show products that exist in current balances
+                                if (filterWarehouse && balances.length > 0) {
+                                    return balances.some(bal => 
+                                        (bal.product?._id || bal.product) === p._id
+                                    );
+                                }
+                                return true;
+                            })
                             .map(p => <option key={p._id} value={p._id}>{p.name} ({p.sku})</option>)}
                     </select>
                 </div>
@@ -368,7 +385,13 @@ const Inventory = () => {
                                     </select>
                                 </th>
                                 <th>Carton Size</th>
-                                <th>Current Balance</th>
+                                <th 
+                                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                                    onClick={() => setSortBy(sortBy === 'quantity-asc' ? 'quantity-desc' : 'quantity-asc')}
+                                    title="Click to sort"
+                                >
+                                    Current Balance {sortBy === 'quantity-asc' ? '↑' : sortBy === 'quantity-desc' ? '↓' : '↕'}
+                                </th>
                                 {user?.role === ROLES.ADMIN && (
                                     <th 
                                         style={{ cursor: 'pointer', userSelect: 'none' }}

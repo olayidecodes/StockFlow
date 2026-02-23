@@ -180,7 +180,8 @@ exports.getBalance = async (req, res, next) => {
         let balances;
         if (categoryId && categoryId !== '') {
             // Need to filter by category - use aggregation
-            const matchStage = { ...query };
+            const matchStage = { warehouse: new mongoose.Types.ObjectId(warehouseId) };
+            if (productId) matchStage.product = new mongoose.Types.ObjectId(productId);
             
             balances = await InventoryBalance.aggregate([
                 { $match: matchStage },

@@ -61,7 +61,7 @@ const OrderDetail = () => {
                         <FiArrowLeft /> Back to Orders
                     </button>
                     <h1 style={{ margin: '0.5rem 0 0 0', fontSize: '1.75rem', color: '#1E293B' }}>
-                        Order #{order._id.slice(-6).toUpperCase()}
+                        Order #{order.orderNumber || order._id.slice(-6).toUpperCase()}
                     </h1>
                     <p style={{ color: '#64748B', fontSize: '0.9rem', marginTop: '0.25rem' }}>
                         Created on {new Date(order.createdAt).toLocaleDateString('en-US', { 

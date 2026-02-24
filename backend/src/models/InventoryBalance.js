@@ -44,7 +44,4 @@ inventoryBalanceSchema.virtual('available').get(function () {
 // Ensure unique combination of product+warehouse
 inventoryBalanceSchema.index({ warehouse: 1, product: 1 }, { unique: true });
 
-// Compound index for fast lookup of specific product at specific warehouse
-inventoryBalanceSchema.index({ warehouse: 1, product: 1 }, { unique: true });
-
 module.exports = mongoose.model('InventoryBalance', inventoryBalanceSchema);

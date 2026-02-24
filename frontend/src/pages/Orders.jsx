@@ -53,7 +53,7 @@ const Orders = () => {
     // Prepare export data
     const getExportData = () => {
         return orders.map(order => ({
-            orderId: `#${order._id.slice(-6).toUpperCase()}`,
+            orderId: `#${order.orderNumber || order._id.slice(-6).toUpperCase()}`,
             customerName: order.customer?.name || '',
             customerPhone: order.customer?.phone || '',
             customerEmail: order.customer?.email || '',
@@ -136,7 +136,7 @@ const Orders = () => {
                                 orders.map((order) => (
                                     <Fragment key={order._id}>
                                         <tr className="hover-row" onClick={() => navigate(`/orders/${order._id}`)}>
-                                            <td className="font-mono text-sm">#{order._id.slice(-6).toUpperCase()}</td>
+                                            <td className="font-mono text-sm">#{order.orderNumber || order._id.slice(-6).toUpperCase()}</td>
                                             <td>{order.customer?.name}</td>
                                             <td>{new Date(order.createdAt).toLocaleDateString()}</td>
                                             <td>

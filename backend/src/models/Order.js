@@ -1,7 +1,12 @@
 const mongoose = require('mongoose');
+const Counter = require('./Counter');
 
 const orderSchema = new mongoose.Schema(
     {
+        orderNumber: {
+            type: Number,
+            unique: true
+        },
         customer: {
             name: { type: String, required: true },
             address: { type: String, required: true },
@@ -66,8 +71,39 @@ const orderSchema = new mongoose.Schema(
     }
 );
 
+// Pre-save hook to generate sequential order number
+orderSchema.pre('save', async function() {
+    if (this.isNew && !this.orderNumber) {
+        // Count existing orders and add 1 for the new order
+        const count = await mongoose.model('Order').countDocuments();
+        this.orderNumber = count + 1;
+        
+        // If there's a duplicate (race condition), try again with counter
+        try {
+            // This will throw an error if orderNumber is duplicate
+            await this.constructor.findOne({ orderNumber: this.orderNumber });
+            if (await this.constructor.findOne({ orderNumber: this.orderNumber })) {
+                // Use counter as fallback for race conditions
+                const counter = await Counter.findOneAndUpdate(
+                    { _id: 'orderId' },
+                    { $inc: { seq: 1 } },
+                    { 
+                        new: true, 
+                        upsert: true,
+                        setDefaultsOnInsert: true
+                    }
+                );
+                this.orderNumber = counter.seq;
+            }
+        } catch (error) {
+            // Ignore and proceed
+        }
+    }
+});
+
 // Index for efficient querying by status and warehouse
 orderSchema.index({ warehouse: 1, status: 1 });
+// orderNumber index is already created by unique: true in schema definition
 
 // Indexes for frequent queries (dashboard, list views)
 orderSchema.index({ createdAt: -1 }); // Recent orders

@@ -269,7 +269,9 @@ const OrderCreate = () => {
 
         setLoading(true);
         try {
-            const combinedAddress = `${formData.customer.street}, ${formData.customer.city}, ${formData.customer.state} ${formData.customer.zip}`;
+            const combinedAddress = formData.customer.zip 
+                ? `${formData.customer.street}, ${formData.customer.city}, ${formData.customer.state} ${formData.customer.zip}`
+                : `${formData.customer.street}, ${formData.customer.city}, ${formData.customer.state}`;
             const customerData = {
                 ...formData.customer,
                 address: combinedAddress
@@ -371,11 +373,10 @@ const OrderCreate = () => {
                             />
                         </div>
                         <div className="form-group">
-                            <label>Zip Code</label>
+                            <label>Zip Code (Optional)</label>
                             <input
                                 value={formData.customer.zip}
                                 onChange={e => setFormData({ ...formData, customer: { ...formData.customer, zip: e.target.value } })}
-                                required
                             />
                         </div>
                     </div>

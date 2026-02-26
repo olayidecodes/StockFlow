@@ -18,6 +18,7 @@ const StockAdjustmentModal = ({ isOpen, onClose, product, warehouse, onSuccess }
     const [products, setProducts] = useState([]);
     const [warehouses, setWarehouses] = useState([]);
     const [loadingData, setLoadingData] = useState(false);
+    const [currentBalance, setCurrentBalance] = useState(null);
 
     // Fetch products and warehouses if not provided
     useEffect(() => {
@@ -37,6 +38,26 @@ const StockAdjustmentModal = ({ isOpen, onClose, product, warehouse, onSuccess }
         }
     }, [isOpen, product, warehouse]);
 
+    // Fetch current balance when product and warehouse are known
+    useEffect(() => {
+        const prodId = product?._id || formData.selectedProduct;
+        const whId = warehouse?._id || formData.selectedWarehouse;
+        if (isOpen && prodId && whId) {
+            api.get(`/inventory/balance?productId=${prodId}&warehouseId=${whId}`)
+                .then(res => {
+                    const balances = res.data.data;
+                    if (balances.length > 0) {
+                        setCurrentBalance(balances[0].quantity || 0);
+                    } else {
+                        setCurrentBalance(0);
+                    }
+                })
+                .catch(() => setCurrentBalance(null));
+        } else {
+            setCurrentBalance(null);
+        }
+    }, [isOpen, product, warehouse, formData.selectedProduct, formData.selectedWarehouse]);
+
     // Reset form when modal opens
     useEffect(() => {
         if (isOpen) {
@@ -48,6 +69,7 @@ const StockAdjustmentModal = ({ isOpen, onClose, product, warehouse, onSuccess }
                 selectedProduct: product?._id || '',
                 selectedWarehouse: warehouse?._id || ''
             });
+            setCurrentBalance(null);
         }
     }, [isOpen, product, warehouse]);
 
@@ -59,11 +81,19 @@ const StockAdjustmentModal = ({ isOpen, onClose, product, warehouse, onSuccess }
     const cartonSize = currentProduct?.cartonSize || 1;
 
     // Calculate total change preview
-    const totalChange = (Number(formData.cartons) * cartonSize) + Number(formData.pieces);
+    const totalInput = (Number(formData.cartons) * cartonSize) + Number(formData.pieces);
 
-    // Determine if it's adding or removing based on type for visual feedback
+    // For ADJUSTMENT (correction), the value entered IS the new stock level
+    // For IN/OUT, the value is added/subtracted
+    const isCorrection = formData.type === 'ADJUSTMENT';
     const isNegative = formData.type === 'OUT' || formData.type === 'TRANSFER_OUT';
-    const displayChange = isNegative ? -totalChange : totalChange;
+
+    let displayChange;
+    if (isCorrection) {
+        displayChange = currentBalance !== null ? totalInput - currentBalance : totalInput;
+    } else {
+        displayChange = isNegative ? -totalInput : totalInput;
+    }
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -73,26 +103,44 @@ const StockAdjustmentModal = ({ isOpen, onClose, product, warehouse, onSuccess }
             return;
         }
 
-        if (totalChange === 0) {
+        if (isCorrection && totalInput === 0 && currentBalance === 0) {
+            toast.error('Stock is already at 0');
+            return;
+        }
+
+        if (!isCorrection && totalInput === 0) {
             toast.error('Adjustment amount cannot be zero');
             return;
         }
 
         setLoading(true);
         try {
-            // Send total pieces to backend
-            const payload = {
-                product: currentProduct._id,
-                warehouse: currentWarehouse._id,
-                change: displayChange,
-                type: formData.type,
-                reason: formData.reason,
-                reference: `Manual Adjustment`,
-            };
+            let payload;
+            if (isCorrection) {
+                // For corrections, send the change needed to reach the target quantity
+                payload = {
+                    product: currentProduct._id,
+                    warehouse: currentWarehouse._id,
+                    change: displayChange,
+                    type: 'ADJUSTMENT',
+                    reason: formData.reason || `Stock correction: set to ${totalInput} pieces`,
+                    reference: `Manual Correction`,
+                    setQuantity: totalInput  // Tell backend the exact target
+                };
+            } else {
+                payload = {
+                    product: currentProduct._id,
+                    warehouse: currentWarehouse._id,
+                    change: displayChange,
+                    type: formData.type,
+                    reason: formData.reason,
+                    reference: `Manual Adjustment`,
+                };
+            }
 
             await api.post('/inventory/adjust', payload);
             setLoading(false);
-            toast.success('Stock adjusted successfully');
+            toast.success(isCorrection ? 'Stock corrected successfully' : 'Stock adjusted successfully');
             onSuccess();
             onClose();
         } catch (err) {
@@ -159,46 +207,91 @@ const StockAdjustmentModal = ({ isOpen, onClose, product, warehouse, onSuccess }
                         >
                             <option value="IN">Stock In (+)</option>
                             <option value="OUT">Stock Out (-)</option>
-                            <option value="ADJUSTMENT">Correction (±)</option>
-                            {/* Transfers handled separately usually, keeping simple for now */}
+                            <option value="ADJUSTMENT">Correction (Set To)</option>
                         </select>
                     </div>
 
+                    {isCorrection && currentBalance !== null && (
+                        <div style={{
+                            background: '#F7FAFC',
+                            border: '1px solid #E2E8F0',
+                            borderRadius: '8px',
+                            padding: '12px 16px',
+                            marginBottom: '12px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                        }}>
+                            <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: 500 }}>Current Stock:</span>
+                            <span style={{ fontSize: '1rem', fontWeight: 700, color: '#1E293B' }}>
+                                {currentBalance} pieces
+                                {cartonSize > 1 && (
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 400, color: '#64748B', marginLeft: '6px' }}>
+                                        ({Math.floor(currentBalance / cartonSize)} ctns, {currentBalance % cartonSize} pcs)
+                                    </span>
+                                )}
+                            </span>
+                        </div>
+                    )}
+
                     <div className="form-row">
                         <div className="form-group" style={{ flex: 1 }}>
-                            <label>Cartons</label>
+                            <label>{isCorrection ? 'New Cartons' : 'Cartons'}</label>
                             <input
                                 type="number"
                                 min="0"
                                 value={formData.cartons || ''}
                                 onChange={(e) => setFormData({ ...formData, cartons: parseInt(e.target.value) || 0 })}
                                 style={{ width: '100%' }}
+                                placeholder={isCorrection ? 'New total cartons' : '0'}
                             />
                         </div>
                         <div className="form-group" style={{ flex: 1 }}>
-                            <label>Pieces</label>
+                            <label>{isCorrection ? 'New Pieces' : 'Pieces'}</label>
                             <input
                                 type="number"
                                 min="0"
                                 value={formData.pieces || ''}
                                 onChange={(e) => setFormData({ ...formData, pieces: parseInt(e.target.value) || 0 })}
                                 style={{ width: '100%' }}
+                                placeholder={isCorrection ? 'New total pieces' : '0'}
                             />
                         </div>
                     </div>
 
                     <div className="preview-box">
-                        <span>Total Change: </span>
-                        <span 
-                            className={`change-value ${isNegative ? 'negative' : 'positive'}`}
-                            style={{ 
-                                color: displayChange === 0 ? '#64748B' : (isNegative ? '#DC2626' : '#10B981'),
-                                fontWeight: 600,
-                                fontSize: '1.1rem'
-                            }}
-                        >
-                            {displayChange > 0 ? '+' : ''}{displayChange} Pieces
-                        </span>
+                        {isCorrection ? (
+                            <>
+                                <span>New Stock: </span>
+                                <span style={{ fontWeight: 700, fontSize: '1.1rem', color: '#1E293B' }}>
+                                    {totalInput} pieces
+                                </span>
+                                {currentBalance !== null && displayChange !== 0 && (
+                                    <span style={{
+                                        marginLeft: '12px',
+                                        fontSize: '0.85rem',
+                                        fontWeight: 600,
+                                        color: displayChange > 0 ? '#10B981' : '#DC2626'
+                                    }}>
+                                        ({displayChange > 0 ? '+' : ''}{displayChange})
+                                    </span>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <span>Total Change: </span>
+                                <span
+                                    className={`change-value ${isNegative ? 'negative' : 'positive'}`}
+                                    style={{
+                                        color: displayChange === 0 ? '#64748B' : (isNegative ? '#DC2626' : '#10B981'),
+                                        fontWeight: 600,
+                                        fontSize: '1.1rem'
+                                    }}
+                                >
+                                    {displayChange > 0 ? '+' : ''}{displayChange} Pieces
+                                </span>
+                            </>
+                        )}
                     </div>
 
                     <div className="form-group">

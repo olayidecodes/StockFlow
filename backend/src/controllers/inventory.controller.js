@@ -18,7 +18,7 @@ exports.adjustStock = async (req, res, next) => {
             return res.status(400).json({ success: false, errors: errors.array() });
         }
 
-        const { product, warehouse, change, type, reason, reference } = req.body;
+        const { product, warehouse, change, type, reason, reference, setQuantity } = req.body;
 
         // Start Transaction
         session.startTransaction();
@@ -37,20 +37,37 @@ exports.adjustStock = async (req, res, next) => {
         }
 
         // 2. Update Inventory Balance (Upsert)
-        // We strive for atomicity. $inc ensures concurrency safety for the number.
-        const updatedBalance = await InventoryBalance.findOneAndUpdate(
-            { product, warehouse },
-            {
-                $inc: { quantity: change },
-                $set: { lastUpdated: new Date() },
-            },
-            {
-                new: true,
-                upsert: true, // Create if doesn't exist
-                session,
-                setDefaultsOnInsert: true,
-            }
-        );
+        let updatedBalance;
+        if (type === 'ADJUSTMENT' && setQuantity !== undefined) {
+            // Correction mode: set quantity to exact value
+            updatedBalance = await InventoryBalance.findOneAndUpdate(
+                { product, warehouse },
+                {
+                    $set: { quantity: setQuantity, lastUpdated: new Date() },
+                },
+                {
+                    new: true,
+                    upsert: true,
+                    session,
+                    setDefaultsOnInsert: true,
+                }
+            );
+        } else {
+            // Normal mode: increment/decrement
+            updatedBalance = await InventoryBalance.findOneAndUpdate(
+                { product, warehouse },
+                {
+                    $inc: { quantity: change },
+                    $set: { lastUpdated: new Date() },
+                },
+                {
+                    new: true,
+                    upsert: true,
+                    session,
+                    setDefaultsOnInsert: true,
+                }
+            );
+        }
 
         // 3. Create Ledger Entry
         const ledgerEntry = await StockLedger.create(
@@ -192,7 +209,7 @@ exports.getBalance = async (req, res, next) => {
             // Need to filter by category or brand - use aggregation
             const matchStage = { warehouse: new mongoose.Types.ObjectId(warehouseId) };
             if (productId) matchStage.product = new mongoose.Types.ObjectId(productId);
-            
+
             const pipeline = [
                 { $match: matchStage },
                 {

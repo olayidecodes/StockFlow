@@ -17,6 +17,7 @@ const orderRoutes = require('./routes/order.routes');
 const templateRoutes = require('./routes/template.routes');
 const analyticsRoutes = require('./routes/analytics.routes');
 const financialsRoutes = require('./routes/financials.routes');
+const bundleRoutes = require('./routes/bundle.routes');
 const whatsappService = require('./services/whatsapp.service');
 
 // Connect to database
@@ -36,6 +37,7 @@ app.use('/api/test', testRoutes);
 app.use('/api/brands', brandRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/bundles', bundleRoutes);
 app.use('/api/regions', regionRoutes);
 app.use('/api/warehouses', warehouseRoutes);
 app.use('/api/inventory', inventoryRoutes);

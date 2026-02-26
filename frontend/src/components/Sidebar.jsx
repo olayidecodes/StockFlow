@@ -45,6 +45,7 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
             subItems: [
                 { to: '/inventory/balance', label: 'Stock Levels', icon: <FiLayers /> },
                 { to: '/inventory/products', label: 'Products', icon: <FiBox /> },
+                { to: '/inventory/bundles', label: 'Bundles', icon: <FiPackage /> },
                 { to: '/inventory/brands', label: 'Brands', icon: <FiTag /> },
                 { to: '/inventory/categories', label: 'Categories', icon: <FiGrid /> }
             ]

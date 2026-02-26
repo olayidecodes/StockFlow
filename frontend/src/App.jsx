@@ -12,6 +12,7 @@ import Dashboard from './pages/Dashboard';
 import Brands from './pages/Brands';
 import Categories from './pages/Categories';
 import Products from './pages/Products';
+import Bundles from './pages/Bundles';
 import Locations from './pages/Locations';
 import Inventory from './pages/Inventory';
 import Orders from './pages/Orders';
@@ -118,6 +119,14 @@ function App() {
                       element={
                         <RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.INVENTORY_MANAGER]}>
                           <Products />
+                        </RoleRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/inventory/bundles" 
+                      element={
+                        <RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.INVENTORY_MANAGER]}>
+                          <Bundles />
                         </RoleRoute>
                       } 
                     />

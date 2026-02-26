@@ -390,7 +390,7 @@ const Products = () => {
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label>Selling Price (piece)</label>
+                                    <label>Retail Price (piece)</label>
                                     <input
                                         type="number"
                                         min="0"

@@ -34,15 +34,16 @@ exports.createTemplate = async (req, res, next) => {
     }
 };
 
-// @desc    Get user's templates
+// @desc    Get all templates (available to all users)
 // @route   GET /api/templates
 // @access  Private
 exports.getTemplates = async (req, res, next) => {
     try {
-        const templates = await ReorderTemplate.find({ createdBy: req.user.id })
+        const templates = await ReorderTemplate.find()
             .populate('items.product', 'name sku cartonSize') // Populate for display
             .populate('warehouse', 'name')
             .populate('region', 'name')
+            .populate('createdBy', 'name email') // Show who created it
             .sort({ createdAt: -1 });
 
         res.status(200).json({

@@ -1,0 +1,22 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#4880FF" rx="80"/>
+  
+  <!-- Box/Package Icon -->
+  <g transform="translate(128, 128)">
+    <!-- Top of box -->
+    <path d="M 128 40 L 256 100 L 256 160 L 128 100 L 0 160 L 0 100 Z" fill="#FFFFFF" opacity="0.9"/>
+    
+    <!-- Left side of box -->
+    <path d="M 0 100 L 0 260 L 128 320 L 128 160 Z" fill="#FFFFFF" opacity="0.7"/>
+    
+    <!-- Right side of box -->
+    <path d="M 128 160 L 128 320 L 256 260 L 256 100 Z" fill="#FFFFFF" opacity="0.8"/>
+    
+    <!-- Center line -->
+    <line x1="128" y1="40" x2="128" y2="160" stroke="#4880FF" stroke-width="4"/>
+  </g>
+  
+  <!-- Letter S -->
+  <text x="256" y="420" font-family="Arial, sans-serif" font-size="180" font-weight="bold" fill="#FFFFFF" text-anchor="middle">S</text>
+</svg>

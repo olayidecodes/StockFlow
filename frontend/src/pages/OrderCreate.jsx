@@ -135,6 +135,7 @@ const OrderCreate = () => {
     const [selectedTemplate, setSelectedTemplate] = useState('');
     const [saveAsTemplate, setSaveAsTemplate] = useState(false);
     const [templateName, setTemplateName] = useState('');
+    const [orderType, setOrderType] = useState('RETAIL'); // RETAIL or WHOLESALE
 
     const [formData, setFormData] = useState({
         customer: { name: '', street: '', city: '', state: '', zip: '', phone: '', email: '' },
@@ -247,11 +248,35 @@ const OrderCreate = () => {
         if (field === 'product') {
             const product = products.find(p => p._id === value);
             if (product) {
-                newItems[index].price = product.price || 0;
+                // Use wholesaleCost for wholesale orders, price for retail orders
+                newItems[index].price = orderType === 'WHOLESALE' 
+                    ? (product.wholesaleCost || 0) 
+                    : (product.price || 0);
             }
         }
 
         setFormData({ ...formData, items: newItems });
+    };
+
+    // Update all item prices when order type changes
+    const handleOrderTypeChange = (newOrderType) => {
+        setOrderType(newOrderType);
+        
+        // Update prices for all existing items
+        const updatedItems = formData.items.map(item => {
+            const product = products.find(p => p._id === item.product);
+            if (product) {
+                return {
+                    ...item,
+                    price: newOrderType === 'WHOLESALE' 
+                        ? (product.wholesaleCost || 0) 
+                        : (product.price || 0)
+                };
+            }
+            return item;
+        });
+
+        setFormData({ ...formData, items: updatedItems });
     };
 
     const calculateTotal = () => {
@@ -328,13 +353,81 @@ const OrderCreate = () => {
                     >
                         <option value="">Quick Load Template...</option>
                         {templates.map(t => (
-                            <option key={t._id} value={t._id}>{t.name}</option>
+                            <option key={t._id} value={t._id}>
+                                {t.name}
+                                {t.createdBy?.name && ` (by ${t.createdBy.name})`}
+                            </option>
                         ))}
                     </select>
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} style={{ maxWidth: '800px', margin: '0 auto' }}>
+            {/* Order Type Selector - Full Width */}
+            <div style={{ 
+                background: '#F7FAFC', 
+                padding: '16px 24px', 
+                borderRadius: '8px', 
+                marginBottom: '20px',
+                border: '1px solid #E2E8F0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                maxWidth: '1200px',
+                margin: '0 auto 20px auto'
+            }}>
+                <span style={{ 
+                    fontSize: '14px', 
+                    fontWeight: 600, 
+                    color: '#2D3748' 
+                }}>
+                    Order Type:
+                </span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                        type="button"
+                        onClick={() => handleOrderTypeChange('RETAIL')}
+                        style={{
+                            padding: '8px 20px',
+                            borderRadius: '6px',
+                            border: orderType === 'RETAIL' ? '2px solid #4880FF' : '1px solid #CBD5E0',
+                            background: orderType === 'RETAIL' ? '#4880FF' : 'white',
+                            color: orderType === 'RETAIL' ? 'white' : '#4A5568',
+                            fontWeight: orderType === 'RETAIL' ? 600 : 400,
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        Retail Price
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => handleOrderTypeChange('WHOLESALE')}
+                        style={{
+                            padding: '8px 20px',
+                            borderRadius: '6px',
+                            border: orderType === 'WHOLESALE' ? '2px solid #4880FF' : '1px solid #CBD5E0',
+                            background: orderType === 'WHOLESALE' ? '#4880FF' : 'white',
+                            color: orderType === 'WHOLESALE' ? 'white' : '#4A5568',
+                            fontWeight: orderType === 'WHOLESALE' ? 600 : 400,
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        Wholesale Price
+                    </button>
+                </div>
+                <span style={{ 
+                    fontSize: '12px', 
+                    color: '#718096',
+                    marginLeft: 'auto'
+                }}>
+                    {orderType === 'RETAIL' ? 'Using retail prices for this order' : 'Using wholesale prices for this order'}
+                </span>
+            </div>
+
+            <form onSubmit={handleSubmit} style={{ maxWidth: '1200px', margin: '0 auto' }}>
                 <div className="card mb-xl" style={{ marginBottom: '1rem' }}>
                     <h3 className="mb-lg border-bottom pb-sm">Customer Details</h3>
                     <div className="form-group">
@@ -498,7 +591,17 @@ const OrderCreate = () => {
                                         </div>
 
                                         <div className="form-group" style={{ width: '100px' }}>
-                                            <label>Price/Pc</label>
+                                            <label>
+                                                Price/Pc
+                                                <span style={{ 
+                                                    fontSize: '10px', 
+                                                    color: orderType === 'WHOLESALE' ? '#10b981' : '#4880FF',
+                                                    marginLeft: '4px',
+                                                    fontWeight: 600
+                                                }}>
+                                                    ({orderType === 'WHOLESALE' ? 'W' : 'R'})
+                                                </span>
+                                            </label>
                                             <input
                                                 type="number"
                                                 value={item.price || ''}

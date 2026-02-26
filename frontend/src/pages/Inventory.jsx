@@ -16,6 +16,7 @@ const Inventory = () => {
     const [warehouses, setWarehouses] = useState([]);
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [brands, setBrands] = useState([]);
     const [warehouseTotals, setWarehouseTotals] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -23,6 +24,7 @@ const Inventory = () => {
     const [filterWarehouse, setFilterWarehouse] = useState('');
     const [filterProduct, setFilterProduct] = useState('');
     const [filterCategory, setFilterCategory] = useState('');
+    const [filterBrand, setFilterBrand] = useState('');
     
     // Sorting
     const [sortBy, setSortBy] = useState(''); // 'cbm-asc', 'cbm-desc', 'value-asc', 'value-desc'
@@ -39,18 +41,20 @@ const Inventory = () => {
 
     useEffect(() => {
         fetchBalances();
-    }, [filterWarehouse, filterProduct, filterCategory]);
+    }, [filterWarehouse, filterProduct, filterCategory, filterBrand]);
 
     const fetchInitialData = async () => {
         try {
-            const [whRes, prodRes, catRes] = await Promise.all([
+            const [whRes, prodRes, catRes, brandRes] = await Promise.all([
                 api.get('/warehouses'),
                 api.get('/products?limit=1000'),
-                api.get('/categories')
+                api.get('/categories'),
+                api.get('/brands')
             ]);
             setWarehouses(whRes.data.data);
             setProducts(prodRes.data.data);
             setCategories(catRes.data.data);
+            setBrands(brandRes.data.data);
         } catch (err) {
             console.error('Failed to load filters', err);
         }
@@ -64,6 +68,7 @@ const Inventory = () => {
             if (filterWarehouse) params.push(`warehouseId=${filterWarehouse}`);
             if (filterProduct) params.push(`productId=${filterProduct}`);
             if (filterCategory) params.push(`categoryId=${filterCategory}`);
+            if (filterBrand) params.push(`brandId=${filterBrand}`);
             if (params.length > 0) query = `?${params.join('&')}`;
 
             // Fetch both balance data and warehouse totals (for Dashboard correlation)
@@ -150,8 +155,8 @@ const Inventory = () => {
     const calculateValue = (bal) => {
         const qty = bal.quantity || 0;
         const realProd = getRealProduct(bal);
-        const price = realProd?.price || realProd?.wholesaleCost || 0;
-        return qty * price;
+        const wholesaleCost = realProd?.wholesaleCost || 0;
+        return qty * wholesaleCost;
     };
 
     // Helper to calculate total CBM for a balance
@@ -281,6 +286,17 @@ const Inventory = () => {
                     </select>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#6B7A99' }}>Brand:</span>
+                    <select
+                        value={filterBrand}
+                        onChange={(e) => setFilterBrand(e.target.value)}
+                        className="filter-select"
+                    >
+                        <option value="">All Brands</option>
+                        {brands.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
+                    </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#6B7A99' }}>Product:</span>
                     <select
                         value={filterProduct}
@@ -294,6 +310,11 @@ const Inventory = () => {
                                 if (filterCategory) {
                                     const productCategory = p.category?._id || p.category;
                                     if (productCategory !== filterCategory) return false;
+                                }
+                                // Filter by brand if selected
+                                if (filterBrand) {
+                                    const productBrand = p.brand?._id || p.brand;
+                                    if (productBrand !== filterBrand) return false;
                                 }
                                 // If warehouse is selected, only show products that exist in current balances
                                 if (filterWarehouse && balances.length > 0) {

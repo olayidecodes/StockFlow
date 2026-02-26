@@ -24,6 +24,7 @@ import Financials from './pages/Financials';
 import Users from './pages/Users';
 import VerifyEmail from './pages/VerifyEmail';
 import Layout from './components/Layout';
+import InstallPrompt from './components/InstallPrompt';
 
 function App() {
   return (
@@ -158,6 +159,7 @@ function App() {
         </Routes>
       </Router>
       <ToastContainer position="top-right" autoClose={3000} />
+      <InstallPrompt />
     </AuthProvider >
   );
 }

@@ -362,7 +362,7 @@ const OrderCreate = () => {
                 </div>
             </div>
 
-            {/* Order Type Selector - Full Width */}
+            {/* Order Type Selector - Responsive */}
             <div style={{ 
                 background: '#F7FAFC', 
                 padding: '16px 24px', 
@@ -370,6 +370,8 @@ const OrderCreate = () => {
                 marginBottom: '20px',
                 border: '1px solid #E2E8F0',
                 display: 'flex',
+                flexDirection: 'row',
+                flexWrap: 'wrap',
                 alignItems: 'center',
                 gap: '16px',
                 maxWidth: '1200px',
@@ -378,11 +380,12 @@ const OrderCreate = () => {
                 <span style={{ 
                     fontSize: '14px', 
                     fontWeight: 600, 
-                    color: '#2D3748' 
+                    color: '#2D3748',
+                    minWidth: 'fit-content'
                 }}>
                     Order Type:
                 </span>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <button
                         type="button"
                         onClick={() => handleOrderTypeChange('RETAIL')}
@@ -395,7 +398,11 @@ const OrderCreate = () => {
                             fontWeight: orderType === 'RETAIL' ? 600 : 400,
                             cursor: 'pointer',
                             fontSize: '14px',
-                            transition: 'all 0.2s'
+                            transition: 'all 0.2s',
+                            whiteSpace: 'nowrap',
+                            minWidth: '140px',
+                            textAlign: 'center',
+                            boxSizing: 'border-box'
                         }}
                     >
                         Retail Price
@@ -412,7 +419,11 @@ const OrderCreate = () => {
                             fontWeight: orderType === 'WHOLESALE' ? 600 : 400,
                             cursor: 'pointer',
                             fontSize: '14px',
-                            transition: 'all 0.2s'
+                            transition: 'all 0.2s',
+                            whiteSpace: 'nowrap',
+                            minWidth: '140px',
+                            textAlign: 'center',
+                            boxSizing: 'border-box'
                         }}
                     >
                         Wholesale Price
@@ -421,11 +432,40 @@ const OrderCreate = () => {
                 <span style={{ 
                     fontSize: '12px', 
                     color: '#718096',
-                    marginLeft: 'auto'
+                    marginLeft: 'auto',
+                    minWidth: 'fit-content'
                 }}>
-                    {orderType === 'RETAIL' ? 'Using retail prices for this order' : 'Using wholesale prices for this order'}
+                    {orderType === 'RETAIL' ? 'Using retail prices' : 'Using wholesale prices'}
                 </span>
             </div>
+
+            <style>{`
+                @media (max-width: 768px) {
+                    .page-container > div:nth-child(2) {
+                        padding: 12px 16px !important;
+                    }
+                    .page-container > div:nth-child(2) > span:first-child {
+                        width: 100%;
+                        margin-bottom: 4px;
+                    }
+                    .page-container > div:nth-child(2) > div {
+                        width: 100%;
+                        justify-content: center;
+                    }
+                    .page-container > div:nth-child(2) > span:last-child {
+                        width: 100%;
+                        text-align: center;
+                        margin-left: 0 !important;
+                        margin-top: 4px;
+                    }
+                }
+                @media (max-width: 480px) {
+                    .page-container > div:nth-child(2) > div button {
+                        flex: 1;
+                        min-width: 120px;
+                    }
+                }
+            `}</style>
 
             <form onSubmit={handleSubmit} style={{ maxWidth: '1200px', margin: '0 auto' }}>
                 <div className="card mb-xl" style={{ marginBottom: '1rem' }}>

@@ -447,19 +447,19 @@ const OrderCreate = () => {
                 const product = products.find(p => p._id === item.product);
                 const cartonSize = product?.cartonSize || 1;
                 const pieces = (item.cartonQty * cartonSize) + item.pieceQty;
-                
+
                 // For individual discounts, apply per item
                 const discount = (applyDiscount && discountType === 'individual') ? (item.discount || 0) : 0;
                 const priceAfterDiscount = Math.max(0, item.price - discount);
                 return acc + (pieces * priceAfterDiscount);
             }
         }, 0);
-        
+
         // For global discount, subtract from total
         if (applyDiscount && discountType === 'global') {
             return Math.max(0, subtotal - globalDiscount);
         }
-        
+
         return subtotal;
     };
 
@@ -493,13 +493,14 @@ const OrderCreate = () => {
             // Expand all items (bundles get expanded into constituent product items)
             const expandedItems = [];
             let itemsSubtotal = 0;
-            
+            let orderSubtotal = 0;
+
             for (const item of formData.items) {
                 if (item.type === 'BUNDLE') {
                     const bundle = bundles.find(b => b._id === item.bundle);
                     if (!bundle) throw new Error('Please select a bundle for each bundle item');
                     if (!item.bundleQty || item.bundleQty < 1) throw new Error('Each bundle item must have at least 1 unit');
-                    
+
                     // Use custom retail price if set, otherwise calculate from products
                     let bundleUnitPrice;
                     if (bundle.retailPrice != null) {
@@ -509,7 +510,7 @@ const OrderCreate = () => {
                             return sum + (bp.quantity * (bp.product?.price || 0));
                         }, 0);
                     }
-                    
+
                     for (const bp of bundle.products) {
                         // Calculate proportional price for each product in the bundle
                         const productCalculatedPrice = bp.quantity * (bp.product?.price || 0);
@@ -518,9 +519,13 @@ const OrderCreate = () => {
                         }, 0);
                         const priceRatio = totalCalculatedPrice > 0 ? productCalculatedPrice / totalCalculatedPrice : 0;
                         const productPrice = bundleUnitPrice * priceRatio / bp.quantity;
-                        
+
                         const itemTotal = item.bundleQty * bp.quantity * productPrice;
                         itemsSubtotal += itemTotal;
+
+                        // Bundles don't get individually discounted, so subtotal adds the same amount
+                        orderSubtotal += itemTotal;
+
                         expandedItems.push({
                             product: bp.product._id,
                             quantity: item.bundleQty * bp.quantity,
@@ -534,15 +539,20 @@ const OrderCreate = () => {
                     const product = products.find(p => p._id === item.product);
                     const cartonSize = product?.cartonSize || 1;
                     const quantity = (item.cartonQty * cartonSize) + item.pieceQty;
-                    
+
                     // For individual discounts, apply per item
                     let pricePerPiece = item.price;
+                    let discountPerPiece = 0;
+
                     if (applyDiscount && discountType === 'individual') {
                         const discount = item.discount || 0;
                         pricePerPiece = Math.max(0, item.price - discount);
+                        discountPerPiece = Math.min(item.price, discount);
                     }
-                    
+
                     itemsSubtotal += quantity * pricePerPiece;
+                    orderSubtotal += quantity * item.price; // Original price
+
                     expandedItems.push({
                         product: item.product,
                         quantity: quantity,
@@ -550,7 +560,7 @@ const OrderCreate = () => {
                     });
                 }
             }
-            
+
             // For global discount, distribute proportionally across all items
             if (applyDiscount && discountType === 'global' && globalDiscount > 0) {
                 const discountRatio = Math.max(0, (itemsSubtotal - globalDiscount)) / itemsSubtotal;
@@ -559,10 +569,29 @@ const OrderCreate = () => {
                 });
             }
 
+            // Calculate final order discount values
+            let finalDiscountAmount = 0;
+            let finalDiscountType = 'none';
+
+            if (applyDiscount) {
+                if (discountType === 'global' && globalDiscount > 0) {
+                    finalDiscountAmount = globalDiscount;
+                    finalDiscountType = 'global';
+                } else if (discountType === 'individual') {
+                    finalDiscountAmount = orderSubtotal - itemsSubtotal;
+                    if (finalDiscountAmount > 0) {
+                        finalDiscountType = 'individual';
+                    }
+                }
+            }
+
             const payload = {
                 ...formData,
                 items: expandedItems,
-                customer: customerData
+                customer: customerData,
+                subtotal: orderSubtotal,
+                discountAmount: finalDiscountAmount,
+                discountType: finalDiscountType
             };
             await api.post('/orders', payload);
             toast.success('Order created successfully');
@@ -873,16 +902,16 @@ const OrderCreate = () => {
                                     >
                                         {applyDiscount ? '✓ Discount Applied' : '+ Apply Discount'}
                                     </button>
-                                    
+
                                     {applyDiscount && (
                                         <>
-                                            <div style={{ 
-                                                width: '1px', 
-                                                height: '24px', 
+                                            <div style={{
+                                                width: '1px',
+                                                height: '24px',
                                                 background: '#FCD34D',
                                                 margin: '0 4px'
                                             }} />
-                                            
+
                                             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                                                 <span style={{ fontSize: '13px', color: '#92400E', fontWeight: 500 }}>
                                                     Type:
@@ -924,12 +953,12 @@ const OrderCreate = () => {
                                                     Global
                                                 </button>
                                             </div>
-                                            
+
                                             {discountType === 'global' && (
                                                 <>
-                                                    <div style={{ 
-                                                        width: '1px', 
-                                                        height: '24px', 
+                                                    <div style={{
+                                                        width: '1px',
+                                                        height: '24px',
                                                         background: '#FCD34D',
                                                         margin: '0 4px'
                                                     }} />
@@ -959,7 +988,7 @@ const OrderCreate = () => {
                                     )}
                                 </div>
                             </div>
-                            
+
                             {formData.items.map((item, idx) => {
                                 const available = inventory[item.product] || 0;
                                 const selectedBundle = item.type === 'BUNDLE' ? bundles.find(b => b._id === item.bundle) : null;
@@ -1038,8 +1067,8 @@ const OrderCreate = () => {
                                                         <input
                                                             type="text"
                                                             value={selectedBundle ? `₦${(
-                                                                item.bundleQty * (selectedBundle.retailPrice != null 
-                                                                    ? selectedBundle.retailPrice 
+                                                                item.bundleQty * (selectedBundle.retailPrice != null
+                                                                    ? selectedBundle.retailPrice
                                                                     : selectedBundle.products.reduce((sum, bp) => {
                                                                         const price = bp.product?.price || 0;
                                                                         return sum + (bp.quantity * price);

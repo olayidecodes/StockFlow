@@ -48,6 +48,18 @@ const orderSchema = new mongoose.Schema(
         totalAmount: {
             type: Number,
         },
+        subtotal: {
+            type: Number,
+        },
+        discountAmount: {
+            type: Number,
+            default: 0,
+        },
+        discountType: {
+            type: String,
+            enum: ['none', 'individual', 'global'],
+            default: 'none',
+        },
         channel: {
             type: String,
             enum: ['Instagram', 'Google', 'Facebook', 'Referral', 'Walk-in', 'Other'],
@@ -72,12 +84,12 @@ const orderSchema = new mongoose.Schema(
 );
 
 // Pre-save hook to generate sequential order number
-orderSchema.pre('save', async function() {
+orderSchema.pre('save', async function () {
     if (this.isNew && !this.orderNumber) {
         // Count existing orders and add 1 for the new order
         const count = await mongoose.model('Order').countDocuments();
         this.orderNumber = count + 1;
-        
+
         // If there's a duplicate (race condition), try again with counter
         try {
             // This will throw an error if orderNumber is duplicate
@@ -87,8 +99,8 @@ orderSchema.pre('save', async function() {
                 const counter = await Counter.findOneAndUpdate(
                     { _id: 'orderId' },
                     { $inc: { seq: 1 } },
-                    { 
-                        new: true, 
+                    {
+                        new: true,
                         upsert: true,
                         setDefaultsOnInsert: true
                     }

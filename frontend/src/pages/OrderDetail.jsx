@@ -53,8 +53,8 @@ const OrderDetail = () => {
         <div className="page-container">
             <div className="page-header" style={{ marginBottom: '2rem' }}>
                 <div>
-                    <button 
-                        className="btn btn-secondary" 
+                    <button
+                        className="btn btn-secondary"
                         onClick={() => navigate('/orders')}
                         style={{ marginBottom: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
                     >
@@ -64,11 +64,11 @@ const OrderDetail = () => {
                         Order #{order.orderNumber || order._id.slice(-6).toUpperCase()}
                     </h1>
                     <p style={{ color: '#64748B', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-                        Created on {new Date(order.createdAt).toLocaleDateString('en-US', { 
-                            weekday: 'long', 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
+                        Created on {new Date(order.createdAt).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
                         })}
                     </p>
                 </div>
@@ -99,14 +99,14 @@ const OrderDetail = () => {
 
             <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
                 {/* Status and Total Banner */}
-                <div style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
                     gap: '1rem',
                     marginBottom: '2rem'
                 }}>
-                    <div style={{ 
-                        padding: '1.5rem', 
+                    <div style={{
+                        padding: '1.5rem',
                         background: order.status === 'CONFIRMED' ? '#D1FAE5' : order.status === 'CANCELLED' ? '#FEE2E2' : '#FEF3C7',
                         border: `2px solid ${order.status === 'CONFIRMED' ? '#6EE7B7' : order.status === 'CANCELLED' ? '#FCA5A5' : '#FCD34D'}`,
                         borderRadius: '12px'
@@ -114,17 +114,17 @@ const OrderDetail = () => {
                         <div style={{ fontSize: '0.75rem', color: '#64748B', marginBottom: '0.5rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                             Order Status
                         </div>
-                        <div style={{ 
-                            fontSize: '1.5rem', 
-                            fontWeight: 700, 
+                        <div style={{
+                            fontSize: '1.5rem',
+                            fontWeight: 700,
                             color: order.status === 'CONFIRMED' ? '#065F46' : order.status === 'CANCELLED' ? '#991B1B' : '#92400E'
                         }}>
                             {order.status}
                         </div>
                     </div>
 
-                    <div style={{ 
-                        padding: '1.5rem', 
+                    <div style={{
+                        padding: '1.5rem',
                         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                         borderRadius: '12px',
                         color: '#fff'
@@ -135,10 +135,15 @@ const OrderDetail = () => {
                         <div style={{ fontSize: '2rem', fontWeight: 800, lineHeight: '1' }}>
                             ₦{order.totalAmount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
+                        {order.discountAmount > 0 && (
+                            <div style={{ fontSize: '0.8rem', marginTop: '0.5rem', opacity: 0.9 }}>
+                                Includes <span style={{ fontWeight: 600 }}>₦{order.discountAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> discount
+                            </div>
+                        )}
                     </div>
 
-                    <div style={{ 
-                        padding: '1.5rem', 
+                    <div style={{
+                        padding: '1.5rem',
                         background: '#F0F9FF',
                         border: '2px solid #BAE6FD',
                         borderRadius: '12px'
@@ -157,10 +162,10 @@ const OrderDetail = () => {
 
                 {/* Customer and Order Info */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-                    <div style={{ 
-                        padding: '1.5rem', 
-                        background: '#fff', 
-                        borderRadius: '12px', 
+                    <div style={{
+                        padding: '1.5rem',
+                        background: '#fff',
+                        borderRadius: '12px',
                         border: '1px solid #E2E8F0',
                         boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
                     }}>
@@ -187,10 +192,10 @@ const OrderDetail = () => {
                         </div>
                     </div>
 
-                    <div style={{ 
-                        padding: '1.5rem', 
-                        background: '#fff', 
-                        borderRadius: '12px', 
+                    <div style={{
+                        padding: '1.5rem',
+                        background: '#fff',
+                        borderRadius: '12px',
                         border: '1px solid #E2E8F0',
                         boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
                     }}>
@@ -221,10 +226,10 @@ const OrderDetail = () => {
                 </div>
 
                 {/* Order Items */}
-                <div style={{ 
-                    padding: '1.5rem', 
-                    background: '#fff', 
-                    borderRadius: '12px', 
+                <div style={{
+                    padding: '1.5rem',
+                    background: '#fff',
+                    borderRadius: '12px',
                     border: '1px solid #E2E8F0',
                     boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
                     marginBottom: '2rem'
@@ -260,8 +265,8 @@ const OrderDetail = () => {
                                                 </div>
                                             </td>
                                             <td style={{ padding: '16px 12px' }}>
-                                                <code style={{ 
-                                                    fontSize: '0.75rem', 
+                                                <code style={{
+                                                    fontSize: '0.75rem',
                                                     color: '#64748B',
                                                     background: '#F1F5F9',
                                                     padding: '4px 8px',
@@ -291,24 +296,53 @@ const OrderDetail = () => {
                                 })}
                             </tbody>
                             <tfoot>
-                                <tr style={{ borderTop: '3px solid #E2E8F0' }}>
-                                    <td colSpan="4" style={{ padding: '16px 12px', textAlign: 'right', fontSize: '1rem', fontWeight: 700, color: '#1E293B' }}>
-                                        Total Amount:
-                                    </td>
-                                    <td style={{ padding: '16px 12px', textAlign: 'right', fontSize: '1.25rem', fontWeight: 800, color: '#4880FF' }}>
-                                        ₦{order.totalAmount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </td>
-                                </tr>
+                                {order.discountAmount > 0 ? (
+                                    <>
+                                        <tr style={{ borderTop: '3px solid #E2E8F0' }}>
+                                            <td colSpan="4" style={{ padding: '16px 12px 6px', textAlign: 'right', fontSize: '0.9rem', color: '#64748B' }}>
+                                                Subtotal:
+                                            </td>
+                                            <td style={{ padding: '16px 12px 6px', textAlign: 'right', fontSize: '1rem', color: '#1E293B', fontWeight: 500 }}>
+                                                ₦{(order.subtotal || (order.totalAmount + order.discountAmount))?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td colSpan="4" style={{ padding: '6px 12px', textAlign: 'right', fontSize: '0.9rem', color: '#EF4444' }}>
+                                                Discount {order.discountType === 'global' ? '(Global)' : order.discountType === 'individual' ? '(Individual Items)' : ''}:
+                                            </td>
+                                            <td style={{ padding: '6px 12px', textAlign: 'right', fontSize: '1rem', color: '#EF4444', fontWeight: 500 }}>
+                                                - ₦{order.discountAmount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </td>
+                                        </tr>
+                                        <tr style={{ borderTop: '1px solid #E2E8F0' }}>
+                                            <td colSpan="4" style={{ padding: '12px', textAlign: 'right', fontSize: '1rem', fontWeight: 700, color: '#1E293B' }}>
+                                                Final Total Amount:
+                                            </td>
+                                            <td style={{ padding: '12px', textAlign: 'right', fontSize: '1.25rem', fontWeight: 800, color: '#4880FF' }}>
+                                                ₦{order.totalAmount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </td>
+                                        </tr>
+                                    </>
+                                ) : (
+                                    <tr style={{ borderTop: '3px solid #E2E8F0' }}>
+                                        <td colSpan="4" style={{ padding: '16px 12px', textAlign: 'right', fontSize: '1rem', fontWeight: 700, color: '#1E293B' }}>
+                                            Total Amount:
+                                        </td>
+                                        <td style={{ padding: '16px 12px', textAlign: 'right', fontSize: '1.25rem', fontWeight: 800, color: '#4880FF' }}>
+                                            ₦{order.totalAmount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </td>
+                                    </tr>
+                                )}
                             </tfoot>
                         </table>
                     </div>
                 </div>
 
                 {/* Order Log */}
-                <div style={{ 
-                    padding: '1.5rem', 
-                    background: '#fff', 
-                    borderRadius: '12px', 
+                <div style={{
+                    padding: '1.5rem',
+                    background: '#fff',
+                    borderRadius: '12px',
                     border: '1px solid #E2E8F0',
                     boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
                 }}>
@@ -326,9 +360,9 @@ const OrderDetail = () => {
                                 gap: '1rem',
                                 flexWrap: 'wrap'
                             }}>
-                                <span style={{ 
-                                    fontSize: '0.8rem', 
-                                    color: '#64748B', 
+                                <span style={{
+                                    fontSize: '0.8rem',
+                                    color: '#64748B',
                                     minWidth: '180px',
                                     fontFamily: 'monospace'
                                 }}>

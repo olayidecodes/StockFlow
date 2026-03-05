@@ -15,7 +15,7 @@ exports.createOrder = async (req, res, next) => {
             return res.status(400).json({ success: false, errors: errors.array() });
         }
 
-        const { customer, region, warehouse, items } = req.body;
+        const { customer, region, warehouse, items, subtotal, discountAmount, discountType } = req.body;
 
         // Calculate total if prices provided (simple mock for now)
         const totalAmount = items.reduce((acc, item) => acc + (item.price || 0) * item.quantity, 0);
@@ -25,6 +25,9 @@ exports.createOrder = async (req, res, next) => {
             region,
             warehouse,
             items,
+            subtotal,
+            discountAmount,
+            discountType,
             totalAmount,
             createdBy: req.user.id,
             status: 'PENDING',

@@ -250,6 +250,52 @@ const Bundles = () => {
         return { calculatedPrice, hasCustomPrice, customPrice: bundle.retailPrice };
     };
 
+    const handleSort = (key) => {
+        let direction = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const getSortedBundles = () => {
+        if (!sortConfig.key) return bundles;
+
+        return [...bundles].sort((a, b) => {
+            let aValue, bValue;
+
+            switch (sortConfig.key) {
+                case 'name':
+                    aValue = (a.name || '').toLowerCase();
+                    bValue = (b.name || '').toLowerCase();
+                    break;
+                case 'productsCount':
+                    aValue = a.products?.length || 0;
+                    bValue = b.products?.length || 0;
+                    break;
+                case 'retailPrice': {
+                    const aPriceInfo = getDisplayPrice(a);
+                    const bPriceInfo = getDisplayPrice(b);
+                    aValue = aPriceInfo.hasCustomPrice ? aPriceInfo.customPrice : aPriceInfo.calculatedPrice;
+                    bValue = bPriceInfo.hasCustomPrice ? bPriceInfo.customPrice : bPriceInfo.calculatedPrice;
+                    break;
+                }
+                case 'wholesalePrice':
+                    aValue = calculateBundleWholesalePrice(a);
+                    bValue = calculateBundleWholesalePrice(b);
+                    break;
+                default:
+                    return 0;
+            }
+
+            if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+    };
+
+    const sortedBundles = getSortedBundles();
+
     if (loading) return <Spinner fullPage />;
 
     return (
@@ -268,21 +314,45 @@ const Bundles = () => {
                     <table className="data-table">
                         <thead>
                             <tr>
-                                <th>Bundle Name</th>
-                                <th>Products</th>
-                                <th>Retail Price</th>
-                                <th>Wholesale Price</th>
+                                <th
+                                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                                    onClick={() => handleSort('name')}
+                                    title="Click to sort"
+                                >
+                                    Bundle Name {sortConfig.key === 'name' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : '↕'}
+                                </th>
+                                <th
+                                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                                    onClick={() => handleSort('productsCount')}
+                                    title="Click to sort"
+                                >
+                                    Products {sortConfig.key === 'productsCount' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : '↕'}
+                                </th>
+                                <th
+                                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                                    onClick={() => handleSort('retailPrice')}
+                                    title="Click to sort"
+                                >
+                                    Retail Price {sortConfig.key === 'retailPrice' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : '↕'}
+                                </th>
+                                <th
+                                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                                    onClick={() => handleSort('wholesalePrice')}
+                                    title="Click to sort"
+                                >
+                                    Wholesale Price {sortConfig.key === 'wholesalePrice' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : '↕'}
+                                </th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {bundles.length === 0 ? (
+                            {sortedBundles.length === 0 ? (
                                 <tr>
                                     <td colSpan="6" className="text-center">No bundles found</td>
                                 </tr>
                             ) : (
-                                bundles.map(bundle => {
+                                sortedBundles.map(bundle => {
                                     const { calculatedPrice, hasCustomPrice, customPrice } = getDisplayPrice(bundle);
                                     const discount = hasCustomPrice ? Math.round((1 - customPrice / calculatedPrice) * 100) : 0;
 

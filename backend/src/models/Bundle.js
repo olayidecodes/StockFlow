@@ -24,6 +24,25 @@ const bundleSchema = new mongoose.Schema({
             default: 1
         }
     }],
+    retailPrice: {
+        type: Number,
+        min: [0, 'Retail price cannot be negative'],
+        default: null
+    },
+    priceHistory: [{
+        previousPrice: { type: Number, default: null },
+        newPrice: { type: Number, default: null },
+        reason: { type: String, trim: true },
+        editedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true
+        },
+        editedAt: {
+            type: Date,
+            default: Date.now
+        }
+    }],
     status: {
         type: String,
         enum: ['ACTIVE', 'INACTIVE'],

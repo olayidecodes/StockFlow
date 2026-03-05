@@ -242,12 +242,15 @@ const OrderCreate = () => {
     const [saveAsTemplate, setSaveAsTemplate] = useState(false);
     const [templateName, setTemplateName] = useState('');
     const [orderType, setOrderType] = useState('RETAIL'); // RETAIL or WHOLESALE
+    const [globalDiscount, setGlobalDiscount] = useState(0); // Global discount for all products
+    const [discountType, setDiscountType] = useState('individual'); // 'individual' or 'global'
+    const [applyDiscount, setApplyDiscount] = useState(false); // Whether to show discount options
 
     const [formData, setFormData] = useState({
         customer: { name: '', street: '', city: '', state: '', zip: '', phone: '', email: '' },
         region: '',
         warehouse: '',
-        items: [], // { type: 'PRODUCT'|'BUNDLE', product/bundle, cartonQty, pieceQty, bundleQty, price }
+        items: [], // { type: 'PRODUCT'|'BUNDLE', product/bundle, cartonQty, pieceQty, bundleQty, price, discount }
         channel: 'Other',
     });
 
@@ -340,7 +343,7 @@ const OrderCreate = () => {
     const addItem = () => {
         setFormData({
             ...formData,
-            items: [...formData.items, { type: 'PRODUCT', product: '', bundle: '', cartonQty: 0, pieceQty: 0, bundleQty: 0, price: 0 }]
+            items: [...formData.items, { type: 'PRODUCT', product: '', bundle: '', cartonQty: 0, pieceQty: 0, bundleQty: 0, price: 0, discount: 0 }]
         });
     };
 
@@ -359,10 +362,12 @@ const OrderCreate = () => {
             if (value === 'PRODUCT') {
                 newItems[index].bundle = '';
                 newItems[index].bundleQty = 0;
+                newItems[index].discount = 0; // Reset discount for products
             } else if (value === 'BUNDLE') {
                 newItems[index].product = '';
                 newItems[index].cartonQty = 0;
                 newItems[index].pieceQty = 0;
+                newItems[index].discount = 0; // Bundles don't have discount
             }
         }
 
@@ -373,6 +378,7 @@ const OrderCreate = () => {
                 newItems[index].price = orderType === 'WHOLESALE'
                     ? (product.wholesaleCost || 0)
                     : (product.price || 0);
+                newItems[index].discount = 0; // Reset discount when product changes
             }
         }
 
@@ -380,13 +386,16 @@ const OrderCreate = () => {
         if (field === 'bundle') {
             const bundle = bundles.find(b => b._id === value);
             if (bundle) {
-                // Calculate bundle price based on order type
-                const bundlePrice = bundle.products.reduce((sum, item) => {
-                    const price = orderType === 'WHOLESALE'
-                        ? (item.product?.wholesaleCost || 0)
-                        : (item.product?.price || 0);
-                    return sum + (item.quantity * price);
-                }, 0);
+                // Use custom retail price if set, otherwise calculate from products
+                let bundlePrice;
+                if (bundle.retailPrice != null) {
+                    bundlePrice = bundle.retailPrice;
+                } else {
+                    bundlePrice = bundle.products.reduce((sum, item) => {
+                        const price = item.product?.price || 0;
+                        return sum + (item.quantity * price);
+                    }, 0);
+                }
                 newItems[index].price = bundlePrice;
             }
         }
@@ -400,15 +409,18 @@ const OrderCreate = () => {
 
         // Update prices for all existing items
         const updatedItems = formData.items.map(item => {
-            const product = products.find(p => p._id === item.product);
-            if (product) {
-                return {
-                    ...item,
-                    price: newOrderType === 'WHOLESALE'
-                        ? (product.wholesaleCost || 0)
-                        : (product.price || 0)
-                };
+            if (item.type === 'PRODUCT') {
+                const product = products.find(p => p._id === item.product);
+                if (product) {
+                    return {
+                        ...item,
+                        price: newOrderType === 'WHOLESALE'
+                            ? (product.wholesaleCost || 0)
+                            : (product.price || 0)
+                    };
+                }
             }
+            // Bundles always use retail price, no change needed
             return item;
         });
 
@@ -416,24 +428,39 @@ const OrderCreate = () => {
     };
 
     const calculateTotal = () => {
-        return formData.items.reduce((acc, item) => {
+        const subtotal = formData.items.reduce((acc, item) => {
             if (item.type === 'BUNDLE') {
                 const bundle = bundles.find(b => b._id === item.bundle);
                 if (!bundle) return acc;
-                const bundleUnitPrice = bundle.products.reduce((sum, bp) => {
-                    const price = orderType === 'WHOLESALE'
-                        ? (bp.product?.wholesaleCost || 0)
-                        : (bp.product?.price || 0);
-                    return sum + (bp.quantity * price);
-                }, 0);
+                // Use custom retail price if set, otherwise calculate from products
+                let bundleUnitPrice;
+                if (bundle.retailPrice != null) {
+                    bundleUnitPrice = bundle.retailPrice;
+                } else {
+                    bundleUnitPrice = bundle.products.reduce((sum, bp) => {
+                        const price = bp.product?.price || 0;
+                        return sum + (bp.quantity * price);
+                    }, 0);
+                }
                 return acc + (item.bundleQty * bundleUnitPrice);
             } else {
                 const product = products.find(p => p._id === item.product);
                 const cartonSize = product?.cartonSize || 1;
                 const pieces = (item.cartonQty * cartonSize) + item.pieceQty;
-                return acc + (pieces * item.price);
+                
+                // For individual discounts, apply per item
+                const discount = (applyDiscount && discountType === 'individual') ? (item.discount || 0) : 0;
+                const priceAfterDiscount = Math.max(0, item.price - discount);
+                return acc + (pieces * priceAfterDiscount);
             }
         }, 0);
+        
+        // For global discount, subtract from total
+        if (applyDiscount && discountType === 'global') {
+            return Math.max(0, subtotal - globalDiscount);
+        }
+        
+        return subtotal;
     };
 
     const handleSubmit = async (e) => {
@@ -465,15 +492,35 @@ const OrderCreate = () => {
 
             // Expand all items (bundles get expanded into constituent product items)
             const expandedItems = [];
+            let itemsSubtotal = 0;
+            
             for (const item of formData.items) {
                 if (item.type === 'BUNDLE') {
                     const bundle = bundles.find(b => b._id === item.bundle);
                     if (!bundle) throw new Error('Please select a bundle for each bundle item');
                     if (!item.bundleQty || item.bundleQty < 1) throw new Error('Each bundle item must have at least 1 unit');
+                    
+                    // Use custom retail price if set, otherwise calculate from products
+                    let bundleUnitPrice;
+                    if (bundle.retailPrice != null) {
+                        bundleUnitPrice = bundle.retailPrice;
+                    } else {
+                        bundleUnitPrice = bundle.products.reduce((sum, bp) => {
+                            return sum + (bp.quantity * (bp.product?.price || 0));
+                        }, 0);
+                    }
+                    
                     for (const bp of bundle.products) {
-                        const productPrice = orderType === 'WHOLESALE'
-                            ? (bp.product?.wholesaleCost || 0)
-                            : (bp.product?.price || 0);
+                        // Calculate proportional price for each product in the bundle
+                        const productCalculatedPrice = bp.quantity * (bp.product?.price || 0);
+                        const totalCalculatedPrice = bundle.products.reduce((sum, p) => {
+                            return sum + (p.quantity * (p.product?.price || 0));
+                        }, 0);
+                        const priceRatio = totalCalculatedPrice > 0 ? productCalculatedPrice / totalCalculatedPrice : 0;
+                        const productPrice = bundleUnitPrice * priceRatio / bp.quantity;
+                        
+                        const itemTotal = item.bundleQty * bp.quantity * productPrice;
+                        itemsSubtotal += itemTotal;
                         expandedItems.push({
                             product: bp.product._id,
                             quantity: item.bundleQty * bp.quantity,
@@ -486,12 +533,30 @@ const OrderCreate = () => {
                     }
                     const product = products.find(p => p._id === item.product);
                     const cartonSize = product?.cartonSize || 1;
+                    const quantity = (item.cartonQty * cartonSize) + item.pieceQty;
+                    
+                    // For individual discounts, apply per item
+                    let pricePerPiece = item.price;
+                    if (applyDiscount && discountType === 'individual') {
+                        const discount = item.discount || 0;
+                        pricePerPiece = Math.max(0, item.price - discount);
+                    }
+                    
+                    itemsSubtotal += quantity * pricePerPiece;
                     expandedItems.push({
                         product: item.product,
-                        quantity: (item.cartonQty * cartonSize) + item.pieceQty,
-                        price: item.price
+                        quantity: quantity,
+                        price: pricePerPiece
                     });
                 }
+            }
+            
+            // For global discount, distribute proportionally across all items
+            if (applyDiscount && discountType === 'global' && globalDiscount > 0) {
+                const discountRatio = Math.max(0, (itemsSubtotal - globalDiscount)) / itemsSubtotal;
+                expandedItems.forEach(item => {
+                    item.price = item.price * discountRatio;
+                });
             }
 
             const payload = {
@@ -778,6 +843,123 @@ const OrderCreate = () => {
                     <h3>Order Items</h3>
                     {formData.warehouse ? (
                         <div className="items-context">
+                            {/* Discount Controls */}
+                            <div style={{
+                                background: '#FFFBEB',
+                                padding: '12px 16px',
+                                borderRadius: '6px',
+                                marginBottom: '16px',
+                                border: '1px solid #FDE68A'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setApplyDiscount(!applyDiscount)}
+                                        style={{
+                                            padding: '6px 16px',
+                                            borderRadius: '6px',
+                                            border: applyDiscount ? '2px solid #F59E0B' : '1px solid #FCD34D',
+                                            background: applyDiscount ? '#F59E0B' : 'white',
+                                            color: applyDiscount ? 'white' : '#92400E',
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                            fontSize: '13px',
+                                            transition: 'all 0.2s',
+                                            whiteSpace: 'nowrap',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px'
+                                        }}
+                                    >
+                                        {applyDiscount ? '✓ Discount Applied' : '+ Apply Discount'}
+                                    </button>
+                                    
+                                    {applyDiscount && (
+                                        <>
+                                            <div style={{ 
+                                                width: '1px', 
+                                                height: '24px', 
+                                                background: '#FCD34D',
+                                                margin: '0 4px'
+                                            }} />
+                                            
+                                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '13px', color: '#92400E', fontWeight: 500 }}>
+                                                    Type:
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setDiscountType('individual')}
+                                                    style={{
+                                                        padding: '4px 12px',
+                                                        borderRadius: '5px',
+                                                        border: discountType === 'individual' ? '2px solid #F59E0B' : '1px solid #FCD34D',
+                                                        background: discountType === 'individual' ? '#FEF3C7' : 'white',
+                                                        color: '#92400E',
+                                                        fontWeight: discountType === 'individual' ? 600 : 400,
+                                                        cursor: 'pointer',
+                                                        fontSize: '12px',
+                                                        transition: 'all 0.2s',
+                                                        whiteSpace: 'nowrap'
+                                                    }}
+                                                >
+                                                    Individual
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setDiscountType('global')}
+                                                    style={{
+                                                        padding: '4px 12px',
+                                                        borderRadius: '5px',
+                                                        border: discountType === 'global' ? '2px solid #F59E0B' : '1px solid #FCD34D',
+                                                        background: discountType === 'global' ? '#FEF3C7' : 'white',
+                                                        color: '#92400E',
+                                                        fontWeight: discountType === 'global' ? 600 : 400,
+                                                        cursor: 'pointer',
+                                                        fontSize: '12px',
+                                                        transition: 'all 0.2s',
+                                                        whiteSpace: 'nowrap'
+                                                    }}
+                                                >
+                                                    Global
+                                                </button>
+                                            </div>
+                                            
+                                            {discountType === 'global' && (
+                                                <>
+                                                    <div style={{ 
+                                                        width: '1px', 
+                                                        height: '24px', 
+                                                        background: '#FCD34D',
+                                                        margin: '0 4px'
+                                                    }} />
+                                                    <label style={{ fontSize: '12px', color: '#92400E', fontWeight: 500 }}>
+                                                        Total Discount:
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        value={globalDiscount || ''}
+                                                        onChange={e => setGlobalDiscount(parseFloat(e.target.value) || 0)}
+                                                        placeholder="0"
+                                                        style={{
+                                                            width: '120px',
+                                                            padding: '4px 8px',
+                                                            borderRadius: '5px',
+                                                            border: '1px solid #FCD34D',
+                                                            fontSize: '13px'
+                                                        }}
+                                                    />
+                                                    <span style={{ fontSize: '11px', color: '#78350F' }}>
+                                                        ₦ off total order
+                                                    </span>
+                                                </>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                            
                             {formData.items.map((item, idx) => {
                                 const available = inventory[item.product] || 0;
                                 const selectedBundle = item.type === 'BUNDLE' ? bundles.find(b => b._id === item.bundle) : null;
@@ -851,15 +1033,17 @@ const OrderCreate = () => {
                                                     <div className="form-group order-item-total-field" style={{ width: '120px', minWidth: '100px' }}>
                                                         <label>
                                                             Line Total
-                                                            <span style={{ fontSize: '10px', color: '#8B5CF6', marginLeft: '4px', fontWeight: 600 }}>Bundle</span>
+                                                            <span style={{ fontSize: '10px', color: '#8B5CF6', marginLeft: '4px', fontWeight: 600 }}>Retail</span>
                                                         </label>
                                                         <input
                                                             type="text"
                                                             value={selectedBundle ? `₦${(
-                                                                item.bundleQty * selectedBundle.products.reduce((sum, bp) => {
-                                                                    const price = orderType === 'WHOLESALE' ? (bp.product?.wholesaleCost || 0) : (bp.product?.price || 0);
-                                                                    return sum + (bp.quantity * price);
-                                                                }, 0)
+                                                                item.bundleQty * (selectedBundle.retailPrice != null 
+                                                                    ? selectedBundle.retailPrice 
+                                                                    : selectedBundle.products.reduce((sum, bp) => {
+                                                                        const price = bp.product?.price || 0;
+                                                                        return sum + (bp.quantity * price);
+                                                                    }, 0))
                                                             ).toLocaleString()}` : '₦0'}
                                                             readOnly
                                                             disabled
@@ -932,6 +1116,27 @@ const OrderCreate = () => {
                                                             style={{ background: '#f5f5f5', cursor: 'not-allowed' }}
                                                         />
                                                     </div>
+
+                                                    {applyDiscount && discountType === 'individual' && (
+                                                        <div className="form-group order-item-price-field" style={{ width: '100px', minWidth: '80px' }}>
+                                                            <label>
+                                                                Discount/Pc
+                                                                <span style={{ fontSize: '10px', color: '#F59E0B', marginLeft: '4px', fontWeight: 600 }}>₦</span>
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max={item.price || 0}
+                                                                value={item.discount || ''}
+                                                                onChange={e => {
+                                                                    const discount = parseFloat(e.target.value) || 0;
+                                                                    const maxDiscount = item.price || 0;
+                                                                    updateItem(idx, 'discount', Math.min(discount, maxDiscount));
+                                                                }}
+                                                                placeholder="0"
+                                                            />
+                                                        </div>
+                                                    )}
                                                 </>
                                             )}
 
@@ -947,8 +1152,45 @@ const OrderCreate = () => {
                                 <FiPlus /> Add Item
                             </button>
 
-                            <div className="text-right mt-lg" style={{ textAlign: 'right', fontSize: '1.2rem', fontWeight: 'bold' }}>
-                                Total: ₦{calculateTotal().toLocaleString()}
+                            <div className="text-right mt-lg" style={{ textAlign: 'right' }}>
+                                {applyDiscount && discountType === 'global' && globalDiscount > 0 ? (
+                                    <>
+                                        <div style={{ fontSize: '0.95rem', color: '#64748B', marginBottom: '4px' }}>
+                                            Subtotal: ₦{formData.items.reduce((acc, item) => {
+                                                if (item.type === 'BUNDLE') {
+                                                    const bundle = bundles.find(b => b._id === item.bundle);
+                                                    if (!bundle) return acc;
+                                                    // Use custom retail price if set, otherwise calculate from products
+                                                    let bundleUnitPrice;
+                                                    if (bundle.retailPrice != null) {
+                                                        bundleUnitPrice = bundle.retailPrice;
+                                                    } else {
+                                                        bundleUnitPrice = bundle.products.reduce((sum, bp) => {
+                                                            return sum + (bp.quantity * (bp.product?.price || 0));
+                                                        }, 0);
+                                                    }
+                                                    return acc + (item.bundleQty * bundleUnitPrice);
+                                                } else {
+                                                    const product = products.find(p => p._id === item.product);
+                                                    const cartonSize = product?.cartonSize || 1;
+                                                    const pieces = (item.cartonQty * cartonSize) + item.pieceQty;
+                                                    const discount = discountType === 'individual' ? (item.discount || 0) : 0;
+                                                    return acc + (pieces * (item.price - discount));
+                                                }
+                                            }, 0).toLocaleString()}
+                                        </div>
+                                        <div style={{ fontSize: '0.95rem', color: '#F59E0B', marginBottom: '8px' }}>
+                                            Discount: -₦{globalDiscount.toLocaleString()}
+                                        </div>
+                                        <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#10B981' }}>
+                                            Total: ₦{calculateTotal().toLocaleString()}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>
+                                        Total: ₦{calculateTotal().toLocaleString()}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ) : (

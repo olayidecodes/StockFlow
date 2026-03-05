@@ -15,9 +15,9 @@ exports.createBundle = async (req, res, next) => {
 
         // Validate that products array is not empty
         if (!products || products.length === 0) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Bundle must contain at least one product' 
+            return res.status(400).json({
+                success: false,
+                message: 'Bundle must contain at least one product'
             });
         }
 
@@ -38,9 +38,9 @@ exports.createBundle = async (req, res, next) => {
         });
     } catch (error) {
         if (error.code === 11000) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Bundle name already exists' 
+            return res.status(400).json({
+                success: false,
+                message: 'Bundle name already exists'
             });
         }
         next(error);
@@ -54,12 +54,13 @@ exports.getBundles = async (req, res, next) => {
     try {
         const { status } = req.query;
         const query = {};
-        
+
         if (status) query.status = status;
 
         const bundles = await Bundle.find(query)
             .populate('products.product', 'name sku cartonSize price wholesaleCost')
             .populate('createdBy', 'name email')
+            .populate('priceHistory.editedBy', 'username email')
             .sort({ createdAt: -1 });
 
         res.status(200).json({
@@ -79,12 +80,13 @@ exports.getBundle = async (req, res, next) => {
     try {
         const bundle = await Bundle.findById(req.params.id)
             .populate('products.product', 'name sku cartonSize price wholesaleCost')
-            .populate('createdBy', 'name email');
+            .populate('createdBy', 'name email')
+            .populate('priceHistory.editedBy', 'username email');
 
         if (!bundle) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Bundle not found' 
+            return res.status(404).json({
+                success: false,
+                message: 'Bundle not found'
             });
         }
 
@@ -110,9 +112,9 @@ exports.updateBundle = async (req, res, next) => {
         let bundle = await Bundle.findById(req.params.id);
 
         if (!bundle) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Bundle not found' 
+            return res.status(404).json({
+                success: false,
+                message: 'Bundle not found'
             });
         }
 
@@ -120,9 +122,9 @@ exports.updateBundle = async (req, res, next) => {
 
         // Validate that products array is not empty if provided
         if (products && products.length === 0) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Bundle must contain at least one product' 
+            return res.status(400).json({
+                success: false,
+                message: 'Bundle must contain at least one product'
             });
         }
 
@@ -138,9 +140,9 @@ exports.updateBundle = async (req, res, next) => {
         });
     } catch (error) {
         if (error.code === 11000) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Bundle name already exists' 
+            return res.status(400).json({
+                success: false,
+                message: 'Bundle name already exists'
             });
         }
         next(error);
@@ -155,9 +157,9 @@ exports.deleteBundle = async (req, res, next) => {
         const bundle = await Bundle.findById(req.params.id);
 
         if (!bundle) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Bundle not found' 
+            return res.status(404).json({
+                success: false,
+                message: 'Bundle not found'
             });
         }
 
@@ -166,6 +168,82 @@ exports.deleteBundle = async (req, res, next) => {
         res.status(200).json({
             success: true,
             data: {}
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Update bundle retail price (discount override)
+// @route   PUT /api/bundles/:id/price
+// @access  Private (Manage Inventory)
+exports.updateBundlePrice = async (req, res, next) => {
+    try {
+        const bundle = await Bundle.findById(req.params.id);
+
+        if (!bundle) {
+            return res.status(404).json({
+                success: false,
+                message: 'Bundle not found'
+            });
+        }
+
+        const { retailPrice, reason } = req.body;
+
+        // Record price change in history
+        bundle.priceHistory.push({
+            previousPrice: bundle.retailPrice,
+            newPrice: retailPrice !== undefined && retailPrice !== '' ? Number(retailPrice) : null,
+            reason: reason || '',
+            editedBy: req.user.id,
+            editedAt: new Date()
+        });
+
+        // Update the retail price (null = revert to calculated)
+        bundle.retailPrice = retailPrice !== undefined && retailPrice !== '' ? Number(retailPrice) : null;
+
+        await bundle.save();
+
+        const populatedBundle = await Bundle.findById(bundle._id)
+            .populate('products.product', 'name sku cartonSize price wholesaleCost')
+            .populate('priceHistory.editedBy', 'username email')
+            .populate('createdBy', 'name email');
+
+        res.status(200).json({
+            success: true,
+            data: populatedBundle
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Get bundle price edit history
+// @route   GET /api/bundles/:id/price-history
+// @access  Private (View Inventory)
+exports.getBundlePriceHistory = async (req, res, next) => {
+    try {
+        const bundle = await Bundle.findById(req.params.id)
+            .select('name retailPrice priceHistory')
+            .populate('priceHistory.editedBy', 'username email');
+
+        if (!bundle) {
+            return res.status(404).json({
+                success: false,
+                message: 'Bundle not found'
+            });
+        }
+
+        // Return history sorted newest-first
+        const history = [...bundle.priceHistory].reverse();
+
+        res.status(200).json({
+            success: true,
+            data: {
+                bundleName: bundle.name,
+                currentRetailPrice: bundle.retailPrice,
+                history
+            }
         });
     } catch (error) {
         next(error);

@@ -6,7 +6,9 @@ const {
     getBundles,
     getBundle,
     updateBundle,
-    deleteBundle
+    deleteBundle,
+    updateBundlePrice,
+    getBundlePriceHistory
 } = require('../controllers/bundle.controller');
 const { protect } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/checkPermission');
@@ -31,6 +33,16 @@ router.route('/')
     )
     .get(checkPermission(PERMISSIONS.VIEW_INVENTORY), getBundles);
 
+// Price management routes (must be before /:id to avoid conflicts)
+router.route('/:id/price')
+    .put(
+        checkPermission(PERMISSIONS.MANAGE_INVENTORY),
+        updateBundlePrice
+    );
+
+router.route('/:id/price-history')
+    .get(checkPermission(PERMISSIONS.VIEW_INVENTORY), getBundlePriceHistory);
+
 router.route('/:id')
     .get(checkPermission(PERMISSIONS.VIEW_INVENTORY), getBundle)
     .put(
@@ -44,3 +56,4 @@ router.route('/:id')
     );
 
 module.exports = router;
+

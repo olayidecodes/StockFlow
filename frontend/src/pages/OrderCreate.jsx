@@ -626,11 +626,38 @@ const OrderCreate = () => {
                         margin-left: 0 !important;
                         margin-top: 4px;
                     }
+                    
+                    /* Order Items Responsive */
+                    .order-item-product-field {
+                        flex: 1 1 100% !important;
+                        min-width: 100% !important;
+                        max-width: 100% !important;
+                    }
+                    
+                    .order-item-qty-field,
+                    .order-item-price-field,
+                    .order-item-total-field {
+                        flex: 1 1 calc(33.333% - 0.75rem) !important;
+                        min-width: calc(33.333% - 0.75rem) !important;
+                    }
+                    
+                    .order-item-delete-btn {
+                        margin-top: 0 !important;
+                        align-self: flex-end;
+                        margin-bottom: 0.5rem;
+                    }
                 }
                 @media (max-width: 480px) {
                     .page-container > div:nth-child(2) > div button {
                         flex: 1;
                         min-width: 120px;
+                    }
+                    
+                    .order-item-qty-field,
+                    .order-item-price-field,
+                    .order-item-total-field {
+                        flex: 1 1 calc(50% - 0.5rem) !important;
+                        min-width: calc(50% - 0.5rem) !important;
                     }
                 }
             `}</style>
@@ -788,11 +815,11 @@ const OrderCreate = () => {
                                             </button>
                                         </div>
 
-                                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                                             {item.type === 'BUNDLE' ? (
                                                 /* ---- Bundle Row ---- */
                                                 <>
-                                                    <div className="form-group flex-grow" style={{ flex: 2 }}>
+                                                    <div className="form-group flex-grow order-item-product-field" style={{ flex: 2, minWidth: '250px' }}>
                                                         <label>Bundle</label>
                                                         <BundleSearchSelect
                                                             value={item.bundle}
@@ -811,7 +838,7 @@ const OrderCreate = () => {
                                                         )}
                                                     </div>
 
-                                                    <div className="form-group" style={{ width: '100px' }}>
+                                                    <div className="form-group order-item-qty-field" style={{ width: '100px', minWidth: '80px' }}>
                                                         <label>Units</label>
                                                         <input
                                                             type="number"
@@ -821,7 +848,7 @@ const OrderCreate = () => {
                                                         />
                                                     </div>
 
-                                                    <div className="form-group" style={{ width: '120px' }}>
+                                                    <div className="form-group order-item-total-field" style={{ width: '120px', minWidth: '100px' }}>
                                                         <label>
                                                             Line Total
                                                             <span style={{ fontSize: '10px', color: '#8B5CF6', marginLeft: '4px', fontWeight: 600 }}>Bundle</span>
@@ -843,7 +870,7 @@ const OrderCreate = () => {
                                             ) : (
                                                 /* ---- Product Row (unchanged) ---- */
                                                 <>
-                                                    <div className="form-group flex-grow" style={{ flex: 2 }}>
+                                                    <div className="form-group flex-grow order-item-product-field" style={{ flex: 2, minWidth: '250px' }}>
                                                         <label>Product</label>
                                                         <ProductSearchSelect
                                                             value={item.product}
@@ -865,7 +892,7 @@ const OrderCreate = () => {
                                                         })()}
                                                     </div>
 
-                                                    <div className="form-group" style={{ width: '100px' }}>
+                                                    <div className="form-group order-item-qty-field" style={{ width: '100px', minWidth: '80px' }}>
                                                         <label>Cartons</label>
                                                         <input
                                                             type="number"
@@ -875,7 +902,7 @@ const OrderCreate = () => {
                                                         />
                                                     </div>
 
-                                                    <div className="form-group" style={{ width: '100px' }}>
+                                                    <div className="form-group order-item-qty-field" style={{ width: '100px', minWidth: '80px' }}>
                                                         <label>Pieces</label>
                                                         <input
                                                             type="number"
@@ -885,7 +912,7 @@ const OrderCreate = () => {
                                                         />
                                                     </div>
 
-                                                    <div className="form-group" style={{ width: '100px' }}>
+                                                    <div className="form-group order-item-price-field" style={{ width: '100px', minWidth: '80px' }}>
                                                         <label>
                                                             Price/Pc
                                                             <span style={{
@@ -908,7 +935,7 @@ const OrderCreate = () => {
                                                 </>
                                             )}
 
-                                            <button type="button" onClick={() => removeItem(idx)} className="btn-icon delete" title="Remove Item" style={{ marginTop: '2rem' }}>
+                                            <button type="button" onClick={() => removeItem(idx)} className="btn-icon delete order-item-delete-btn" title="Remove Item" style={{ marginTop: '2rem' }}>
                                                 <FiTrash2 />
                                             </button>
                                         </div>

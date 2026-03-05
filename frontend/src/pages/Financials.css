@@ -1,0 +1,70 @@
+/* Financials Page Responsive Styles */
+
+.financials-grid-2col {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.financials-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.financials-table-container {
+    overflow-x: auto;
+    max-height: 400px;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Tablet and below */
+@media (max-width: 992px) {
+    .financials-grid-2col {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .financials-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .financials-grid-2col {
+        gap: 15px;
+    }
+    
+    .dashboard-card {
+        padding: 15px;
+    }
+    
+    /* Ensure charts are responsive */
+    .dashboard-card h3 {
+        font-size: 0.95rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .financials-grid-2col {
+        gap: 10px;
+    }
+    
+    .dashboard-card {
+        padding: 12px;
+    }
+    
+    .financials-card-header h3 {
+        font-size: 0.9rem !important;
+    }
+    
+    /* Make table text smaller on very small screens */
+    .financials-table-container table {
+        font-size: 0.85rem;
+    }
+}

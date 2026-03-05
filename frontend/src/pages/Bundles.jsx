@@ -158,17 +158,18 @@ const Bundles = () => {
             </div>
 
             <div className="card">
-                <table className="data-table">
-                    <thead>
-                        <tr>
-                            <th>Bundle Name</th>
-                            <th>Products</th>
-                            <th>Retail Price</th>
-                            <th>Wholesale Price</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
+                <div style={{ overflowX: 'auto' }}>
+                    <table className="data-table">
+                        <thead>
+                            <tr>
+                                <th>Bundle Name</th>
+                                <th>Products</th>
+                                <th>Retail Price</th>
+                                <th>Wholesale Price</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
                     <tbody>
                         {bundles.length === 0 ? (
                             <tr>
@@ -226,6 +227,7 @@ const Bundles = () => {
                         )}
                     </tbody>
                 </table>
+                </div>
             </div>
 
             {/* Bundle Modal */}

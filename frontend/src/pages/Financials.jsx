@@ -416,8 +416,8 @@ const Financials = () => {
                         </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                        <div className="dashboard-card">
+                    
+                        <div className="dashboard-card" style={{ marginBottom: '20px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                                 <h3 style={{ fontSize: '1rem', color: '#1E293B', margin: 0 }}>By Brand</h3>
                                 {inventory.byBrand?.length > 0 && (
@@ -440,7 +440,7 @@ const Financials = () => {
                                 )}
                             </div>
                             <div style={{ overflowX: 'auto', maxHeight: '400px' }}>
-                                <table className="data-table">
+                                <table className="data-table" style={{ minWidth: '800px' }}>
                                     <thead>
                                         <tr>
                                             <th>Brand</th>
@@ -463,7 +463,7 @@ const Financials = () => {
                             </div>
                         </div>
 
-                        <div className="dashboard-card">
+                        <div className="dashboard-card" style={{ marginBottom: '20px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                                 <h3 style={{ fontSize: '1rem', color: '#1E293B', margin: 0 }}>By Category</h3>
                                 {inventory.byCategory?.length > 0 && (
@@ -508,7 +508,7 @@ const Financials = () => {
                                 </table>
                             </div>
                         </div>
-                    </div>
+                    
 
                     <div className="dashboard-card">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
@@ -615,8 +615,8 @@ const Financials = () => {
                         </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                        <div className="dashboard-card">
+                    
+                        <div className="dashboard-card" style={{ marginBottom: '20px' }}>
                             <h3 style={{ marginBottom: '15px', fontSize: '1rem', color: '#1E293B' }}>By Brand</h3>
                             <ResponsiveContainer width="100%" height={300}>
                                 <BarChart data={sales.byBrand.slice(0, 10)}>
@@ -629,7 +629,7 @@ const Financials = () => {
                             </ResponsiveContainer>
                         </div>
 
-                        <div className="dashboard-card">
+                        <div className="dashboard-card" style={{ marginBottom: '20px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                                 <h3 style={{ fontSize: '1rem', color: '#1E293B', margin: 0 }}>By Category</h3>
                                 {sales.byCategory?.length > 0 && (
@@ -670,7 +670,7 @@ const Financials = () => {
                                 </table>
                             </div>
                         </div>
-                    </div>
+                    
 
                     <div className="dashboard-card">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
@@ -956,8 +956,7 @@ const Financials = () => {
                         </ResponsiveContainer>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                        <div className="dashboard-card">
+                        <div className="dashboard-card" style={{ marginBottom: '20px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                                 <h3 style={{ fontSize: '1rem', color: '#1E293B', margin: 0 }}>Period Summary</h3>
                                 {trends.monthlyRevenue?.length > 0 && (
@@ -1041,7 +1040,7 @@ const Financials = () => {
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    
                 </div>
             )}
         </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FiArrowLeft, FiCheck, FiX } from 'react-icons/fi';
+import { FiArrowLeft, FiCheck, FiX, FiCopy, FiShare2 } from 'react-icons/fi';
 import api from '../utils/api';
 import Spinner from '../components/Spinner';
 import PermissionGuard from '../components/PermissionGuard';
@@ -46,6 +46,65 @@ const OrderDetail = () => {
         }
     };
 
+    const formatOrderDetails = () => {
+        if (!order) return '';
+
+        const itemsList = order.items.map((item, idx) => {
+            const cartonSize = item.product?.cartonSize || 1;
+            const cartons = Math.floor(item.quantity / cartonSize);
+            const pieces = item.quantity % cartonSize;
+            const subtotal = item.quantity * (item.price || 0);
+            
+            return `${item.product?.name} - ${item.quantity} pcs${cartonSize > 1 ? ` (${cartons} ctn, ${pieces} pcs)` : ''}`;
+        }).join('\n');
+
+        const totalPieces = order.items.reduce((sum, item) => sum + item.quantity, 0);
+
+        return `${order.customer?.name}
+${order.customer?.address}
+${order.customer?.phone || 'N/A'}
+
+${itemsList}
+`;
+    };
+
+    const handleCopyDetails = async () => {
+        try {
+            const details = formatOrderDetails();
+            await navigator.clipboard.writeText(details);
+            toast.success('Order details copied to clipboard!');
+        } catch (err) {
+            toast.error('Failed to copy to clipboard');
+            console.error('Copy failed:', err);
+        }
+    };
+
+    const handleShare = async () => {
+        const details = formatOrderDetails();
+        
+        // Check if Web Share API is available
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: `Order #${order.orderNumber || order._id.slice(-6).toUpperCase()}`,
+                    text: details
+                });
+                toast.success('Order details shared!');
+            } catch (err) {
+                // User cancelled or share failed
+                if (err.name !== 'AbortError') {
+                    console.error('Share failed:', err);
+                    // Fallback to copy
+                    handleCopyDetails();
+                }
+            }
+        } else {
+            // Fallback to copy if share not supported
+            handleCopyDetails();
+            toast.info('Share not supported. Details copied to clipboard instead.');
+        }
+    };
+
     if (loading) return <Spinner fullPage />;
     if (error || !order) return <div className="page-container"><div className="alert alert-error">{error || 'Order not found'}</div></div>;
 
@@ -73,28 +132,49 @@ const OrderDetail = () => {
                     </p>
                 </div>
 
-                <PermissionGuard permission={PERMISSIONS.MANAGE_ORDERS}>
-                    {order.status === 'PENDING' && (
-                        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                            <button
-                                className="btn btn-primary"
-                                onClick={() => handleStatusChange('CONFIRMED')}
-                                disabled={actionLoading}
-                                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                            >
-                                <FiCheck /> Confirm Order
-                            </button>
-                            <button
-                                className="btn btn-danger"
-                                onClick={() => handleStatusChange('CANCELLED')}
-                                disabled={actionLoading}
-                                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                            >
-                                <FiX /> Cancel Order
-                            </button>
-                        </div>
-                    )}
-                </PermissionGuard>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                    {/* Copy and Share Buttons */}
+                    <button
+                        className="btn btn-secondary"
+                        onClick={handleCopyDetails}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        title="Copy order details to clipboard"
+                    >
+                        <FiCopy /> Copy Details
+                    </button>
+                    <button
+                        className="btn btn-secondary"
+                        onClick={handleShare}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        title="Share order details"
+                    >
+                        <FiShare2 /> Share
+                    </button>
+
+                    {/* Status Change Buttons */}
+                    <PermissionGuard permission={PERMISSIONS.MANAGE_ORDERS}>
+                        {order.status === 'PENDING' && (
+                            <>
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={() => handleStatusChange('CONFIRMED')}
+                                    disabled={actionLoading}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                >
+                                    <FiCheck /> Confirm Order
+                                </button>
+                                <button
+                                    className="btn btn-danger"
+                                    onClick={() => handleStatusChange('CANCELLED')}
+                                    disabled={actionLoading}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                >
+                                    <FiX /> Cancel Order
+                                </button>
+                            </>
+                        )}
+                    </PermissionGuard>
+                </div>
             </div>
 
             <div style={{ maxWidth: '1200px', margin: '0 auto' }}>

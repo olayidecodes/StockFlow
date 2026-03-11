@@ -12,17 +12,40 @@ const Orders = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState('');
+    const [filterWarehouse, setFilterWarehouse] = useState('');
+    const [warehouses, setWarehouses] = useState([]);
+    const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
     const [expandedOrders, setExpandedOrders] = useState([]);
 
     useEffect(() => {
+        fetchWarehouses();
+    }, []);
+
+    useEffect(() => {
         fetchOrders();
-    }, [filterStatus]);
+    }, [filterStatus, filterWarehouse]);
+
+    const fetchWarehouses = async () => {
+        try {
+            const res = await api.get('/warehouses');
+            setWarehouses(res.data.data);
+        } catch (err) {
+            console.error('Failed to load warehouses', err);
+        }
+    };
 
     const fetchOrders = async () => {
         setLoading(true);
         try {
-            let query = '';
-            if (filterStatus) query = `?status=${filterStatus}`;
+            const params = new URLSearchParams();
+            if (filterStatus) params.append('status', filterStatus);
+            if (filterWarehouse) params.append('warehouseId', filterWarehouse);
+            if (dateRange.startDate) params.append('startDate', dateRange.startDate);
+            if (dateRange.endDate) params.append('endDate', dateRange.endDate);
+            
+            const query = params.toString() ? `?${params.toString()}` : '';
+            console.log('Fetching orders with query:', query);
+            console.log('Date range:', dateRange);
             const res = await api.get(`/orders${query}`);
             setOrders(res.data.data);
         } catch (err) {
@@ -30,6 +53,21 @@ const Orders = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleDateFilter = () => {
+        console.log('Applying date filter:', dateRange);
+        fetchOrders();
+    };
+
+    const handleClearFilters = () => {
+        setDateRange({ startDate: '', endDate: '' });
+        setFilterStatus('');
+        setFilterWarehouse('');
+        // Trigger fetch after state is cleared
+        setTimeout(() => {
+            fetchOrders();
+        }, 100);
     };
 
     const toggleOrderExpansion = (orderId, e) => {
@@ -102,7 +140,7 @@ const Orders = () => {
                 </div>
             </div>
 
-            <div className="filters-bar">
+            <div className="filters-bar" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <select
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
@@ -113,6 +151,45 @@ const Orders = () => {
                     <option value="CONFIRMED">Confirmed</option>
                     <option value="CANCELLED">Cancelled</option>
                 </select>
+
+                <select
+                    value={filterWarehouse}
+                    onChange={(e) => setFilterWarehouse(e.target.value)}
+                    className="filter-select"
+                >
+                    <option value="">All Warehouses</option>
+                    {warehouses.map(wh => (
+                        <option key={wh._id} value={wh._id}>{wh.name}</option>
+                    ))}
+                </select>
+
+                <input
+                    type="date"
+                    value={dateRange.startDate}
+                    onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
+                    style={{ padding: '8px', borderRadius: '6px', border: '1px solid #E2E8F0' }}
+                    placeholder="Start Date"
+                />
+                <span>to</span>
+                <input
+                    type="date"
+                    value={dateRange.endDate}
+                    onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
+                    style={{ padding: '8px', borderRadius: '6px', border: '1px solid #E2E8F0' }}
+                    placeholder="End Date"
+                />
+                <button onClick={handleDateFilter} className="btn btn-primary" style={{ padding: '8px 16px' }}>
+                    Apply
+                </button>
+                {(dateRange.startDate || dateRange.endDate || filterStatus || filterWarehouse) && (
+                    <button 
+                        onClick={handleClearFilters} 
+                        className="btn btn-secondary"
+                        style={{ padding: '8px 16px' }}
+                    >
+                        Clear All
+                    </button>
+                )}
             </div>
 
             {loading ? (
@@ -124,10 +201,11 @@ const Orders = () => {
                             <tr>
                                 <th>Order ID</th>
                                 <th>Customer</th>
+                                <th>Warehouse</th>
+                                <th>Date</th>
                                 <th>Status</th>
                                 <th>Channel</th>
                                 <th>Total</th>
-                                <th>Date</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -138,6 +216,7 @@ const Orders = () => {
                                         <tr className="hover-row" onClick={() => navigate(`/orders/${order._id}`)}>
                                             <td className="font-mono text-sm">#{order.orderNumber || order._id.slice(-6).toUpperCase()}</td>
                                             <td>{order.customer?.name}</td>
+                                            <td>{order.warehouse?.name || 'N/A'}</td>
                                             <td>{new Date(order.createdAt).toLocaleDateString()}</td>
                                             <td>
                                                 <span className={`status-badge ${getStatusBadge(order.status)}`}>
@@ -167,7 +246,7 @@ const Orders = () => {
                                         </tr>
                                         {expandedOrders.includes(order._id) && (
                                             <tr className="expanded-row">
-                                                <td colSpan="7" style={{ padding: 0, background: '#F8FAFC', borderTop: '2px solid #E2E8F0' }}>
+                                                <td colSpan="8" style={{ padding: 0, background: '#F8FAFC', borderTop: '2px solid #E2E8F0' }}>
                                                     <div style={{ padding: '20px 24px' }}>
                                                         {/* Order Details Grid */}
                                                         <div style={{ 
@@ -363,7 +442,7 @@ const Orders = () => {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="7" className="text-center">No orders found.</td>
+                                    <td colSpan="8" className="text-center">No orders found.</td>
                                 </tr>
                             )}
                         </tbody>

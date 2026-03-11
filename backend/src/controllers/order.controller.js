@@ -61,17 +61,39 @@ exports.createOrder = async (req, res, next) => {
 // @access  Private
 exports.getOrders = async (req, res, next) => {
     try {
-        const { status, warehouseId } = req.query;
+        const { status, warehouseId, startDate, endDate } = req.query;
+        console.log('Orders query params:', { status, warehouseId, startDate, endDate });
+        
         const query = {};
 
         if (status) query.status = status;
         if (warehouseId) query.warehouse = warehouseId;
+        
+        // Date range filtering
+        if (startDate || endDate) {
+            query.createdAt = {};
+            if (startDate) {
+                query.createdAt.$gte = new Date(startDate);
+                console.log('Start date filter:', query.createdAt.$gte);
+            }
+            if (endDate) {
+                // Set to end of day
+                const endDateTime = new Date(endDate);
+                endDateTime.setHours(23, 59, 59, 999);
+                query.createdAt.$lte = endDateTime;
+                console.log('End date filter:', query.createdAt.$lte);
+            }
+        }
+
+        console.log('Final query:', JSON.stringify(query, null, 2));
 
         const orders = await Order.find(query)
             .populate('warehouse', 'name')
             .populate('customer')
             .populate('items.product', 'name sku')
             .sort({ createdAt: -1 });
+
+        console.log(`Found ${orders.length} orders`);
 
         res.status(200).json({
             success: true,

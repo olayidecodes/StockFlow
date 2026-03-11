@@ -123,33 +123,59 @@ class ReceiptService {
 
     addCustomerInfo(doc, order) {
         const startY = doc.y;
+        const leftColumnX = 50;
+        const rightColumnX = 320;
+        const columnWidth = 240;
         
         // Left column - Customer Info
         doc.fontSize(11)
            .font('Helvetica-Bold')
-           .text('CUSTOMER INFORMATION', 50, startY);
+           .text('CUSTOMER INFORMATION', leftColumnX, startY);
         
         doc.fontSize(10)
-           .font('Helvetica')
-           .moveDown(0.3);
+           .font('Helvetica');
         
-        doc.text(`Name: ${order.customer?.name || 'N/A'}`, 50);
-        doc.text(`Address: ${order.customer?.address || 'N/A'}`, 50);
-        doc.text(`Phone: ${order.customer?.phone || 'N/A'}`, 50);
-        doc.text(`Email: ${order.customer?.email || 'N/A'}`, 50);
+        let leftY = startY + 20;
+        
+        // Name
+        doc.text(`Name: ${order.customer?.name || 'N/A'}`, leftColumnX, leftY, { width: columnWidth });
+        leftY = doc.y + 5;
+        
+        // Address (with word wrap)
+        const address = order.customer?.address || 'N/A';
+        doc.text(`Address: ${address}`, leftColumnX, leftY, { width: columnWidth });
+        leftY = doc.y + 5;
+        
+        // Phone
+        doc.text(`Phone: ${order.customer?.phone || 'N/A'}`, leftColumnX, leftY, { width: columnWidth });
+        leftY = doc.y + 5;
+        
+        // Email
+        doc.text(`Email: ${order.customer?.email || 'N/A'}`, leftColumnX, leftY, { width: columnWidth });
+        leftY = doc.y;
         
         // Right column - Order Info
         doc.fontSize(11)
            .font('Helvetica-Bold')
-           .text('ORDER INFORMATION', 320, startY);
+           .text('ORDER INFORMATION', rightColumnX, startY);
         
         doc.fontSize(10)
-           .font('Helvetica')
-           .text(`Warehouse: ${order.warehouse?.name || 'N/A'}`, 320, startY + 25);
-        doc.text(`Region: ${order.region?.name || 'N/A'}`, 320);
-        doc.text(`Channel: ${order.channel || 'N/A'}`, 320);
+           .font('Helvetica');
         
-        doc.moveDown(1.5);
+        let rightY = startY + 20;
+        
+        doc.text(`Warehouse: ${order.warehouse?.name || 'N/A'}`, rightColumnX, rightY, { width: columnWidth });
+        rightY = doc.y + 5;
+        
+        doc.text(`Region: ${order.region?.name || 'N/A'}`, rightColumnX, rightY, { width: columnWidth });
+        rightY = doc.y + 5;
+        
+        doc.text(`Channel: ${order.channel || 'N/A'}`, rightColumnX, rightY, { width: columnWidth });
+        rightY = doc.y;
+        
+        // Move to the lower of the two columns
+        const maxY = Math.max(leftY, rightY);
+        doc.y = maxY + 15;
         
         // Horizontal line
         doc.moveTo(50, doc.y)

@@ -34,6 +34,19 @@ exports.createOrder = async (req, res, next) => {
             logs: [{ status: 'PENDING', changedBy: req.user.id }],
         });
 
+        // Trigger WhatsApp Message on Order Creation
+        try {
+            // Populate order for the message
+            const populatedOrder = await Order.findById(order._id)
+                .populate('items.product', 'name')
+                .populate('customer');
+
+            await WhatsAppService.sendOrderConfirmation(populatedOrder);
+        } catch (wsError) {
+            console.error('WhatsApp notification failed:', wsError);
+            // Don't fail the request if WhatsApp fails
+        }
+
         res.status(201).json({
             success: true,
             data: order,
@@ -187,22 +200,6 @@ exports.updateOrderStatus = async (req, res, next) => {
 
         await session.commitTransaction();
         await session.endSession();
-
-        // Trigger WhatsApp Message (Outside Transaction but after success)
-        if (status === 'CONFIRMED') {
-            try {
-                // Re-fetch populated order for the message
-                const populatedOrder = await Order.findById(order._id)
-                    .populate('items.product', 'name')
-                    .populate('customer');
-
-                await WhatsAppService.sendOrderConfirmation(populatedOrder);
-            } catch (wsError) {
-                console.error('WhatsApp trigger failed:', wsError);
-                // Note: We don't fail the request if just WhatsApp fails, 
-                // but in production you might want a queue/retry mechanism
-            }
-        }
 
         res.status(200).json({
             success: true,

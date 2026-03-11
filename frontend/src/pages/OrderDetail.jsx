@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FiArrowLeft, FiCheck, FiX, FiCopy, FiShare2 } from 'react-icons/fi';
+import { FiArrowLeft, FiCheck, FiX, FiCopy, FiShare2, FiDownload } from 'react-icons/fi';
 import api from '../utils/api';
 import Spinner from '../components/Spinner';
 import PermissionGuard from '../components/PermissionGuard';
@@ -105,6 +105,47 @@ ${itemsList}
         }
     };
 
+    const handleDownloadReceipt = async () => {
+        try {
+            toast.info('Generating receipt...');
+            
+            // Get the token from localStorage
+            const token = localStorage.getItem('token');
+            
+            // Fetch the PDF
+            const response = await fetch(`${api.defaults.baseURL}/orders/${id}/receipt`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to download receipt');
+            }
+
+            // Get the blob
+            const blob = await response.blob();
+            
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `receipt-order-${order.orderNumber || order._id.slice(-6).toUpperCase()}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            
+            // Cleanup
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            toast.success('Receipt downloaded successfully!');
+        } catch (err) {
+            console.error('Download failed:', err);
+            toast.error('Failed to download receipt');
+        }
+    };
+
     if (loading) return <Spinner fullPage />;
     if (error || !order) return <div className="page-container"><div className="alert alert-error">{error || 'Order not found'}</div></div>;
 
@@ -133,6 +174,16 @@ ${itemsList}
                 </div>
 
                 <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                    {/* Download Receipt Button */}
+                    <button
+                        className="btn btn-primary"
+                        onClick={handleDownloadReceipt}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        title="Download PDF receipt"
+                    >
+                        <FiDownload /> Download Receipt
+                    </button>
+
                     {/* Copy and Share Buttons */}
                     <button
                         className="btn btn-secondary"

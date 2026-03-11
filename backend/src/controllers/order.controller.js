@@ -4,6 +4,7 @@ const Order = require('../models/Order');
 const StockLedger = require('../models/StockLedger');
 const InventoryBalance = require('../models/InventoryBalance');
 const WhatsAppService = require('../services/whatsapp.service');
+const ReceiptService = require('../services/receipt.service');
 
 // @desc    Create new order
 // @route   POST /api/orders
@@ -34,13 +35,24 @@ exports.createOrder = async (req, res, next) => {
             logs: [{ status: 'PENDING', changedBy: req.user.id }],
         });
 
+        // Populate order for WhatsApp and receipt generation
+        const populatedOrder = await Order.findById(order._id)
+            .populate('items.product', 'name sku cartonSize')
+            .populate('customer')
+            .populate('warehouse', 'name')
+            .populate('region', 'name');
+
+        // Generate receipt
+        try {
+            await ReceiptService.generateReceipt(populatedOrder);
+            console.log(`[Order] Receipt generated for order ${order._id}`);
+        } catch (receiptError) {
+            console.error('[Order] Receipt generation failed:', receiptError);
+            // Don't fail the request if receipt generation fails
+        }
+
         // Trigger WhatsApp Message on Order Creation
         try {
-            // Populate order for the message
-            const populatedOrder = await Order.findById(order._id)
-                .populate('items.product', 'name')
-                .populate('customer');
-
             await WhatsAppService.sendOrderConfirmation(populatedOrder);
         } catch (wsError) {
             console.error('WhatsApp notification failed:', wsError);
@@ -239,6 +251,55 @@ exports.updateOrderStatus = async (req, res, next) => {
             return res.status(400).json({ success: false, message: error.message });
         }
 
+        next(error);
+    }
+};
+
+// @desc    Download order receipt
+// @route   GET /api/orders/:id/receipt
+// @access  Private
+exports.downloadReceipt = async (req, res, next) => {
+    try {
+        const order = await Order.findById(req.params.id)
+            .populate('warehouse', 'name')
+            .populate('region', 'name')
+            .populate('items.product', 'name sku cartonSize')
+            .populate('customer');
+
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: 'Order not found',
+            });
+        }
+
+        // Check if receipt exists, if not generate it
+        if (!ReceiptService.receiptExists(order._id)) {
+            console.log(`[Receipt] Generating receipt for order ${order._id}`);
+            await ReceiptService.generateReceipt(order);
+        }
+
+        const receiptPath = ReceiptService.getReceiptPath(order._id);
+        const fileName = `receipt-order-${order.orderNumber || order._id.toString().slice(-6).toUpperCase()}.pdf`;
+
+        // Set headers for download
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+
+        // Stream the file
+        const fileStream = require('fs').createReadStream(receiptPath);
+        fileStream.pipe(res);
+
+        fileStream.on('error', (err) => {
+            console.error('[Receipt] Download error:', err);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to download receipt',
+            });
+        });
+
+    } catch (error) {
+        console.error('[Receipt] Error:', error);
         next(error);
     }
 };

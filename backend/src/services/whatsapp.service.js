@@ -11,7 +11,7 @@ class WhatsAppService {
     constructor() {
         this.sock = null;
         this.initialized = false;
-        this.adminNumber = process.env.ADMIN_WHATSAPP_NUMBER || '+2349091111666';
+        this.adminNumber = process.env.ADMIN_WHATSAPP_NUMBER;
         this.authFolder = path.join(__dirname, '../../.baileys_auth');
         this.isConnecting = false;
     }

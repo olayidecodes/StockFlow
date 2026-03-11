@@ -3,6 +3,7 @@ node_modules/
 .wwebjs_auth/
 .wwebjs_cache/
 .baileys_auth/
+receipts/
 *.log
 migrate_orders.js
 test-whatsapp.js

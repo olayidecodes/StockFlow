@@ -240,9 +240,22 @@ class ReceiptService {
             doc.text(item.product?.sku || 'N/A', 200, currentY, { width: 90 });
             
             // Quantity
-            const qtyText = cartonSize > 1 
-                ? `${item.quantity}\n(${cartons}c, ${pieces}p)`
-                : `${item.quantity}`;
+            let qtyText;
+            if (cartonSize > 1) {
+                if (cartons > 0 && pieces > 0) {
+                    // Both cartons and pieces
+                    qtyText = `${cartons} ctn, ${pieces} pcs`;
+                } else if (cartons > 0) {
+                    // Only cartons
+                    qtyText = `${cartons} ctn`;
+                } else {
+                    // Only pieces
+                    qtyText = `${pieces} pcs`;
+                }
+            } else {
+                // No carton size, just show pieces
+                qtyText = `${item.quantity} pcs`;
+            }
             doc.text(qtyText, 300, currentY, { width: 60, align: 'right' });
             
             // Unit Price
@@ -253,7 +266,7 @@ class ReceiptService {
             doc.text(`NGN ${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
                      460, currentY, { width: 85, align: 'right' });
             
-            currentY += itemHeight + (cartonSize > 1 ? 10 : 0);
+            currentY += itemHeight + (cartonSize > 1 && cartons > 0 && pieces > 0 ? 5 : 0);
             
             // Light separator line
             if (index < order.items.length - 1) {

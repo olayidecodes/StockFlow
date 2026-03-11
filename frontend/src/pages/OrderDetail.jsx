@@ -49,16 +49,31 @@ const OrderDetail = () => {
     const formatOrderDetails = () => {
         if (!order) return '';
 
-        const itemsList = order.items.map((item, idx) => {
+        const itemsList = order.items.map((item) => {
             const cartonSize = item.product?.cartonSize || 1;
             const cartons = Math.floor(item.quantity / cartonSize);
             const pieces = item.quantity % cartonSize;
-            const subtotal = item.quantity * (item.price || 0);
             
-            return `${item.product?.name} - ${item.quantity} pcs${cartonSize > 1 ? ` (${cartons} ctn, ${pieces} pcs)` : ''}`;
+            // Format quantity display
+            let quantityDisplay;
+            if (cartonSize > 1) {
+                if (cartons > 0 && pieces > 0) {
+                    // Both cartons and pieces
+                    quantityDisplay = `${cartons} ctn, ${pieces} pcs`;
+                } else if (cartons > 0) {
+                    // Only cartons
+                    quantityDisplay = `${cartons} ctn`;
+                } else {
+                    // Only pieces
+                    quantityDisplay = `${pieces} pcs`;
+                }
+            } else {
+                // No carton size, just show pieces
+                quantityDisplay = `${item.quantity} pcs`;
+            }
+            
+            return `${item.product?.name} - ${quantityDisplay}`;
         }).join('\n');
-
-        const totalPieces = order.items.reduce((sum, item) => sum + item.quantity, 0);
 
         return `${order.customer?.name}
 ${order.customer?.address}

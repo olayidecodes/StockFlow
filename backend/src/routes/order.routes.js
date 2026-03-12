@@ -6,6 +6,7 @@ const {
     getOrder,
     updateOrderStatus,
     downloadReceipt,
+    downloadInvoice,
 } = require('../controllers/order.controller');
 const { protect } = require('../middleware/auth');
 const router = express.Router();
@@ -32,5 +33,7 @@ router.route('/:id').get(getOrder);
 router.put('/:id/status', updateOrderStatus);
 
 router.get('/:id/receipt', downloadReceipt);
+
+router.get('/:id/invoice', downloadInvoice);
 
 module.exports = router;

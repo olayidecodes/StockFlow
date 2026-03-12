@@ -60,6 +60,16 @@ const orderSchema = new mongoose.Schema(
             enum: ['none', 'individual', 'global'],
             default: 'none',
         },
+        deliveryFee: {
+            type: Number,
+            default: 0,
+            min: [0, 'Delivery fee cannot be negative'],
+        },
+        orderType: {
+            type: String,
+            enum: ['RETAIL', 'WHOLESALE'],
+            default: 'RETAIL',
+        },
         channel: {
             type: String,
             enum: ['Instagram', 'Google', 'Facebook', 'Referral', 'Walk-in', 'Other'],

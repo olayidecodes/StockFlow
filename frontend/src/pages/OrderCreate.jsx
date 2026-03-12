@@ -245,6 +245,7 @@ const OrderCreate = () => {
     const [globalDiscount, setGlobalDiscount] = useState(0); // Global discount for all products
     const [discountType, setDiscountType] = useState('individual'); // 'individual' or 'global'
     const [applyDiscount, setApplyDiscount] = useState(false); // Whether to show discount options
+    const [deliveryFee, setDeliveryFee] = useState(0); // Delivery fee
 
     const [formData, setFormData] = useState({
         customer: { name: '', street: '', city: '', state: '', zip: '', phone: '', email: '' },
@@ -456,11 +457,15 @@ const OrderCreate = () => {
         }, 0);
 
         // For global discount, subtract from total
+        let total = subtotal;
         if (applyDiscount && discountType === 'global') {
-            return Math.max(0, subtotal - globalDiscount);
+            total = Math.max(0, subtotal - globalDiscount);
         }
+        
+        // Add delivery fee
+        total += (deliveryFee || 0);
 
-        return subtotal;
+        return total;
     };
 
     const handleSubmit = async (e) => {
@@ -591,7 +596,10 @@ const OrderCreate = () => {
                 customer: customerData,
                 subtotal: orderSubtotal,
                 discountAmount: finalDiscountAmount,
-                discountType: finalDiscountType
+                discountType: finalDiscountType,
+                deliveryFee: deliveryFee || 0,
+                orderType: orderType,
+                channel: formData.channel
             };
             await api.post('/orders', payload);
             toast.success('Order created successfully');
@@ -989,6 +997,40 @@ const OrderCreate = () => {
                                 </div>
                             </div>
 
+                            {/* Delivery Fee */}
+                            <div style={{
+                                background: '#F0F9FF',
+                                padding: '12px 16px',
+                                borderRadius: '6px',
+                                marginBottom: '16px',
+                                border: '1px solid #BAE6FD',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                flexWrap: 'wrap'
+                            }}>
+                                <label style={{ fontSize: '13px', color: '#0C4A6E', fontWeight: 600 }}>
+                                    Delivery Fee:
+                                </label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={deliveryFee || ''}
+                                    onChange={e => setDeliveryFee(parseFloat(e.target.value) || 0)}
+                                    placeholder="0"
+                                    style={{
+                                        width: '140px',
+                                        padding: '6px 12px',
+                                        borderRadius: '5px',
+                                        border: '1px solid #BAE6FD',
+                                        fontSize: '13px'
+                                    }}
+                                />
+                                <span style={{ fontSize: '12px', color: '#0369A1' }}>
+                                    ₦ (optional)
+                                </span>
+                            </div>
+
                             {formData.items.map((item, idx) => {
                                 const available = inventory[item.product] || 0;
                                 const selectedBundle = item.type === 'BUNDLE' ? bundles.find(b => b._id === item.bundle) : null;
@@ -1211,14 +1253,26 @@ const OrderCreate = () => {
                                         <div style={{ fontSize: '0.95rem', color: '#F59E0B', marginBottom: '8px' }}>
                                             Discount: -₦{globalDiscount.toLocaleString()}
                                         </div>
+                                        {deliveryFee > 0 && (
+                                            <div style={{ fontSize: '0.95rem', color: '#64748B', marginBottom: '8px' }}>
+                                                Delivery Fee: +₦{deliveryFee.toLocaleString()}
+                                            </div>
+                                        )}
                                         <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#10B981' }}>
                                             Total: ₦{calculateTotal().toLocaleString()}
                                         </div>
                                     </>
                                 ) : (
-                                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>
-                                        Total: ₦{calculateTotal().toLocaleString()}
-                                    </div>
+                                    <>
+                                        {deliveryFee > 0 && (
+                                            <div style={{ fontSize: '0.95rem', color: '#64748B', marginBottom: '8px' }}>
+                                                Delivery Fee: +₦{deliveryFee.toLocaleString()}
+                                            </div>
+                                        )}
+                                        <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>
+                                            Total: ₦{calculateTotal().toLocaleString()}
+                                        </div>
+                                    </>
                                 )}
                             </div>
                         </div>

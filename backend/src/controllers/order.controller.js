@@ -5,6 +5,7 @@ const StockLedger = require('../models/StockLedger');
 const InventoryBalance = require('../models/InventoryBalance');
 const WhatsAppService = require('../services/whatsapp.service');
 const ReceiptService = require('../services/receipt.service');
+const InvoiceService = require('../services/invoice.service');
 
 // @desc    Create new order
 // @route   POST /api/orders
@@ -16,10 +17,10 @@ exports.createOrder = async (req, res, next) => {
             return res.status(400).json({ success: false, errors: errors.array() });
         }
 
-        const { customer, region, warehouse, items, subtotal, discountAmount, discountType } = req.body;
+        const { customer, region, warehouse, items, subtotal, discountAmount, discountType, deliveryFee, orderType, channel } = req.body;
 
         // Calculate total if prices provided (simple mock for now)
-        const totalAmount = items.reduce((acc, item) => acc + (item.price || 0) * item.quantity, 0);
+        const totalAmount = items.reduce((acc, item) => acc + (item.price || 0) * item.quantity, 0) + (deliveryFee || 0);
 
         const order = await Order.create({
             customer,
@@ -29,6 +30,9 @@ exports.createOrder = async (req, res, next) => {
             subtotal,
             discountAmount,
             discountType,
+            deliveryFee: deliveryFee || 0,
+            orderType: orderType || 'RETAIL',
+            channel: channel || 'Other',
             totalAmount,
             createdBy: req.user.id,
             status: 'PENDING',
@@ -300,6 +304,55 @@ exports.downloadReceipt = async (req, res, next) => {
 
     } catch (error) {
         console.error('[Receipt] Error:', error);
+        next(error);
+    }
+};
+
+// @desc    Download order invoice (for wholesale orders)
+// @route   GET /api/orders/:id/invoice
+// @access  Private
+exports.downloadInvoice = async (req, res, next) => {
+    try {
+        const order = await Order.findById(req.params.id)
+            .populate('warehouse', 'name')
+            .populate('region', 'name')
+            .populate('items.product', 'name sku cartonSize')
+            .populate('customer');
+
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: 'Order not found',
+            });
+        }
+
+        // Check if invoice exists, if not generate it
+        if (!InvoiceService.invoiceExists(order._id)) {
+            console.log(`[Invoice] Generating invoice for order ${order._id}`);
+            await InvoiceService.generateInvoice(order);
+        }
+
+        const invoicePath = InvoiceService.getInvoicePath(order._id);
+        const fileName = `invoice-order-${order.orderNumber || order._id.toString().slice(-6).toUpperCase()}.pdf`;
+
+        // Set headers for download
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+
+        // Stream the file
+        const fileStream = require('fs').createReadStream(invoicePath);
+        fileStream.pipe(res);
+
+        fileStream.on('error', (err) => {
+            console.error('[Invoice] Download error:', err);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to download invoice',
+            });
+        });
+
+    } catch (error) {
+        console.error('[Invoice] Error:', error);
         next(error);
     }
 };

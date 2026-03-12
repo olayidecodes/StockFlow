@@ -161,6 +161,47 @@ ${itemsList}
         }
     };
 
+    const handleDownloadInvoice = async () => {
+        try {
+            toast.info('Generating invoice...');
+            
+            // Get the token from localStorage
+            const token = localStorage.getItem('token');
+            
+            // Fetch the PDF
+            const response = await fetch(`${api.defaults.baseURL}/orders/${id}/invoice`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to download invoice');
+            }
+
+            // Get the blob
+            const blob = await response.blob();
+            
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `invoice-order-${order.orderNumber || order._id.slice(-6).toUpperCase()}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            
+            // Cleanup
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            toast.success('Invoice downloaded successfully!');
+        } catch (err) {
+            console.error('Download failed:', err);
+            toast.error('Failed to download invoice');
+        }
+    };
+
     if (loading) return <Spinner fullPage />;
     if (error || !order) return <div className="page-container"><div className="alert alert-error">{error || 'Order not found'}</div></div>;
 
@@ -198,6 +239,18 @@ ${itemsList}
                     >
                         <FiDownload /> Download Receipt
                     </button>
+
+                    {/* Download Invoice Button (for wholesale orders) */}
+                    {order.orderType === 'WHOLESALE' && (
+                        <button
+                            className="btn btn-primary"
+                            onClick={handleDownloadInvoice}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#10B981' }}
+                            title="Download PDF invoice"
+                        >
+                            <FiDownload /> Download Invoice
+                        </button>
+                    )}
 
                     {/* Copy and Share Buttons */}
                     <button
@@ -286,6 +339,11 @@ ${itemsList}
                                 Includes <span style={{ fontWeight: 600 }}>₦{order.discountAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> discount
                             </div>
                         )}
+                        {order.deliveryFee > 0 && (
+                            <div style={{ fontSize: '0.8rem', marginTop: '0.5rem', opacity: 0.9 }}>
+                                Includes <span style={{ fontWeight: 600 }}>₦{order.deliveryFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> delivery fee
+                            </div>
+                        )}
                     </div>
 
                     <div style={{
@@ -367,6 +425,20 @@ ${itemsList}
                                 <div style={{ fontSize: '0.75rem', color: '#64748B', marginBottom: '0.25rem' }}>Channel</div>
                                 <div style={{ fontSize: '0.9rem', color: '#1E293B', fontWeight: 500 }}>{order.channel || 'N/A'}</div>
                             </div>
+                            <div>
+                                <div style={{ fontSize: '0.75rem', color: '#64748B', marginBottom: '0.25rem' }}>Order Type</div>
+                                <div style={{ 
+                                    fontSize: '0.9rem', 
+                                    fontWeight: 600,
+                                    color: order.orderType === 'WHOLESALE' ? '#10B981' : '#4880FF',
+                                    display: 'inline-block',
+                                    padding: '4px 8px',
+                                    borderRadius: '4px',
+                                    background: order.orderType === 'WHOLESALE' ? '#D1FAE5' : '#DBEAFE'
+                                }}>
+                                    {order.orderType || 'RETAIL'}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -442,24 +514,36 @@ ${itemsList}
                                 })}
                             </tbody>
                             <tfoot>
-                                {order.discountAmount > 0 ? (
+                                {order.discountAmount > 0 || order.deliveryFee > 0 ? (
                                     <>
                                         <tr style={{ borderTop: '3px solid #E2E8F0' }}>
                                             <td colSpan="4" style={{ padding: '16px 12px 6px', textAlign: 'right', fontSize: '0.9rem', color: '#64748B' }}>
                                                 Subtotal:
                                             </td>
                                             <td style={{ padding: '16px 12px 6px', textAlign: 'right', fontSize: '1rem', color: '#1E293B', fontWeight: 500 }}>
-                                                ₦{(order.subtotal || (order.totalAmount + order.discountAmount))?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                ₦{(order.subtotal || (order.totalAmount + order.discountAmount - (order.deliveryFee || 0)))?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </td>
                                         </tr>
-                                        <tr>
-                                            <td colSpan="4" style={{ padding: '6px 12px', textAlign: 'right', fontSize: '0.9rem', color: '#EF4444' }}>
-                                                Discount {order.discountType === 'global' ? '(Global)' : order.discountType === 'individual' ? '(Individual Items)' : ''}:
-                                            </td>
-                                            <td style={{ padding: '6px 12px', textAlign: 'right', fontSize: '1rem', color: '#EF4444', fontWeight: 500 }}>
-                                                - ₦{order.discountAmount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                            </td>
-                                        </tr>
+                                        {order.discountAmount > 0 && (
+                                            <tr>
+                                                <td colSpan="4" style={{ padding: '6px 12px', textAlign: 'right', fontSize: '0.9rem', color: '#EF4444' }}>
+                                                    Discount {order.discountType === 'global' ? '(Global)' : order.discountType === 'individual' ? '(Individual Items)' : ''}:
+                                                </td>
+                                                <td style={{ padding: '6px 12px', textAlign: 'right', fontSize: '1rem', color: '#EF4444', fontWeight: 500 }}>
+                                                    - ₦{order.discountAmount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </td>
+                                            </tr>
+                                        )}
+                                        {order.deliveryFee > 0 && (
+                                            <tr>
+                                                <td colSpan="4" style={{ padding: '6px 12px', textAlign: 'right', fontSize: '0.9rem', color: '#64748B' }}>
+                                                    Delivery Fee:
+                                                </td>
+                                                <td style={{ padding: '6px 12px', textAlign: 'right', fontSize: '1rem', color: '#1E293B', fontWeight: 500 }}>
+                                                    + ₦{order.deliveryFee?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </td>
+                                            </tr>
+                                        )}
                                         <tr style={{ borderTop: '1px solid #E2E8F0' }}>
                                             <td colSpan="4" style={{ padding: '12px', textAlign: 'right', fontSize: '1rem', fontWeight: 700, color: '#1E293B' }}>
                                                 Final Total Amount:

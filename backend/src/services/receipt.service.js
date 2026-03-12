@@ -13,6 +13,15 @@ class ReceiptService {
         if (!fs.existsSync(this.receiptsDir)) {
             fs.mkdirSync(this.receiptsDir, { recursive: true });
         }
+        
+        // Company information
+        this.companyInfo = {
+            name: 'GidiGames',
+            address: 'HANA PLAZA, 109 Awolowo Road, Ikoyi, Lagos',
+            phone: '+2349091111666',
+            email: 'gidiwords@gmail.com',
+            website: 'gidigames.com.ng'
+        };
     }
 
     /**
@@ -32,7 +41,7 @@ class ReceiptService {
                     margin: 50,
                     info: {
                         Title: `Receipt - Order #${order.orderNumber || order._id.toString().slice(-6).toUpperCase()}`,
-                        Author: 'StockFlow',
+                        Author: 'GidiGames',
                         Subject: 'Order Receipt'
                     }
                 });
@@ -40,6 +49,9 @@ class ReceiptService {
                 // Pipe to file
                 const stream = fs.createWriteStream(filePath);
                 doc.pipe(stream);
+
+                // Company Header
+                this.addCompanyHeader(doc);
 
                 // Header
                 this.addHeader(doc, order);
@@ -79,19 +91,70 @@ class ReceiptService {
         });
     }
 
+    addCompanyHeader(doc) {
+        const logoX = 50;
+        const logoY = 50;
+        const logoSize = 60;
+        const companyDetailsX = logoX + logoSize + 15; // Logo + spacing
+        const rightColumnX = 380;
+        const startY = 50;
+        
+        // Logo on the left
+        const logoPath = path.join(__dirname, '../assets/GidiGames.jpeg');
+        if (fs.existsSync(logoPath)) {
+            try {
+                doc.image(logoPath, logoX, logoY, { 
+                    width: logoSize,
+                    height: logoSize,
+                    fit: [logoSize, logoSize]
+                });
+            } catch (err) {
+                console.log('[Receipt] Logo not found or invalid, skipping');
+            }
+        }
+        
+        // Company Details (next to logo)
+        // Company Name (Large and Bold)
+        doc.fontSize(24)
+           .font('Helvetica-Bold')
+           .fillColor('#1E293B')
+           .text(this.companyInfo.name, companyDetailsX, startY);
+        
+        // Company Address and Contact
+        doc.fontSize(9)
+           .font('Helvetica')
+           .fillColor('#64748B')
+           .text(this.companyInfo.address, companyDetailsX, startY + 30)
+           .text(`Phone: ${this.companyInfo.phone} | Email: ${this.companyInfo.email}`, companyDetailsX, startY + 43)
+           .text(this.companyInfo.website, companyDetailsX, startY + 56);
+        
+        // Right side - ORDER RECEIPT Header
+        doc.fontSize(20)
+           .font('Helvetica-Bold')
+           .fillColor('#1E293B')
+           .text('ORDER RECEIPT', rightColumnX, startY, { align: 'right', width: 165 });
+        
+        // Horizontal line
+        doc.moveTo(50, 125)
+           .lineTo(545, 125)
+           .strokeColor('#E2E8F0')
+           .lineWidth(2)
+           .stroke()
+           .lineWidth(1);
+        
+        doc.moveDown(0.5);
+    }
+
     addHeader(doc, order) {
         
-        // Receipt Title
-        doc.moveDown(1.5);
-        doc.fontSize(18)
-           .font('Helvetica-Bold')
-           .text('ORDER RECEIPT', { align: 'center' });
+        // Order details (centered)
+        doc.moveDown(0.5);
         
-        // // Order Number
-        // doc.moveDown(0.5);
-        // doc.fontSize(12)
-        //    .font('Helvetica')
-        //    .text(`Order #${order.orderNumber || order._id.toString().slice(-6).toUpperCase()}`, { align: 'center' });
+        // Order Number
+        doc.fontSize(12)
+           .font('Helvetica')
+           .fillColor('#1E293B')
+           .text(`Order #${order.orderNumber || order._id.toString().slice(-6).toUpperCase()}`, { align: 'center' });
         
         // Date
         doc.fontSize(10)
@@ -155,23 +218,23 @@ class ReceiptService {
         leftY = doc.y;
         
         // Right column - Order Info
-        doc.fontSize(11)
-           .font('Helvetica-Bold')
-           .text('ORDER INFORMATION', rightColumnX, startY);
+        // doc.fontSize(11)
+        //    .font('Helvetica-Bold')
+        //    .text('ORDER INFORMATION', rightColumnX, startY);
         
-        doc.fontSize(10)
-           .font('Helvetica');
+        // doc.fontSize(10)
+        //    .font('Helvetica');
         
-        let rightY = startY + 20;
+        // let rightY = startY + 20;
         
-        doc.text(`Warehouse: ${order.warehouse?.name || 'N/A'}`, rightColumnX, rightY, { width: columnWidth });
-        rightY = doc.y + 5;
+        // doc.text(`Warehouse: ${order.warehouse?.name || 'N/A'}`, rightColumnX, rightY, { width: columnWidth });
+        // rightY = doc.y + 5;
         
-        doc.text(`Region: ${order.region?.name || 'N/A'}`, rightColumnX, rightY, { width: columnWidth });
-        rightY = doc.y + 5;
+        // doc.text(`Region: ${order.region?.name || 'N/A'}`, rightColumnX, rightY, { width: columnWidth });
+        // rightY = doc.y + 5;
         
-        doc.text(`Channel: ${order.channel || 'N/A'}`, rightColumnX, rightY, { width: columnWidth });
-        rightY = doc.y;
+        // doc.text(`Channel: ${order.channel || 'N/A'}`, rightColumnX, rightY, { width: columnWidth });
+        // rightY = doc.y;
         
         // Move to the lower of the two columns
         const maxY = Math.max(leftY, rightY);
@@ -202,11 +265,11 @@ class ReceiptService {
            .font('Helvetica-Bold')
            .fillColor('#64748B');
         
-        doc.text('PRODUCT', 50, tableTop);
-        doc.text('SKU', 200, tableTop);
-        doc.text('QTY', 300, tableTop, { width: 60, align: 'right' });
-        doc.text('UNIT PRICE', 370, tableTop, { width: 80, align: 'right' });
-        doc.text('SUBTOTAL', 460, tableTop, { width: 85, align: 'right' });
+        doc.text('#', 50, tableTop, { width: 20 });
+        doc.text('PRODUCT', 75, tableTop);
+        doc.text('QTY', 300, tableTop, { width: 80, align: 'right' });
+        doc.text('UNIT PRICE', 390, tableTop, { width: 80, align: 'right' });
+        doc.text('SUBTOTAL', 480, tableTop, { width: 65, align: 'right' });
         
         // Line under headers
         doc.moveTo(50, tableTop + 15)
@@ -231,13 +294,13 @@ class ReceiptService {
                 currentY = 50;
             }
             
-            // Product name (truncate if too long)
-            const productName = (item.product?.name || 'Unknown').substring(0, 30);
+            // Item number
             doc.fontSize(9)
-               .text(productName, 50, currentY, { width: 140 });
+               .text(`${index + 1}`, 50, currentY, { width: 20 });
             
-            // SKU
-            doc.text(item.product?.sku || 'N/A', 200, currentY, { width: 90 });
+            // Product name (truncate if too long)
+            const productName = (item.product?.name || 'Unknown').substring(0, 40);
+            doc.text(productName, 75, currentY, { width: 215 });
             
             // Quantity
             let qtyText;
@@ -256,15 +319,15 @@ class ReceiptService {
                 // No carton size, just show pieces
                 qtyText = `${item.quantity} pcs`;
             }
-            doc.text(qtyText, 300, currentY, { width: 60, align: 'right' });
+            doc.text(qtyText, 300, currentY, { width: 80, align: 'right' });
             
             // Unit Price
             doc.text(`NGN ${(item.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-                     370, currentY, { width: 80, align: 'right' });
+                     390, currentY, { width: 80, align: 'right' });
             
             // Subtotal
             doc.text(`NGN ${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-                     460, currentY, { width: 85, align: 'right' });
+                     480, currentY, { width: 65, align: 'right' });
             
             currentY += itemHeight + (cartonSize > 1 && cartons > 0 && pieces > 0 ? 5 : 0);
             
@@ -295,20 +358,34 @@ class ReceiptService {
         doc.fontSize(10)
            .font('Helvetica');
         
-        // Subtotal (if discount exists)
-        if (order.discountAmount > 0) {
+        // Calculate items subtotal
+        const itemsSubtotal = order.items.reduce((acc, item) => acc + (item.quantity * (item.price || 0)), 0);
+        
+        // Subtotal (if discount or delivery fee exists)
+        if (order.discountAmount > 0 || order.deliveryFee > 0) {
             doc.text('Subtotal:', summaryX, doc.y);
-            doc.text(`NGN ${(order.subtotal || (order.totalAmount + order.discountAmount)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
+            doc.text(`NGN ${itemsSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
                      valueX, doc.y, { width: 85, align: 'right' });
             
             doc.moveDown(0.5);
-            
-            // Discount
+        }
+        
+        // Discount
+        if (order.discountAmount > 0) {
             doc.fillColor('#EF4444')
                .text('Discount:', summaryX, doc.y);
             doc.text(`-NGN ${order.discountAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
                      valueX, doc.y, { width: 85, align: 'right' })
                .fillColor('#000000');
+            
+            doc.moveDown(0.5);
+        }
+        
+        // Delivery Fee
+        if (order.deliveryFee > 0) {
+            doc.text('Delivery Fee:', summaryX, doc.y);
+            doc.text(`NGN ${order.deliveryFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
+                     valueX, doc.y, { width: 85, align: 'right' });
             
             doc.moveDown(0.5);
         }
@@ -350,7 +427,7 @@ class ReceiptService {
         
         doc.text('Thank you for your business!', 50, footerY, { align: 'center' });
         doc.text(`Generated on ${new Date().toLocaleString()}`, 50, footerY + 12, { align: 'center' });
-        doc.text('StockFlow', 50, footerY + 24, { align: 'center' });
+        doc.text('GidiGames', 50, footerY + 24, { align: 'center' });
     }
 
     /**

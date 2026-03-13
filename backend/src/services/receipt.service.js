@@ -113,73 +113,73 @@ class ReceiptService {
             }
         }
         
-        // Company Details (next to logo)
+        // Company Details (next to logo) - with max width to prevent overlap
+        const companyColumnWidth = 250; // Limit width to prevent overlap
+        
         // Company Name (Large and Bold)
         doc.fontSize(24)
            .font('Helvetica-Bold')
            .fillColor('#1E293B')
-           .text(this.companyInfo.name, companyDetailsX, startY);
+           .text(this.companyInfo.name, companyDetailsX, startY, { width: companyColumnWidth });
         
         // Company Address and Contact
         doc.fontSize(9)
            .font('Helvetica')
            .fillColor('#64748B')
-           .text(this.companyInfo.address, companyDetailsX, startY + 30)
-           .text(`Phone: ${this.companyInfo.phone} | Email: ${this.companyInfo.email}`, companyDetailsX, startY + 43)
-           .text(this.companyInfo.website, companyDetailsX, startY + 56);
+           .text(this.companyInfo.address, companyDetailsX, startY + 30, { width: companyColumnWidth })
+           .text(`Phone: ${this.companyInfo.phone}`, companyDetailsX, startY + 43, { width: companyColumnWidth })
+           .text(`Email: ${this.companyInfo.email}`, companyDetailsX, startY + 56, { width: companyColumnWidth });
         
-        // Right side - ORDER RECEIPT Header
-        doc.fontSize(20)
-           .font('Helvetica-Bold')
-           .fillColor('#1E293B')
-           .text('ORDER RECEIPT', rightColumnX, startY, { align: 'right', width: 165 });
-        
-        // Horizontal line
-        doc.moveTo(50, 125)
-           .lineTo(545, 125)
-           .strokeColor('#E2E8F0')
-           .lineWidth(2)
-           .stroke()
-           .lineWidth(1);
-        
-        doc.moveDown(0.5);
+        doc.moveDown(1);
     }
 
     addHeader(doc, order) {
+        // Right side - Order details (aligned with company info)
+        const rightColumnX = 380;
+        const rightColumnWidth = 165;
+        const startY = 50;
         
-        // Order details (centered)
-        doc.moveDown(0.5);
+        // ORDER RECEIPT Header
+        doc.fontSize(16)
+           .font('Helvetica-Bold')
+           .fillColor('#1E293B')
+           .text('ORDER RECEIPT', rightColumnX, startY, { align: 'right', width: rightColumnWidth });
         
         // Order Number
-        doc.fontSize(12)
+        doc.fontSize(11)
            .font('Helvetica')
            .fillColor('#1E293B')
-           .text(`Order #${order.orderNumber || order._id.toString().slice(-6).toUpperCase()}`, { align: 'center' });
+           .text(`Order #${order.orderNumber || order._id.toString().slice(-6).toUpperCase()}`, 
+                 rightColumnX, startY + 25, { align: 'right', width: rightColumnWidth });
         
-        // Date
-        doc.fontSize(10)
-           .text(new Date(order.createdAt).toLocaleDateString('en-US', {
-               weekday: 'long',
+        // Date (current date when receipt is generated)
+        doc.fontSize(9)
+           .fillColor('#64748B')
+           .text(new Date().toLocaleDateString('en-US', {
                year: 'numeric',
-               month: 'long',
+               month: 'short',
                day: 'numeric'
-           }), { align: 'center' });
+           }), rightColumnX, startY + 40, { align: 'right', width: rightColumnWidth });
         
         // Status Badge
-        doc.moveDown(0.5);
         const statusColor = order.status === 'CONFIRMED' ? '#10B981' : 
                            order.status === 'CANCELLED' ? '#EF4444' : '#F59E0B';
         doc.fontSize(10)
+           .font('Helvetica-Bold')
            .fillColor(statusColor)
-           .text(`Status: ${order.status}`, { align: 'center' })
+           .text(`${order.status}`, rightColumnX, startY + 55, { align: 'right', width: rightColumnWidth })
            .fillColor('#000000');
         
-        doc.moveDown(1);
+        // Move down past both columns
+        doc.y = 125;
         
         // Horizontal line
         doc.moveTo(50, doc.y)
            .lineTo(545, doc.y)
-           .stroke();
+           .strokeColor('#E2E8F0')
+           .lineWidth(2)
+           .stroke()
+           .lineWidth(1);
         
         doc.moveDown(1);
     }
@@ -236,9 +236,9 @@ class ReceiptService {
         // doc.text(`Channel: ${order.channel || 'N/A'}`, rightColumnX, rightY, { width: columnWidth });
         // rightY = doc.y;
         
-        // Move to the lower of the two columns
-        const maxY = Math.max(leftY, rightY);
-        doc.y = maxY + 15;
+        // // Move to the lower of the two columns
+        // const maxY = Math.max(leftY, rightY);
+        // doc.y = maxY + 15;
         
         // Horizontal line
         doc.moveTo(50, doc.y)

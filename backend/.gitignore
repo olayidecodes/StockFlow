@@ -4,6 +4,7 @@ node_modules/
 .wwebjs_cache/
 .baileys_auth/
 receipts/
+invoices/
 *.log
 migrate_orders.js
 test-whatsapp.js

@@ -120,15 +120,18 @@ ${itemsList}
         }
     };
 
-    const handleDownloadReceipt = async () => {
+    const handleDownloadReceipt = async (regenerate = false) => {
         try {
-            toast.info('Generating receipt...');
+            toast.info(regenerate ? 'Regenerating receipt...' : 'Downloading receipt...');
             
             // Get the token from localStorage
             const token = localStorage.getItem('token');
             
+            // Build URL with regenerate parameter if needed
+            const url = `${api.defaults.baseURL}/orders/${id}/receipt${regenerate ? '?regenerate=true' : ''}`;
+            
             // Fetch the PDF
-            const response = await fetch(`${api.defaults.baseURL}/orders/${id}/receipt`, {
+            const response = await fetch(url, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -136,40 +139,49 @@ ${itemsList}
             });
 
             if (!response.ok) {
-                throw new Error('Failed to download receipt');
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Failed to download receipt');
             }
 
             // Get the blob
             const blob = await response.blob();
             
+            // Verify it's a valid PDF
+            if (blob.size === 0) {
+                throw new Error('Received empty PDF file');
+            }
+            
             // Create download link
-            const url = window.URL.createObjectURL(blob);
+            const url2 = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
-            link.href = url;
+            link.href = url2;
             link.download = `receipt-order-${order.orderNumber || order._id.slice(-6).toUpperCase()}.pdf`;
             document.body.appendChild(link);
             link.click();
             
             // Cleanup
             document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
+            window.URL.revokeObjectURL(url2);
             
             toast.success('Receipt downloaded successfully!');
         } catch (err) {
             console.error('Download failed:', err);
-            toast.error('Failed to download receipt');
+            toast.error(err.message || 'Failed to download receipt');
         }
     };
 
-    const handleDownloadInvoice = async () => {
+    const handleDownloadInvoice = async (regenerate = false) => {
         try {
-            toast.info('Generating invoice...');
+            toast.info(regenerate ? 'Regenerating invoice...' : 'Downloading invoice...');
             
             // Get the token from localStorage
             const token = localStorage.getItem('token');
             
+            // Build URL with regenerate parameter if needed
+            const url = `${api.defaults.baseURL}/orders/${id}/invoice${regenerate ? '?regenerate=true' : ''}`;
+            
             // Fetch the PDF
-            const response = await fetch(`${api.defaults.baseURL}/orders/${id}/invoice`, {
+            const response = await fetch(url, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -177,28 +189,34 @@ ${itemsList}
             });
 
             if (!response.ok) {
-                throw new Error('Failed to download invoice');
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Failed to download invoice');
             }
 
             // Get the blob
             const blob = await response.blob();
             
+            // Verify it's a valid PDF
+            if (blob.size === 0) {
+                throw new Error('Received empty PDF file');
+            }
+            
             // Create download link
-            const url = window.URL.createObjectURL(blob);
+            const url2 = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
-            link.href = url;
+            link.href = url2;
             link.download = `invoice-order-${order.orderNumber || order._id.slice(-6).toUpperCase()}.pdf`;
             document.body.appendChild(link);
             link.click();
             
             // Cleanup
             document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
+            window.URL.revokeObjectURL(url2);
             
             toast.success('Invoice downloaded successfully!');
         } catch (err) {
             console.error('Download failed:', err);
-            toast.error('Failed to download invoice');
+            toast.error(err.message || 'Failed to download invoice');
         }
     };
 
@@ -212,7 +230,14 @@ ${itemsList}
                     <button
                         className="btn btn-secondary"
                         onClick={() => navigate('/orders')}
-                        style={{ marginBottom: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+                        style={{ 
+                            marginBottom: '0.5rem', 
+                            display: 'inline-flex', 
+                            alignItems: 'center', 
+                            gap: '0.5rem',
+                            padding: '6px 12px',
+                            fontSize: '0.85rem'
+                        }}
                     >
                         <FiArrowLeft /> Back to Orders
                     </button>
@@ -229,45 +254,23 @@ ${itemsList}
                     </p>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-                    {/* Download Receipt Button */}
-                    <button
-                        className="btn btn-primary"
-                        onClick={handleDownloadReceipt}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                        title="Download PDF receipt"
-                    >
-                        <FiDownload /> Download Receipt
-                    </button>
-
-                    {/* Download Invoice Button (for wholesale orders) */}
-                    {order.orderType === 'WHOLESALE' && (
-                        <button
-                            className="btn btn-primary"
-                            onClick={handleDownloadInvoice}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#10B981' }}
-                            title="Download PDF invoice"
-                        >
-                            <FiDownload /> Download Invoice
-                        </button>
-                    )}
-
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
                     {/* Copy and Share Buttons */}
                     <button
                         className="btn btn-secondary"
                         onClick={handleCopyDetails}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '6px 12px', fontSize: '0.85rem' }}
                         title="Copy order details to clipboard"
                     >
-                        <FiCopy /> Copy Details
+                        <FiCopy size={14} /> Copy
                     </button>
                     <button
                         className="btn btn-secondary"
                         onClick={handleShare}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '6px 12px', fontSize: '0.85rem' }}
                         title="Share order details"
                     >
-                        <FiShare2 /> Share
+                        <FiShare2 size={14} /> Share
                     </button>
 
                     {/* Status Change Buttons */}
@@ -278,17 +281,17 @@ ${itemsList}
                                     className="btn btn-primary"
                                     onClick={() => handleStatusChange('CONFIRMED')}
                                     disabled={actionLoading}
-                                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '6px 12px', fontSize: '0.85rem' }}
                                 >
-                                    <FiCheck /> Confirm Order
+                                    <FiCheck size={14} /> Confirm
                                 </button>
                                 <button
                                     className="btn btn-danger"
                                     onClick={() => handleStatusChange('CANCELLED')}
                                     disabled={actionLoading}
-                                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '6px 12px', fontSize: '0.85rem' }}
                                 >
-                                    <FiX /> Cancel Order
+                                    <FiX size={14} /> Cancel
                                 </button>
                             </>
                         )}
@@ -614,6 +617,41 @@ ${itemsList}
                             </div>
                         ))}
                     </div>
+                </div>
+
+                {/* Download Buttons Section */}
+                <div style={{
+                    padding: '1.5rem',
+                    background: '#F8FAFC',
+                    borderRadius: '12px',
+                    border: '1px solid #E2E8F0',
+                    marginTop: '1.5rem',
+                    display: 'flex',
+                    gap: '0.75rem',
+                    flexWrap: 'wrap',
+                    alignItems: 'center'
+                }}>
+                    {/* Receipt Download */}
+                    <button
+                        className="btn btn-primary"
+                        onClick={() => handleDownloadReceipt(true)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        title="Download PDF receipt"
+                    >
+                        <FiDownload /> Download Receipt
+                    </button>
+
+                    {/* Invoice Download (for wholesale orders) */}
+                    {order.orderType === 'WHOLESALE' && (
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => handleDownloadInvoice(true)}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#10B981' }}
+                            title="Download PDF invoice"
+                        >
+                            <FiDownload /> Download Invoice
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

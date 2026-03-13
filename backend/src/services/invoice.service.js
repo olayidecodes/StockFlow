@@ -53,20 +53,14 @@ class InvoiceService {
                 // Company Header with Logo
                 this.addCompanyHeader(doc);
                 
-                // Invoice Title and Details
-                this.addInvoiceHeader(doc, order);
-                
-                // Customer Info
+                // Customer Info and Date
                 this.addCustomerInfo(doc, order);
                 
                 // Items Table
                 this.addItemsTable(doc, order);
                 
-                // Payment Summary with Delivery Fee
+                // Payment Summary
                 this.addPaymentSummary(doc, order);
-                
-                // Payment Terms
-                this.addPaymentTerms(doc);
                 
                 // Footer
                 this.addFooter(doc);
@@ -92,198 +86,132 @@ class InvoiceService {
     }
 
     addCompanyHeader(doc) {
-        const logoX = 50;
-        const logoY = 50;
-        const logoSize = 60;
-        const companyDetailsX = logoX + logoSize + 15; // Logo + spacing
-        const rightColumnX = 380;
         const startY = 50;
+        const rightX = 400;
         
-        // Logo on the left
-        const logoPath = path.join(__dirname, '../assets/logo.png');
+        // INVOICE title on the left
+        doc.fontSize(18)
+           .font('Helvetica-Bold')
+           .fillColor('#1E293B')
+           .text('INVOICE', 50, startY);
+        
+        // Logo on the right (if exists)
+        const logoPath = path.join(__dirname, '../assets/GidiGames.jpeg');
         if (fs.existsSync(logoPath)) {
             try {
-                doc.image(logoPath, logoX, logoY, { 
-                    width: logoSize,
-                    height: logoSize,
-                    fit: [logoSize, logoSize]
+                doc.image(logoPath, rightX, startY - 10, { 
+                    width: 140,
+                    height: 60,
+                    fit: [140, 60],
+                    align: 'right'
                 });
             } catch (err) {
-                console.log('[Invoice] Logo not found or invalid, skipping');
+                console.log('[Invoice] Logo not found or invalid, using text');
+                // Fallback to text
+                doc.fontSize(16)
+                   .font('Helvetica-Bold')
+                   .fillColor('#10B981')
+                   .text('Gidi Games', rightX, startY, { align: 'right', width: 145 });
             }
+        } else {
+            // No logo, use text
+            doc.fontSize(16)
+               .font('Helvetica-Bold')
+               .fillColor('#10B981')
+               .text('Gidi Games', rightX, startY, { align: 'right', width: 145 });
         }
         
-        // Company Details (next to logo)
-        // Company Name (Large and Bold)
-        doc.fontSize(24)
-           .font('Helvetica-Bold')
-           .fillColor('#1E293B')
-           .text(this.companyInfo.name, companyDetailsX, startY);
-        
-        // Company Address and Contact
-        doc.fontSize(9)
-           .font('Helvetica')
-           .fillColor('#64748B')
-           .text(this.companyInfo.address, companyDetailsX, startY + 30)
-           .text(`Phone: ${this.companyInfo.phone} | Email: ${this.companyInfo.email}`, companyDetailsX, startY + 43)
-           .text(this.companyInfo.website, companyDetailsX, startY + 56);
-        
-        // Right side - INVOICE Header
-        doc.fontSize(20)
-           .font('Helvetica-Bold')
-           .fillColor('#1E293B')
-           .text('INVOICE', rightColumnX, startY, { align: 'right', width: 165 });
+        doc.moveDown(1.5);
         
         // Horizontal line
-        doc.moveTo(50, 125)
-           .lineTo(545, 125)
-           .strokeColor('#E2E8F0')
-           .lineWidth(2)
-           .stroke()
-           .lineWidth(1);
+        doc.moveTo(50, 110)
+           .lineTo(545, 110)
+           .strokeColor('#1E293B')
+           .lineWidth(1)
+           .stroke();
         
-        doc.moveDown(2);
+        // Company details below the line
+        doc.fontSize(8)
+           .font('Helvetica')
+           .fillColor('#64748B')
+           .text('GIDI GAMES PUBLISHING LIMITED', rightX, 115, { align: 'right', width: 145 })
+           .text('MAGODO, LAGOS', rightX, 127, { align: 'right', width: 145 });
+        
+        doc.y = 145;
     }
 
     addInvoiceHeader(doc, order) {
-        const startY = 145;
-        
-        // Invoice details (no title since it's in the header now)
-        const rightX = 380;
-        doc.fontSize(10)
-           .font('Helvetica-Bold')
-           .fillColor('#64748B')
-           .text('Invoice Number:', rightX, startY, { width: 80 });
-        doc.font('Helvetica')
-           .fillColor('#1E293B')
-           .text(`#${order.orderNumber || order._id.toString().slice(-6).toUpperCase()}`, rightX + 85, startY);
-        
-        doc.font('Helvetica-Bold')
-           .fillColor('#64748B')
-           .text('Invoice Date:', rightX, startY + 15, { width: 80 });
-        doc.font('Helvetica')
-           .fillColor('#1E293B')
-           .text(new Date(order.createdAt).toLocaleDateString('en-US', {
-               year: 'numeric',
-               month: 'short',
-               day: 'numeric'
-           }), rightX + 85, startY + 15);
-        
-        doc.font('Helvetica-Bold')
-           .fillColor('#64748B')
-           .text('Status:', rightX, startY + 30, { width: 80 });
-        const statusColor = order.status === 'CONFIRMED' ? '#10B981' : 
-                           order.status === 'CANCELLED' ? '#EF4444' : '#F59E0B';
-        doc.font('Helvetica-Bold')
-           .fillColor(statusColor)
-           .text(order.status, rightX + 85, startY + 30);
-        
-        doc.y = startY + 60;
+        // Remove this method as we're simplifying the layout
+        // Date and customer info will be in addCustomerInfo
     }
 
     addCustomerInfo(doc, order) {
         const startY = doc.y;
         
-        // Bill To section
+        // Date on the left (current date when generated)
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor('#1E293B')
+           .text(new Date().toLocaleDateString('en-US', {
+               month: 'numeric',
+               day: 'numeric',
+               year: 'numeric'
+           }), 50, startY);
+        
+        doc.moveDown(1);
+        
+        // Customer Name (Bold)
         doc.fontSize(11)
            .font('Helvetica-Bold')
            .fillColor('#1E293B')
-           .text('BILL TO:', 50, startY);
+           .text(order.customer?.name || 'N/A', 50, doc.y);
         
+        // Bank details on the right (on same line as date)
+        const rightX = 400;
         doc.fontSize(10)
-           .font('Helvetica')
-           .fillColor('#1E293B');
+           .font('Helvetica-Bold')
+           .fillColor('#1E293B')
+           .text('WEMA BANK: 0125399850', rightX, startY, { align: 'right', width: 145 });
         
-        let currentY = startY + 20;
-        
-        // Customer Name
-        doc.font('Helvetica-Bold')
-           .text(order.customer?.name || 'N/A', 50, currentY);
-        currentY += 15;
-        
-        // Address
-        doc.font('Helvetica')
-           .fillColor('#475569')
-           .text(order.customer?.address || 'N/A', 50, currentY, { width: 250 });
-        currentY = doc.y + 5;
-        
-        // Phone
-        if (order.customer?.phone) {
-            doc.text(`Phone: ${order.customer.phone}`, 50, currentY);
-            currentY = doc.y + 5;
-        }
-        
-        // Email
-        if (order.customer?.email) {
-            doc.fillColor('#4880FF')
-               .text(`Email: ${order.customer.email}`, 50, currentY);
-            currentY = doc.y;
-        }
-        
-        // Ship To / Order Info (right side)
-      //   const rightX = 320;
-      //   doc.fontSize(11)
-      //      .font('Helvetica-Bold')
-      //      .fillColor('#1E293B')
-      //      .text('ORDER INFORMATION:', rightX, startY);
-        
-      //   doc.fontSize(10)
-      //      .font('Helvetica');
-        
-      //   let rightY = startY + 20;
-        
-      //   doc.fillColor('#64748B')
-      //      .text('Warehouse:', rightX, rightY);
-      //   doc.fillColor('#1E293B')
-      //      .text(order.warehouse?.name || 'N/A', rightX + 70, rightY);
-      //   rightY += 15;
-        
-      //   doc.fillColor('#64748B')
-      //      .text('Region:', rightX, rightY);
-      //   doc.fillColor('#1E293B')
-      //      .text(order.region?.name || 'N/A', rightX + 70, rightY);
-      //   rightY += 15;
-        
-      //   doc.fillColor('#64748B')
-      //      .text('Order Type:', rightX, rightY);
-      //   doc.fillColor('#4880FF')
-      //      .font('Helvetica-Bold')
-      //      .text(order.orderType || 'RETAIL', rightX + 70, rightY);
-        
-        doc.y = Math.max(currentY, rightY) + 25;
+        doc.moveDown(2);
         
         // Horizontal line
         doc.moveTo(50, doc.y)
            .lineTo(545, doc.y)
-           .strokeColor('#E2E8F0')
+           .strokeColor('#1E293B')
+           .lineWidth(1)
            .stroke();
         
-        doc.moveDown(1);
+        doc.moveDown(0.5);
     }
 
     addItemsTable(doc, order) {
         const tableTop = doc.y;
-        const itemHeight = 25;
+        const itemHeight = 20;
         
-        // Table headers with background
-        doc.rect(50, tableTop, 495, 20)
-           .fillColor('#F1F5F9')
-           .fill();
-        
+        // Table headers
         doc.fontSize(9)
            .font('Helvetica-Bold')
            .fillColor('#1E293B');
         
-        doc.text('#', 55, tableTop + 6, { width: 20 });
-        doc.text('PRODUCT', 80, tableTop + 6);
-        doc.text('QTY', 300, tableTop + 6, { width: 80, align: 'right' });
-        doc.text('UNIT PRICE', 390, tableTop + 6, { width: 80, align: 'right' });
-        doc.text('AMOUNT', 480, tableTop + 6, { width: 60, align: 'right' });
+        doc.text('S/No.', 55, tableTop);
+        doc.text('DETAILS', 100, tableTop);
+        doc.text('QUANTITY', 350, tableTop, { width: 80, align: 'center' });
+        doc.text('UNIT PRICE', 430, tableTop, { width: 60, align: 'right' });
+        doc.text('LINE TOTAL', 490, tableTop, { width: 55, align: 'right' });
+        
+        // Line under headers
+        doc.moveTo(50, tableTop + 15)
+           .lineTo(545, tableTop + 15)
+           .strokeColor('#1E293B')
+           .lineWidth(1)
+           .stroke();
         
         // Items
-        let currentY = tableTop + 30;
-        doc.fillColor('#000000')
-           .font('Helvetica');
+        let currentY = tableTop + 25;
+        doc.fillColor('#1E293B')
+           .font('Helvetica')
+           .fontSize(9);
         
         order.items.forEach((item, index) => {
             const cartonSize = item.product?.cartonSize || 1;
@@ -297,13 +225,12 @@ class InvoiceService {
                 currentY = 50;
             }
             
-            // Item number
-            doc.fontSize(9)
-               .text(`${index + 1}`, 55, currentY, { width: 20 });
+            // S/No
+            doc.text(`${index + 1}`, 55, currentY);
             
             // Product name
-            const productName = (item.product?.name || 'Unknown').substring(0, 40);
-            doc.text(productName, 80, currentY, { width: 210 });
+            const productName = (item.product?.name || 'Unknown');
+            doc.text(productName, 100, currentY, { width: 240 });
             
             // Quantity
             let qtyText;
@@ -316,140 +243,66 @@ class InvoiceService {
                     qtyText = `${pieces} pcs`;
                 }
             } else {
-                qtyText = `${item.quantity} pcs`;
+                qtyText = `${item.quantity}`;
             }
-            doc.text(qtyText, 300, currentY, { width: 80, align: 'right' });
+            doc.text(qtyText, 350, currentY, { width: 80, align: 'center' });
             
             // Unit Price
-            doc.text(`NGN ${(item.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-                     390, currentY, { width: 80, align: 'right' });
+            doc.text(`N${(item.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
+                     430, currentY, { width: 60, align: 'right' });
             
-            // Subtotal
-            doc.text(`NGN ${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-                     480, currentY, { width: 60, align: 'right' });
+            // Line Total
+            doc.text(`N${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
+                     490, currentY, { width: 55, align: 'right' });
             
             currentY += itemHeight;
-            
-            // Light separator line
-            if (index < order.items.length - 1) {
-                doc.moveTo(50, currentY - 5)
-                   .lineTo(545, currentY - 5)
-                   .strokeColor('#F1F5F9')
-                   .stroke();
-            }
         });
         
         doc.y = currentY + 10;
     }
 
     addPaymentSummary(doc, order) {
-        // Line before summary
-        doc.moveTo(50, doc.y)
-           .lineTo(545, doc.y)
-           .strokeColor('#1E293B')
-           .lineWidth(1.5)
-           .stroke()
-           .lineWidth(1);
-        
-        doc.moveDown(0.5);
-        
-        const summaryX = 350;
-        const labelX = summaryX;
-        const valueX = 460;
+        // Move to bottom right for totals
+        const labelX = 400;
+        const valueX = 490;
         
         doc.fontSize(10)
-           .font('Helvetica');
-        
-        // Subtotal
-        const itemsSubtotal = order.items.reduce((acc, item) => acc + (item.quantity * (item.price || 0)), 0);
-        doc.fillColor('#64748B')
-           .text('Subtotal:', labelX, doc.y);
-        doc.fillColor('#1E293B')
-           .text(`NGN ${itemsSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-                 valueX, doc.y, { width: 85, align: 'right' });
-        
-        doc.moveDown(0.5);
-        
-        // Discount (if applicable)
-        if (order.discountAmount > 0) {
-            doc.fillColor('#EF4444')
-               .text('Discount:', labelX, doc.y);
-            doc.text(`-NGN ${order.discountAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-                     valueX, doc.y, { width: 85, align: 'right' });
-            
-            doc.moveDown(0.5);
-        }
-        
-        // Delivery Fee
-        if (order.deliveryFee > 0) {
-            doc.fillColor('#64748B')
-               .text('Delivery Fee:', labelX, doc.y);
-            doc.fillColor('#1E293B')
-               .text(`NGN ${order.deliveryFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-                     valueX, doc.y, { width: 85, align: 'right' });
-            
-            doc.moveDown(0.5);
-        }
-        
-        // Total line
-        doc.moveTo(350, doc.y)
-           .lineTo(545, doc.y)
-           .strokeColor('#1E293B')
-           .lineWidth(2)
-           .stroke()
-           .lineWidth(1);
-        
-        doc.moveDown(0.3);
-        
-        // Total Amount
-        doc.fontSize(12)
            .font('Helvetica-Bold')
-           .fillColor('#1E293B')
-           .text('TOTAL AMOUNT:', labelX, doc.y);
-        doc.fontSize(14)
-           .fillColor('#10B981')
-           .text(`NGN ${order.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-                 valueX, doc.y, { width: 85, align: 'right' });
+           .fillColor('#1E293B');
+        
+        // Net Total (label and value on same line)
+        const itemsSubtotal = order.items.reduce((acc, item) => acc + (item.quantity * (item.price || 0)), 0);
+        const currentY = doc.y;
+        doc.text('Net Total', labelX, currentY, { align: 'right', width: 80, continued: false });
+        doc.text(`N${itemsSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
+                 valueX, currentY, { width: 55, align: 'right' });
         
         doc.moveDown(1.5);
-    }
-
-    addPaymentTerms(doc) {
-        doc.fontSize(10)
+        
+        // Line before NAIRA TOTAL
+        doc.moveTo(400, doc.y)
+           .lineTo(545, doc.y)
+           .strokeColor('#1E293B')
+           .lineWidth(1)
+           .stroke();
+        
+        doc.moveDown(0.5);
+        
+        // NAIRA TOTAL (larger and bold, label and value on same line)
+        doc.fontSize(12)
            .font('Helvetica-Bold')
-           .fillColor('#1E293B')
-           .text('Payment Terms:', 50, doc.y);
+           .fillColor('#1E293B');
         
-        doc.moveDown(0.3);
-        
-        doc.fontSize(9)
-           .font('Helvetica')
-           .fillColor('#64748B')
-           .text('• Payment is due within 30 days of invoice date', 50, doc.y)
-           .text('• Please include invoice number with payment', 50, doc.y + 12)
-           .text('• Late payments may incur additional charges', 50, doc.y + 24);
+        const totalY = doc.y;
+        doc.text('NAIRA TOTAL', labelX, totalY, { align: 'right', width: 80, continued: false });
+        doc.text(`N${order.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
+                 valueX, totalY, { width: 55, align: 'right' });
         
         doc.moveDown(2);
     }
 
     addFooter(doc) {
-        const footerY = 720;
-        
-        doc.moveTo(50, footerY)
-           .lineTo(545, footerY)
-           .strokeColor('#E2E8F0')
-           .stroke();
-        
-        doc.fontSize(8)
-           .font('Helvetica')
-           .fillColor('#64748B')
-           .text('Thank you for your business!', 50, footerY + 10, { align: 'center' });
-        
-        doc.fontSize(7)
-           .text(`${this.companyInfo.name} | ${this.companyInfo.phone} | ${this.companyInfo.email}`, 
-                 50, footerY + 22, { align: 'center' });
-        
-        doc.text(`Generated on ${new Date().toLocaleString()}`, 50, footerY + 32, { align: 'center' });
+        // Simple footer - removed as per image
     }
 
     /**

@@ -277,13 +277,55 @@ exports.downloadReceipt = async (req, res, next) => {
             });
         }
 
-        // Check if receipt exists, if not generate it
-        if (!ReceiptService.receiptExists(order._id)) {
-            console.log(`[Receipt] Generating receipt for order ${order._id}`);
-            await ReceiptService.generateReceipt(order);
+        const forceRegenerate = req.query.regenerate === 'true';
+        console.log(`[Receipt] Download request - Order: ${order._id}, Regenerate: ${forceRegenerate}`);
+
+        // Always regenerate if requested
+        if (forceRegenerate) {
+            console.log(`[Receipt] Force regenerating receipt for order ${order._id}`);
+            
+            // Delete old receipt if it exists
+            if (ReceiptService.receiptExists(order._id)) {
+                console.log(`[Receipt] Deleting old receipt for order ${order._id}`);
+                ReceiptService.deleteReceipt(order._id);
+            }
+            
+            try {
+                console.log(`[Receipt] Generating new receipt with latest template`);
+                await ReceiptService.generateReceipt(order);
+            } catch (genError) {
+                console.error('[Receipt] Generation failed:', genError);
+                return res.status(500).json({
+                    success: false,
+                    message: 'Failed to generate receipt: ' + genError.message,
+                });
+            }
+        } else if (!ReceiptService.receiptExists(order._id)) {
+            // Only generate if doesn't exist and not forcing regenerate
+            console.log(`[Receipt] Generating receipt for order ${order._id} (doesn't exist)`);
+            try {
+                await ReceiptService.generateReceipt(order);
+            } catch (genError) {
+                console.error('[Receipt] Generation failed:', genError);
+                return res.status(500).json({
+                    success: false,
+                    message: 'Failed to generate receipt: ' + genError.message,
+                });
+            }
+        } else {
+            console.log(`[Receipt] Using existing receipt for order ${order._id}`);
         }
 
         const receiptPath = ReceiptService.getReceiptPath(order._id);
+        
+        // Verify file exists before streaming
+        if (!require('fs').existsSync(receiptPath)) {
+            return res.status(500).json({
+                success: false,
+                message: 'Receipt file not found after generation',
+            });
+        }
+
         const fileName = `receipt-order-${order.orderNumber || order._id.toString().slice(-6).toUpperCase()}.pdf`;
 
         // Set headers for download
@@ -292,19 +334,24 @@ exports.downloadReceipt = async (req, res, next) => {
 
         // Stream the file
         const fileStream = require('fs').createReadStream(receiptPath);
-        fileStream.pipe(res);
-
+        
         fileStream.on('error', (err) => {
-            console.error('[Receipt] Download error:', err);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to download receipt',
-            });
+            console.error('[Receipt] Stream error:', err);
+            if (!res.headersSent) {
+                res.status(500).json({
+                    success: false,
+                    message: 'Failed to stream receipt',
+                });
+            }
         });
+
+        fileStream.pipe(res);
 
     } catch (error) {
         console.error('[Receipt] Error:', error);
-        next(error);
+        if (!res.headersSent) {
+            next(error);
+        }
     }
 };
 
@@ -326,13 +373,55 @@ exports.downloadInvoice = async (req, res, next) => {
             });
         }
 
-        // Check if invoice exists, if not generate it
-        if (!InvoiceService.invoiceExists(order._id)) {
-            console.log(`[Invoice] Generating invoice for order ${order._id}`);
-            await InvoiceService.generateInvoice(order);
+        const forceRegenerate = req.query.regenerate === 'true';
+        console.log(`[Invoice] Download request - Order: ${order._id}, Regenerate: ${forceRegenerate}`);
+
+        // Always regenerate if requested
+        if (forceRegenerate) {
+            console.log(`[Invoice] Force regenerating invoice for order ${order._id}`);
+            
+            // Delete old invoice if it exists
+            if (InvoiceService.invoiceExists(order._id)) {
+                console.log(`[Invoice] Deleting old invoice for order ${order._id}`);
+                InvoiceService.deleteInvoice(order._id);
+            }
+            
+            try {
+                console.log(`[Invoice] Generating new invoice with latest template`);
+                await InvoiceService.generateInvoice(order);
+            } catch (genError) {
+                console.error('[Invoice] Generation failed:', genError);
+                return res.status(500).json({
+                    success: false,
+                    message: 'Failed to generate invoice: ' + genError.message,
+                });
+            }
+        } else if (!InvoiceService.invoiceExists(order._id)) {
+            // Only generate if doesn't exist and not forcing regenerate
+            console.log(`[Invoice] Generating invoice for order ${order._id} (doesn't exist)`);
+            try {
+                await InvoiceService.generateInvoice(order);
+            } catch (genError) {
+                console.error('[Invoice] Generation failed:', genError);
+                return res.status(500).json({
+                    success: false,
+                    message: 'Failed to generate invoice: ' + genError.message,
+                });
+            }
+        } else {
+            console.log(`[Invoice] Using existing invoice for order ${order._id}`);
         }
 
         const invoicePath = InvoiceService.getInvoicePath(order._id);
+        
+        // Verify file exists before streaming
+        if (!require('fs').existsSync(invoicePath)) {
+            return res.status(500).json({
+                success: false,
+                message: 'Invoice file not found after generation',
+            });
+        }
+
         const fileName = `invoice-order-${order.orderNumber || order._id.toString().slice(-6).toUpperCase()}.pdf`;
 
         // Set headers for download
@@ -341,18 +430,23 @@ exports.downloadInvoice = async (req, res, next) => {
 
         // Stream the file
         const fileStream = require('fs').createReadStream(invoicePath);
-        fileStream.pipe(res);
-
+        
         fileStream.on('error', (err) => {
-            console.error('[Invoice] Download error:', err);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to download invoice',
-            });
+            console.error('[Invoice] Stream error:', err);
+            if (!res.headersSent) {
+                res.status(500).json({
+                    success: false,
+                    message: 'Failed to stream invoice',
+                });
+            }
         });
+
+        fileStream.pipe(res);
 
     } catch (error) {
         console.error('[Invoice] Error:', error);
-        next(error);
+        if (!res.headersSent) {
+            next(error);
+        }
     }
 };

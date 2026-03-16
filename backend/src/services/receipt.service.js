@@ -164,11 +164,11 @@ class ReceiptService {
         // Status Badge
         const statusColor = order.status === 'CONFIRMED' ? '#10B981' : 
                            order.status === 'CANCELLED' ? '#EF4444' : '#F59E0B';
-        doc.fontSize(10)
-           .font('Helvetica-Bold')
-           .fillColor(statusColor)
-           .text(`${order.status}`, rightColumnX, startY + 55, { align: 'right', width: rightColumnWidth })
-           .fillColor('#000000');
+        // doc.fontSize(10)
+        //    .font('Helvetica-Bold')
+        //    .fillColor(statusColor)
+        //    .text(`${order.status}`, rightColumnX, startY + 55, { align: 'right', width: rightColumnWidth })
+        //    .fillColor('#000000');
         
         // Move down past both columns
         doc.y = 125;
@@ -193,10 +193,12 @@ class ReceiptService {
         // Left column - Customer Info
         doc.fontSize(11)
            .font('Helvetica-Bold')
+           .fillColor('#000000')
            .text('CUSTOMER INFORMATION', leftColumnX, startY);
         
         doc.fontSize(10)
-           .font('Helvetica');
+           .font('Helvetica')
+           .fillColor('#000000');
         
         let leftY = startY + 20;
         
@@ -251,6 +253,7 @@ class ReceiptService {
     addOrderDetails(doc, order) {
         doc.fontSize(11)
            .font('Helvetica-Bold')
+           .fillColor('#000000')
            .text('ORDER ITEMS', 50);
         
         doc.moveDown(0.5);

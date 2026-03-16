@@ -15,6 +15,7 @@ const Analytics = () => {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('overview');
     const [stockFilter, setStockFilter] = useState('all');
+    const [warehouseFilter, setWarehouseFilter] = useState('all');
     const [burnRateFilter, setBurnRateFilter] = useState('all');
 
     useEffect(() => {
@@ -25,7 +26,13 @@ const Analytics = () => {
     if (!data) return <div className="page-container"><div className="text-center">Failed to load data</div></div>;
 
     const { topProducts, regionalPerformance, dispatchTrends, summary, lowStockProducts = [], aggregatedLowStock = [], burnRateData = [] } = data;
-    const filteredLowStock = lowStockProducts.filter(item => { if (stockFilter === 'critical') return item.quantity < 50; if (stockFilter === 'low') return item.quantity >= 50 && item.quantity < 150; return true; });
+    const warehouseOptions = ['all', ...Array.from(new Set(lowStockProducts.map(item => item.warehouse).filter(Boolean))).sort()];
+
+    const filteredLowStock = lowStockProducts.filter(item => {
+        const matchesStock = stockFilter === 'all' || (stockFilter === 'critical' ? item.quantity < 50 : item.quantity >= 50 && item.quantity < 150);
+        const matchesWarehouse = warehouseFilter === 'all' || item.warehouse === warehouseFilter;
+        return matchesStock && matchesWarehouse;
+    });
     const criticalCount = lowStockProducts.filter(item => item.quantity < 50).length;
     const lowCount = lowStockProducts.filter(item => item.quantity >= 50 && item.quantity < 150).length;
 
@@ -441,6 +448,15 @@ const Analytics = () => {
                                     </button>
                                 ))}
                             </div>
+                            <select
+                                value={warehouseFilter}
+                                onChange={e => setWarehouseFilter(e.target.value)}
+                                style={{ padding: '0.5rem 0.75rem', border: warehouseFilter !== 'all' ? '2px solid #4880FF' : '1px solid #E2E8F0', borderRadius: '6px', fontSize: '0.875rem', color: warehouseFilter !== 'all' ? '#4880FF' : '#64748B', fontWeight: warehouseFilter !== 'all' ? 600 : 500, background: warehouseFilter !== 'all' ? '#F0F4FF' : '#fff', cursor: 'pointer', outline: 'none' }}
+                            >
+                                {warehouseOptions.map(w => (
+                                    <option key={w} value={w}>{w === 'all' ? 'All Warehouses' : w}</option>
+                                ))}
+                            </select>
                         </div>
                         {filteredLowStock.length > 0 && (
                             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>

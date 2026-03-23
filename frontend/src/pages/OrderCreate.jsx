@@ -248,7 +248,7 @@ const OrderCreate = () => {
     const [deliveryFee, setDeliveryFee] = useState(0); // Delivery fee
 
     const [formData, setFormData] = useState({
-        customer: { name: '', street: '', city: '', state: '', zip: '', phone: '', email: '' },
+        customer: { name: '', street: '', city: '', state: '', zip: '', country: 'Nigeria', phone: '', email: '' },
         region: '',
         warehouse: '',
         items: [], // { type: 'PRODUCT'|'BUNDLE', product/bundle, cartonQty, pieceQty, bundleQty, price, discount }
@@ -329,6 +329,7 @@ const OrderCreate = () => {
                 city: city,
                 state: state,
                 zip: zip,
+                country: template.customer.country || 'Nigeria',
                 phone: template.customer.phone || '',
                 email: template.customer.email || '',
             },
@@ -479,7 +480,8 @@ const OrderCreate = () => {
                 : `${formData.customer.street}, ${formData.customer.city}, ${formData.customer.state}`;
             const customerData = {
                 ...formData.customer,
-                address: combinedAddress
+                address: combinedAddress,
+                country: formData.customer.country || 'Nigeria',
             };
 
             // Save Template if requested
@@ -808,6 +810,38 @@ const OrderCreate = () => {
                                 value={formData.customer.zip}
                                 onChange={e => setFormData({ ...formData, customer: { ...formData.customer, zip: e.target.value } })}
                             />
+                        </div>
+                    </div>
+
+                    <div className="form-row">
+                        <div className="form-group">
+                            <label>Country</label>
+                            <select
+                                value={formData.customer.country}
+                                onChange={e => setFormData({ ...formData, customer: { ...formData.customer, country: e.target.value } })}
+                            >
+                                {[
+                                    'Nigeria','Afghanistan','Albania','Algeria','Andorra','Angola','Argentina','Armenia','Australia','Austria',
+                                    'Azerbaijan','Bahamas','Bahrain','Bangladesh','Belarus','Belgium','Belize','Benin','Bhutan','Bolivia',
+                                    'Bosnia and Herzegovina','Botswana','Brazil','Brunei','Bulgaria','Burkina Faso','Burundi','Cambodia',
+                                    'Cameroon','Canada','Cape Verde','Central African Republic','Chad','Chile','China','Colombia','Comoros',
+                                    'Congo','Costa Rica','Croatia','Cuba','Cyprus','Czech Republic','Denmark','Djibouti','Dominican Republic',
+                                    'Ecuador','Egypt','El Salvador','Equatorial Guinea','Eritrea','Estonia','Eswatini','Ethiopia','Fiji',
+                                    'Finland','France','Gabon','Gambia','Georgia','Germany','Ghana','Greece','Guatemala','Guinea',
+                                    'Guinea-Bissau','Guyana','Haiti','Honduras','Hungary','Iceland','India','Indonesia','Iran','Iraq',
+                                    'Ireland','Israel','Italy','Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kuwait','Kyrgyzstan','Laos',
+                                    'Latvia','Lebanon','Lesotho','Liberia','Libya','Liechtenstein','Lithuania','Luxembourg','Madagascar',
+                                    'Malawi','Malaysia','Maldives','Mali','Malta','Mauritania','Mauritius','Mexico','Moldova','Monaco',
+                                    'Mongolia','Montenegro','Morocco','Mozambique','Myanmar','Namibia','Nepal','Netherlands','New Zealand',
+                                    'Nicaragua','Niger','North Korea','North Macedonia','Norway','Oman','Pakistan','Palestine','Panama',
+                                    'Papua New Guinea','Paraguay','Peru','Philippines','Poland','Portugal','Qatar','Romania','Russia',
+                                    'Rwanda','Saudi Arabia','Senegal','Serbia','Sierra Leone','Singapore','Slovakia','Slovenia','Somalia',
+                                    'South Africa','South Korea','South Sudan','Spain','Sri Lanka','Sudan','Suriname','Sweden','Switzerland',
+                                    'Syria','Taiwan','Tajikistan','Tanzania','Thailand','Togo','Trinidad and Tobago','Tunisia','Turkey',
+                                    'Turkmenistan','Uganda','Ukraine','United Arab Emirates','United Kingdom','United States','Uruguay',
+                                    'Uzbekistan','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe',
+                                ].map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
                         </div>
                     </div>
 

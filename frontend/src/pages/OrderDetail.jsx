@@ -396,6 +396,10 @@ ${itemsList}
                                 <div style={{ fontSize: '0.75rem', color: '#64748B', marginBottom: '0.25rem' }}>Email</div>
                                 <div style={{ fontSize: '0.9rem', color: '#4880FF', fontWeight: 500 }}>{order.customer?.email || 'N/A'}</div>
                             </div>
+                            <div>
+                                <div style={{ fontSize: '0.75rem', color: '#64748B', marginBottom: '0.25rem' }}>Country</div>
+                                <div style={{ fontSize: '0.9rem', color: '#1E293B', fontWeight: 500 }}>{order.customer?.country || 'Nigeria'}</div>
+                            </div>
                         </div>
                     </div>
 

@@ -314,7 +314,17 @@ exports.downloadReceipt = async (req, res, next) => {
                 });
             }
         } else {
-            console.log(`[Receipt] Using existing receipt for order ${order._id}`);
+            // Regenerate to pick up latest template changes (country, layout, etc.)
+            console.log(`[Receipt] Regenerating receipt for order ${order._id} (latest template)`);
+            try {
+                await ReceiptService.generateReceipt(order);
+            } catch (genError) {
+                console.error('[Receipt] Generation failed:', genError);
+                return res.status(500).json({
+                    success: false,
+                    message: 'Failed to generate receipt: ' + genError.message,
+                });
+            }
         }
 
         const receiptPath = ReceiptService.getReceiptPath(order._id);
@@ -398,7 +408,6 @@ exports.downloadInvoice = async (req, res, next) => {
                 });
             }
         } else if (!InvoiceService.invoiceExists(order._id)) {
-            // Only generate if doesn't exist and not forcing regenerate
             console.log(`[Invoice] Generating invoice for order ${order._id} (doesn't exist)`);
             try {
                 await InvoiceService.generateInvoice(order);
@@ -410,7 +419,17 @@ exports.downloadInvoice = async (req, res, next) => {
                 });
             }
         } else {
-            console.log(`[Invoice] Using existing invoice for order ${order._id}`);
+            // Always regenerate to pick up latest template changes
+            console.log(`[Invoice] Regenerating invoice for order ${order._id} (latest template)`);
+            try {
+                await InvoiceService.generateInvoice(order);
+            } catch (genError) {
+                console.error('[Invoice] Generation failed:', genError);
+                return res.status(500).json({
+                    success: false,
+                    message: 'Failed to generate invoice: ' + genError.message,
+                });
+            }
         }
 
         const invoicePath = InvoiceService.getInvoicePath(order._id);

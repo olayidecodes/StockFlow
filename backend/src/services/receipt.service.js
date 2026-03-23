@@ -217,6 +217,10 @@ class ReceiptService {
         
         // Email
         doc.text(`Email: ${order.customer?.email || 'N/A'}`, leftColumnX, leftY, { width: columnWidth });
+        leftY = doc.y + 5;
+
+        // Country
+        doc.text(`Country: ${order.customer?.country || 'Nigeria'}`, leftColumnX, leftY, { width: columnWidth });
         leftY = doc.y;
         
         // Right column - Order Info
@@ -366,19 +370,21 @@ class ReceiptService {
         
         // Subtotal (if discount or delivery fee exists)
         if (order.discountAmount > 0 || order.deliveryFee > 0) {
-            doc.text('Subtotal:', summaryX, doc.y);
+            const rowY = doc.y;
+            doc.text('Subtotal:', summaryX, rowY);
             doc.text(`NGN ${itemsSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-                     valueX, doc.y, { width: 85, align: 'right' });
+                     valueX, rowY, { width: 85, align: 'right' });
             
             doc.moveDown(0.5);
         }
         
         // Discount
         if (order.discountAmount > 0) {
+            const rowY = doc.y;
             doc.fillColor('#EF4444')
-               .text('Discount:', summaryX, doc.y);
+               .text('Discount:', summaryX, rowY);
             doc.text(`-NGN ${order.discountAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-                     valueX, doc.y, { width: 85, align: 'right' })
+                     valueX, rowY, { width: 85, align: 'right' })
                .fillColor('#000000');
             
             doc.moveDown(0.5);
@@ -386,9 +392,10 @@ class ReceiptService {
         
         // Delivery Fee
         if (order.deliveryFee > 0) {
-            doc.text('Delivery Fee:', summaryX, doc.y);
+            const rowY = doc.y;
+            doc.text('Delivery Fee:', summaryX, rowY);
             doc.text(`NGN ${order.deliveryFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-                     valueX, doc.y, { width: 85, align: 'right' });
+                     valueX, rowY, { width: 85, align: 'right' });
             
             doc.moveDown(0.5);
         }
@@ -404,12 +411,13 @@ class ReceiptService {
         doc.moveDown(0.3);
         
         // Total Amount
+        const totalY = doc.y;
         doc.fontSize(12)
            .font('Helvetica-Bold')
-           .text('TOTAL AMOUNT:', summaryX, doc.y);
+           .text('TOTAL AMOUNT:', summaryX, totalY);
         doc.fillColor('#4880FF')
            .text(`NGN ${order.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-                 valueX, doc.y, { width: 85, align: 'right' })
+                 valueX, totalY, { width: 85, align: 'right' })
            .fillColor('#000000');
         
         doc.moveDown(1);

@@ -12,6 +12,7 @@ const orderSchema = new mongoose.Schema(
             address: { type: String, required: true },
             phone: { type: String },
             email: { type: String },
+            country: { type: String, default: 'Nigeria' },
         },
         region: {
             type: mongoose.Schema.ObjectId,

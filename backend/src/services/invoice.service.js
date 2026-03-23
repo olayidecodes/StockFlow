@@ -148,7 +148,7 @@ class InvoiceService {
     addCustomerInfo(doc, order) {
         const startY = doc.y;
         
-        // Date on the left (current date when generated)
+        // Date on the left
         doc.fontSize(10)
            .font('Helvetica')
            .fillColor('#1E293B')
@@ -160,13 +160,13 @@ class InvoiceService {
         
         doc.moveDown(1);
         
-        // Customer Name (Bold)
+        // Customer Name only (no address)
         doc.fontSize(11)
            .font('Helvetica-Bold')
            .fillColor('#1E293B')
            .text(order.customer?.name || 'N/A', 50, doc.y);
         
-        // Bank details on the right (on same line as date)
+        // Bank details on the right (aligned with date)
         const rightX = 400;
         doc.fontSize(10)
            .font('Helvetica-Bold')
@@ -188,17 +188,24 @@ class InvoiceService {
     addItemsTable(doc, order) {
         const tableTop = doc.y;
         const itemHeight = 20;
-        
+
+        // Column X positions
+        const colNo      = 55;
+        const colDetails = 100;
+        const colQty     = 320;
+        const colPrice   = 390;
+        const colTotal   = 475;
+
         // Table headers
         doc.fontSize(9)
            .font('Helvetica-Bold')
            .fillColor('#1E293B');
         
-        doc.text('S/No.', 55, tableTop);
-        doc.text('DETAILS', 100, tableTop);
-        doc.text('QUANTITY', 350, tableTop, { width: 80, align: 'center' });
-        doc.text('UNIT PRICE', 430, tableTop, { width: 60, align: 'right' });
-        doc.text('LINE TOTAL', 490, tableTop, { width: 55, align: 'right' });
+        doc.text('S/No.',      colNo,      tableTop);
+        doc.text('DETAILS',    colDetails, tableTop);
+        doc.text('QUANTITY',   colQty,     tableTop, { width: 65, align: 'center' });
+        doc.text('UNIT PRICE', colPrice,   tableTop, { width: 75, align: 'right' });
+        doc.text('LINE TOTAL', colTotal,   tableTop, { width: 70, align: 'right' });
         
         // Line under headers
         doc.moveTo(50, tableTop + 15)
@@ -219,41 +226,27 @@ class InvoiceService {
             const pieces = item.quantity % cartonSize;
             const subtotal = item.quantity * (item.price || 0);
             
-            // Check if we need a new page
             if (currentY > 680) {
                 doc.addPage();
                 currentY = 50;
             }
             
-            // S/No
-            doc.text(`${index + 1}`, 55, currentY);
+            doc.text(`${index + 1}`, colNo, currentY);
+            doc.text(item.product?.name || 'Unknown', colDetails, currentY, { width: 210 });
             
-            // Product name
-            const productName = (item.product?.name || 'Unknown');
-            doc.text(productName, 100, currentY, { width: 240 });
-            
-            // Quantity
             let qtyText;
             if (cartonSize > 1) {
-                if (cartons > 0 && pieces > 0) {
-                    qtyText = `${cartons} ctn, ${pieces} pcs`;
-                } else if (cartons > 0) {
-                    qtyText = `${cartons} ctn`;
-                } else {
-                    qtyText = `${pieces} pcs`;
-                }
+                if (cartons > 0 && pieces > 0) qtyText = `${cartons} ctn, ${pieces} pcs`;
+                else if (cartons > 0) qtyText = `${cartons} ctn`;
+                else qtyText = `${pieces} pcs`;
             } else {
                 qtyText = `${item.quantity}`;
             }
-            doc.text(qtyText, 350, currentY, { width: 80, align: 'center' });
-            
-            // Unit Price
-            doc.text(`N${(item.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-                     430, currentY, { width: 60, align: 'right' });
-            
-            // Line Total
-            doc.text(`N${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-                     490, currentY, { width: 55, align: 'right' });
+            doc.text(qtyText, colQty, currentY, { width: 65, align: 'center' });
+            doc.text(`N${(item.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                     colPrice, currentY, { width: 75, align: 'right' });
+            doc.text(`N${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                     colTotal, currentY, { width: 70, align: 'right' });
             
             currentY += itemHeight;
         });
@@ -262,43 +255,44 @@ class InvoiceService {
     }
 
     addPaymentSummary(doc, order) {
-        // Move to bottom right for totals
-        const labelX = 400;
-        const valueX = 490;
-        
+        const labelX = 390;
+        const valueX  = 475;
+        const valueW  = 70;
+
         doc.fontSize(10)
            .font('Helvetica-Bold')
            .fillColor('#1E293B');
-        
-        // Net Total (label and value on same line)
+
         const itemsSubtotal = order.items.reduce((acc, item) => acc + (item.quantity * (item.price || 0)), 0);
-        const currentY = doc.y;
-        doc.text('Net Total', labelX, currentY, { align: 'right', width: 80, continued: false });
-        doc.text(`N${itemsSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-                 valueX, currentY, { width: 55, align: 'right' });
-        
-        doc.moveDown(1.5);
-        
-        // Line before NAIRA TOTAL
-        doc.moveTo(400, doc.y)
+
+        // Net Total — pin both label and value to the same Y
+        const netY = doc.y;
+        doc.text('Net Total', labelX, netY);
+        doc.text(`N${itemsSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                 valueX, netY, { width: valueW, align: 'right' });
+
+        doc.y = netY + 20;
+
+        // Separator line
+        doc.moveTo(390, doc.y)
            .lineTo(545, doc.y)
            .strokeColor('#1E293B')
            .lineWidth(1)
            .stroke();
-        
-        doc.moveDown(0.5);
-        
-        // NAIRA TOTAL (larger and bold, label and value on same line)
+
+        doc.y = doc.y + 8;
+
+        // NAIRA TOTAL
         doc.fontSize(12)
            .font('Helvetica-Bold')
            .fillColor('#1E293B');
-        
+
         const totalY = doc.y;
-        doc.text('NAIRA TOTAL', labelX, totalY, { align: 'right', width: 80, continued: false });
-        doc.text(`N${order.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-                 valueX, totalY, { width: 55, align: 'right' });
-        
-        doc.moveDown(2);
+        doc.text('NAIRA TOTAL', labelX, totalY);
+        doc.text(`N${order.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                 valueX, totalY, { width: valueW, align: 'right' });
+
+        doc.y = totalY + 24;
     }
 
     addFooter(doc) {

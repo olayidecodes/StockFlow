@@ -19,6 +19,11 @@ import Orders from './pages/Orders';
 import OrderCreate from './pages/OrderCreate';
 import OrderDetail from './pages/OrderDetail';
 
+import SORDashboard from './pages/sor/SORDashboard';
+import SORCustomers from './pages/sor/SORCustomers';
+import SORCustomerDetail from './pages/sor/SORCustomerDetail';
+import SOROrderCreate from './pages/sor/SOROrderCreate';
+
 import Analytics from './pages/Analytics';
 import CustomerAnalytics from './pages/CustomerAnalytics';
 import Financials from './pages/Financials';
@@ -159,6 +164,40 @@ function App() {
                       } 
                     />
                     
+                    {/* SOR - Sales, Inventory Manager, Admin */}
+                    <Route 
+                      path="/sor/dashboard" 
+                      element={
+                        <RoleRoute allowedRoles={[ROLES.SALES, ROLES.INVENTORY_MANAGER, ROLES.ADMIN]}>
+                          <SORDashboard />
+                        </RoleRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/sor/customers" 
+                      element={
+                        <RoleRoute allowedRoles={[ROLES.SALES, ROLES.INVENTORY_MANAGER, ROLES.ADMIN]}>
+                          <SORCustomers />
+                        </RoleRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/sor/customers/:id" 
+                      element={
+                        <RoleRoute allowedRoles={[ROLES.SALES, ROLES.INVENTORY_MANAGER, ROLES.ADMIN]}>
+                          <SORCustomerDetail />
+                        </RoleRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/sor/orders/new" 
+                      element={
+                        <RoleRoute allowedRoles={[ROLES.SALES, ROLES.INVENTORY_MANAGER, ROLES.ADMIN]}>
+                          <SOROrderCreate />
+                        </RoleRoute>
+                      } 
+                    />
+
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   </Routes>
                 </Layout>

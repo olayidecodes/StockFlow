@@ -7,7 +7,7 @@ import { ROLES } from '../utils/constants';
 import {
     FiHome, FiShoppingCart, FiPackage, FiBarChart2, FiUsers,
     FiMapPin, FiLayers, FiBox, FiTag, FiGrid, FiTrendingUp, FiUserCheck, FiDollarSign, FiLogOut,
-    FiMenu, FiChevronLeft, FiChevronRight, FiX
+    FiMenu, FiChevronLeft, FiChevronRight, FiX, FiRepeat
 } from 'react-icons/fi';
 
 const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
@@ -73,6 +73,16 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
                     icon: <FiDollarSign />,
                     allowedRoles: [ROLES.ADMIN]
                 }
+            ]
+        },
+        {
+            label: 'Sales on Return',
+            icon: <FiRepeat />,
+            allowedRoles: [ROLES.ADMIN, ROLES.INVENTORY_MANAGER, ROLES.SALES],
+            subItems: [
+                { to: '/sor/dashboard', label: 'SOR Dashboard', icon: <FiRepeat /> },
+                { to: '/sor/customers', label: 'SOR Customers', icon: <FiUsers /> },
+                { to: '/sor/orders/new', label: 'New SOR Order', icon: <FiShoppingCart /> }
             ]
         },
         { 

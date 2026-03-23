@@ -19,6 +19,11 @@ const analyticsRoutes = require('./routes/analytics.routes');
 const financialsRoutes = require('./routes/financials.routes');
 const bundleRoutes = require('./routes/bundle.routes');
 const whatsappService = require('./services/whatsapp.service');
+const sorCustomerRoutes = require('./routes/sor.customer.routes');
+const sorTemplateRoutes = require('./routes/sor.template.routes');
+const sorOrderRoutes = require('./routes/sor.order.routes');
+const sorPaymentRoutes = require('./routes/sor.payment.routes');
+const sorDashboardRoutes = require('./routes/sor.dashboard.routes');
 
 // Connect to database
 connectDB();
@@ -46,6 +51,11 @@ app.use('/api/templates', templateRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/financials', financialsRoutes);
 app.use('/api/users', require('./routes/user.routes'));
+app.use('/api/sor/customers', sorCustomerRoutes);
+app.use('/api/sor/templates', sorTemplateRoutes);
+app.use('/api/sor/orders', sorOrderRoutes);
+app.use('/api/sor/payments', sorPaymentRoutes);
+app.use('/api/sor/dashboard', sorDashboardRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, useCallback, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiPlus, FiChevronUp, FiChevronDown, FiEye } from 'react-icons/fi';
 import api from '../utils/api';
@@ -13,17 +13,19 @@ const Orders = () => {
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState('');
     const [filterWarehouse, setFilterWarehouse] = useState('');
+    const [filterSOR, setFilterSOR] = useState('');
     const [warehouses, setWarehouses] = useState([]);
     const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
     const [expandedOrders, setExpandedOrders] = useState([]);
+    const [sorOrderIds, setSorOrderIds] = useState(new Set());
 
     useEffect(() => {
         fetchWarehouses();
+        api.get('/sor/orders').then((res) => {
+            const ids = new Set((res.data.data || []).map((so) => String(so.order?._id || so.order)));
+            setSorOrderIds(ids);
+        }).catch(() => {});
     }, []);
-
-    useEffect(() => {
-        fetchOrders();
-    }, [filterStatus, filterWarehouse]);
 
     const fetchWarehouses = async () => {
         try {
@@ -34,40 +36,33 @@ const Orders = () => {
         }
     };
 
-    const fetchOrders = async () => {
+    const fetchOrders = useCallback(async () => {
         setLoading(true);
         try {
             const params = new URLSearchParams();
             if (filterStatus) params.append('status', filterStatus);
             if (filterWarehouse) params.append('warehouseId', filterWarehouse);
+            if (filterSOR) params.append('isSOR', filterSOR);
             if (dateRange.startDate) params.append('startDate', dateRange.startDate);
             if (dateRange.endDate) params.append('endDate', dateRange.endDate);
-            
-            const query = params.toString() ? `?${params.toString()}` : '';
-            console.log('Fetching orders with query:', query);
-            console.log('Date range:', dateRange);
-            const res = await api.get(`/orders${query}`);
+            const res = await api.get(`/orders?${params.toString()}`);
             setOrders(res.data.data);
         } catch (err) {
             console.error('Failed to load orders', err);
         } finally {
             setLoading(false);
         }
-    };
+    }, [filterStatus, filterWarehouse, filterSOR, dateRange]);
 
-    const handleDateFilter = () => {
-        console.log('Applying date filter:', dateRange);
-        fetchOrders();
-    };
+    useEffect(() => { fetchOrders(); }, [fetchOrders]);
+
+    const handleDateFilter = () => { fetchOrders(); };
 
     const handleClearFilters = () => {
         setDateRange({ startDate: '', endDate: '' });
         setFilterStatus('');
         setFilterWarehouse('');
-        // Trigger fetch after state is cleared
-        setTimeout(() => {
-            fetchOrders();
-        }, 100);
+        setFilterSOR('');
     };
 
     const toggleOrderExpansion = (orderId, e) => {
@@ -153,6 +148,16 @@ const Orders = () => {
                 </select>
 
                 <select
+                    value={filterSOR}
+                    onChange={(e) => setFilterSOR(e.target.value)}
+                    className="filter-select"
+                >
+                    <option value="">All Order Types</option>
+                    <option value="true">SOR Orders</option>
+                    <option value="false">Regular Orders</option>
+                </select>
+
+                <select
                     value={filterWarehouse}
                     onChange={(e) => setFilterWarehouse(e.target.value)}
                     className="filter-select"
@@ -178,14 +183,14 @@ const Orders = () => {
                     style={{ padding: '8px', borderRadius: '6px', border: '1px solid #E2E8F0' }}
                     placeholder="End Date"
                 />
-                <button onClick={handleDateFilter} className="btn btn-primary" style={{ padding: '8px 16px' }}>
+                <button onClick={handleDateFilter} className="btn btn-primary" style={{ padding: '5px 10px', fontSize: '0.8rem' }}>
                     Apply
                 </button>
-                {(dateRange.startDate || dateRange.endDate || filterStatus || filterWarehouse) && (
+                {(dateRange.startDate || dateRange.endDate || filterStatus || filterWarehouse || filterSOR) && (
                     <button 
                         onClick={handleClearFilters} 
                         className="btn btn-secondary"
-                        style={{ padding: '8px 16px' }}
+                        style={{ padding: '5px 10px', fontSize: '0.8rem' }}
                     >
                         Clear All
                     </button>
@@ -215,7 +220,18 @@ const Orders = () => {
                                     <Fragment key={order._id}>
                                         <tr className="hover-row" onClick={() => navigate(`/orders/${order._id}`)}>
                                             <td className="font-mono text-sm">#{order.orderNumber || order._id.slice(-6).toUpperCase()}</td>
-                                            <td>{order.customer?.name}</td>
+                                            <td>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                    {order.customer?.name}
+                                                    {sorOrderIds.has(String(order._id)) && (
+                                                        <span style={{
+                                                            fontSize: '0.68rem', fontWeight: 700, padding: '1px 7px',
+                                                            borderRadius: '99px', background: '#EDE9FE', color: '#6D28D9',
+                                                            whiteSpace: 'nowrap',
+                                                        }}>SOR</span>
+                                                    )}
+                                                </div>
+                                            </td>
                                             <td>{order.warehouse?.name || 'N/A'}</td>
                                             <td>{new Date(order.createdAt).toLocaleDateString()}</td>
                                             <td>

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const { validationResult } = require('express-validator');
 const Order = require('../models/Order');
+const SOROrder = require('../models/SOROrder');
 const StockLedger = require('../models/StockLedger');
 const InventoryBalance = require('../models/InventoryBalance');
 const WhatsAppService = require('../services/whatsapp.service');
@@ -77,8 +78,7 @@ exports.createOrder = async (req, res, next) => {
 // @access  Private
 exports.getOrders = async (req, res, next) => {
     try {
-        const { status, warehouseId, startDate, endDate } = req.query;
-        console.log('Orders query params:', { status, warehouseId, startDate, endDate });
+        const { status, warehouseId, startDate, endDate, isSOR } = req.query;
         
         const query = {};
 
@@ -88,28 +88,29 @@ exports.getOrders = async (req, res, next) => {
         // Date range filtering
         if (startDate || endDate) {
             query.createdAt = {};
-            if (startDate) {
-                query.createdAt.$gte = new Date(startDate);
-                console.log('Start date filter:', query.createdAt.$gte);
-            }
+            if (startDate) query.createdAt.$gte = new Date(startDate);
             if (endDate) {
-                // Set to end of day
                 const endDateTime = new Date(endDate);
                 endDateTime.setHours(23, 59, 59, 999);
                 query.createdAt.$lte = endDateTime;
-                console.log('End date filter:', query.createdAt.$lte);
             }
         }
 
-        console.log('Final query:', JSON.stringify(query, null, 2));
+        // SOR filter — resolve which order IDs are linked to SOROrders
+        if (isSOR === 'true' || isSOR === 'false') {
+            const sorOrderIds = (await SOROrder.find({}, 'order').lean()).map((s) => s.order);
+            if (isSOR === 'true') {
+                query._id = { $in: sorOrderIds };
+            } else {
+                query._id = { $nin: sorOrderIds };
+            }
+        }
 
         const orders = await Order.find(query)
             .populate('warehouse', 'name')
             .populate('customer')
             .populate('items.product', 'name sku')
             .sort({ createdAt: -1 });
-
-        console.log(`Found ${orders.length} orders`);
 
         res.status(200).json({
             success: true,

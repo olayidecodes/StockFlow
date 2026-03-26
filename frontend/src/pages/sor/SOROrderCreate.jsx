@@ -143,6 +143,7 @@ const SOROrderCreate = () => {
                 product: item.product?._id || item.product,
                 quantity: item.quantity || 1,
                 price: product ? (orderType === 'WHOLESALE' ? (product.wholesaleCost || 0) : (product.price || 0)) : 0,
+                discount: 0,
             };
         });
 
@@ -158,7 +159,7 @@ const SOROrderCreate = () => {
     const addItem = () => {
         setFormData(prev => ({
             ...prev,
-            items: [...prev.items, { product: '', quantity: 1, price: 0 }],
+            items: [...prev.items, { product: '', quantity: 1, price: 0, discount: 0 }],
         }));
     };
 
@@ -174,6 +175,7 @@ const SOROrderCreate = () => {
                 const product = products.find(p => p._id === value);
                 if (product) {
                     items[idx].price = orderType === 'WHOLESALE' ? (product.wholesaleCost || 0) : (product.price || 0);
+                    items[idx].discount = 0;
                 }
             }
             return { ...prev, items };
@@ -187,13 +189,19 @@ const SOROrderCreate = () => {
             items: prev.items.map(item => {
                 const product = products.find(p => p._id === item.product);
                 if (!product) return item;
-                return { ...item, price: type === 'WHOLESALE' ? (product.wholesaleCost || 0) : (product.price || 0) };
+                return { ...item, price: type === 'WHOLESALE' ? (product.wholesaleCost || 0) : (product.price || 0), discount: 0 };
             }),
         }));
     };
 
     const calcSubtotal = () =>
-        formData.items.reduce((acc, item) => acc + (item.quantity || 0) * (item.price || 0), 0);
+        formData.items.reduce((acc, item) => {
+            const effectivePrice = Math.max(0, (item.price || 0) - (item.discount || 0));
+            return acc + (item.quantity || 0) * effectivePrice;
+        }, 0);
+
+    const calcItemDiscount = (item) => (item.discount || 0) * (item.quantity || 0);
+    const calcTotalItemDiscounts = () => formData.items.reduce((acc, item) => acc + calcItemDiscount(item), 0);
 
     const calcTotal = () => {
         const sub = calcSubtotal();
@@ -221,7 +229,11 @@ const SOROrderCreate = () => {
                 warehouse: formData.warehouse,
                 channel: formData.channel,
                 orderType,
-                items: formData.items.map(i => ({ product: i.product, quantity: i.quantity, price: i.price })),
+                items: formData.items.map(i => ({
+                    product: i.product,
+                    quantity: i.quantity,
+                    price: Math.max(0, (i.price || 0) - (i.discount || 0)), // effective price after per-item discount
+                })),
                 subtotal,
                 discountAmount: finalDiscountAmount,
                 discountType: finalDiscountType,
@@ -377,13 +389,28 @@ const SOROrderCreate = () => {
                                     <input type="number" value={item.price || ''} readOnly disabled style={{ background: '#f5f5f5', cursor: 'not-allowed' }} />
                                 </div>
                                 <div className="form-group" style={{ width: '120px', minWidth: '90px' }}>
+                                    <label>Discount/Unit <span style={{ fontSize: '10px', color: '#F59E0B', fontWeight: 600 }}>(₦ off)</span></label>
+                                    <input
+                                        type="number" min="0"
+                                        value={item.discount || ''}
+                                        onChange={e => updateItem(idx, 'discount', parseFloat(e.target.value) || 0)}
+                                        placeholder="0"
+                                        style={{ borderColor: item.discount > 0 ? '#F59E0B' : undefined }}
+                                    />
+                                </div>
+                                <div className="form-group" style={{ width: '130px', minWidth: '90px' }}>
                                     <label>Line Total</label>
-                                    <input type="text" value={formatCurrency((item.quantity || 0) * (item.price || 0))} readOnly disabled style={{ background: '#f5f5f5', cursor: 'not-allowed' }} />
+                                    <input type="text" value={formatCurrency((item.quantity || 0) * Math.max(0, (item.price || 0) - (item.discount || 0)))} readOnly disabled style={{ background: '#f5f5f5', cursor: 'not-allowed', color: item.discount > 0 ? '#10B981' : undefined }} />
                                 </div>
                                 <button type="button" onClick={() => removeItem(idx)} className="btn-icon delete" title="Remove item" style={{ marginBottom: '0.5rem' }}>
                                     <FiTrash2 />
                                 </button>
                             </div>
+                            {item.discount > 0 && (
+                                <div style={{ fontSize: '11px', color: '#92400E', marginTop: '4px', paddingLeft: '2px' }}>
+                                    Saving {formatCurrency(item.discount)} × {item.quantity} = {formatCurrency(calcItemDiscount(item))} on this item
+                                </div>
+                            )}
                         </div>
                     ))}
 
@@ -394,11 +421,16 @@ const SOROrderCreate = () => {
                     {/* Order summary */}
                     <div style={{ textAlign: 'right', marginTop: '1.5rem' }}>
                         <div style={{ fontSize: '0.95rem', color: '#64748B', marginBottom: '4px' }}>
-                            Subtotal: {formatCurrency(calcSubtotal())}
+                            Subtotal (before discounts): {formatCurrency(formData.items.reduce((acc, i) => acc + (i.quantity || 0) * (i.price || 0), 0))}
                         </div>
+                        {calcTotalItemDiscounts() > 0 && (
+                            <div style={{ fontSize: '0.95rem', color: '#F59E0B', marginBottom: '4px' }}>
+                                Item Discounts: -{formatCurrency(calcTotalItemDiscounts())}
+                            </div>
+                        )}
                         {applyDiscount && discountAmount > 0 && (
                             <div style={{ fontSize: '0.95rem', color: '#F59E0B', marginBottom: '4px' }}>
-                                Discount: -{formatCurrency(discountAmount)}
+                                Order Discount: -{formatCurrency(discountAmount)}
                             </div>
                         )}
                         {deliveryFee > 0 && (

@@ -401,7 +401,10 @@ const PaymentsPanel = ({ customerId, onPaymentRecorded }) => {
     const [submitting, setSubmitting] = useState(false);
     // orderedProducts: [{ _id, name, price }] — unique products from customer's orders, most recent price
     const [orderedProducts, setOrderedProducts] = useState([]);
+    // outstandingProducts: [{ _id, name, price, orderedQty, settledQty, outstandingQty }]
+    const [outstandingProducts, setOutstandingProducts] = useState([]);
     const [expandedPayment, setExpandedPayment] = useState(null);
+    const [outstandingRefresh, setOutstandingRefresh] = useState(0);
 
     // Overpayment confirmation dialog state
     const [confirmDialog, setConfirmDialog] = useState({ open: false, warning: '', pendingPayload: null });
@@ -417,64 +420,84 @@ const PaymentsPanel = ({ customerId, onPaymentRecorded }) => {
 
     useEffect(() => { fetchPayments(); }, [fetchPayments]);
 
-    // Derive ordered products from the customer's SOR orders (most recent price per product)
+    // Derive ordered products + outstanding units from orders and payments
     useEffect(() => {
-        api.get(`/sor/orders?customer=${customerId}`).then((res) => {
-            const sorOrders = res.data.data || [];
-            // Sort orders oldest→newest so later prices overwrite earlier ones
+        Promise.all([
+            api.get(`/sor/orders?customer=${customerId}`),
+            api.get(`/sor/payments?customer=${customerId}`),
+        ]).then(([ordersRes, paymentsRes]) => {
+            const sorOrders = ordersRes.data.data || [];
+            const allPayments = paymentsRes.data.data || [];
+
+            // Build ordered qty per product (sum across all orders)
             const sorted = [...sorOrders].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-            const map = new Map();
+            const productMap = new Map(); // pid → { _id, name, price, orderedQty }
             for (const so of sorted) {
                 for (const item of so.order?.items || []) {
-                    const pid = item.product?._id || item.product;
-                    if (pid) {
-                        map.set(String(pid), {
-                            _id: String(pid),
-                            name: item.product?.name || item.name || pid,
+                    const pid = String(item.product?._id || item.product);
+                    if (!pid) continue;
+                    const existing = productMap.get(pid);
+                    if (existing) {
+                        existing.orderedQty += item.quantity || 0;
+                        existing.price = item.price || existing.price; // keep most recent price
+                    } else {
+                        productMap.set(pid, {
+                            _id: pid,
+                            name: item.product?.name || pid,
                             price: item.price || 0,
+                            orderedQty: item.quantity || 0,
                         });
                     }
                 }
             }
-            setOrderedProducts([...map.values()]);
-        }).catch(() => {});
-    }, [customerId]);
 
-    // ── item helpers ──
-    const addItem = () => setForm((f) => ({ ...f, items: [...f.items, { ...emptyPaymentItem }] }));
-    const removeItem = (i) => setForm((f) => ({ ...f, items: f.items.filter((_, idx) => idx !== i) }));
-    // When product changes, auto-fill price from orderedProducts
-    const updateItem = (i, field, val) => {
-        if (field === 'product') {
-            const found = orderedProducts.find((p) => p._id === val);
-            setForm((f) => ({
+            // Build settled qty per product (sum across all payment items)
+            const settledMap = new Map(); // pid → settledQty
+            for (const p of allPayments) {
+                for (const it of p.items || []) {
+                    const pid = String(it.product?._id || it.product);
+                    if (!pid) continue;
+                    settledMap.set(pid, (settledMap.get(pid) || 0) + (it.quantity || 0));
+                }
+            }
+
+            // Compute outstanding
+            const outstanding = [...productMap.values()].map((p) => ({
+                ...p,
+                settledQty: settledMap.get(p._id) || 0,
+                outstandingQty: p.orderedQty - (settledMap.get(p._id) || 0),
+            })).filter((p) => p.outstandingQty > 0);
+
+            setOrderedProducts([...productMap.values()]);
+            setOutstandingProducts(outstanding);
+            // Auto-populate form items with all outstanding products (qty blank)
+            setForm(f => ({
                 ...f,
-                items: f.items.map((it, idx) =>
-                    idx === i ? { ...it, product: val, price: found ? found.price : '' } : it
-                ),
+                items: outstanding.map(p => ({ product: p._id, price: p.price, quantity: '' })),
             }));
-        } else {
-            setForm((f) => ({ ...f, items: f.items.map((it, idx) => idx === i ? { ...it, [field]: val } : it) }));
-        }
+        }).catch(() => {});
+    }, [customerId, outstandingRefresh]);
+
+    // Update qty for a specific row (identified by product id)
+    const updateQty = (pid, val) => {
+        setForm((f) => ({
+            ...f,
+            items: f.items.map((it) => it.product === pid ? { ...it, quantity: val } : it),
+        }));
     };
 
-    // Auto-compute amount from items when items exist
-    const computedAmount = form.items.length > 0
-        ? form.items.reduce((acc, it) => acc + (Number(it.price) || 0) * (Number(it.quantity) || 0), 0)
+    // Only rows with a qty entered count toward the total
+    const activeItems = form.items.filter(it => Number(it.quantity) > 0);
+    const computedAmount = activeItems.length > 0
+        ? activeItems.reduce((acc, it) => acc + (Number(it.price) || 0) * (Number(it.quantity) || 0), 0)
         : null;
 
     const validateForm = () => {
         const e = {};
-        const effectiveAmount = form.items.length > 0 ? computedAmount : Number(form.amount);
+        const effectiveAmount = activeItems.length > 0 ? computedAmount : Number(form.amount);
         if (!effectiveAmount || isNaN(effectiveAmount) || effectiveAmount <= 0)
-            e.amount = 'Amount must be greater than zero';
+            e.amount = 'Enter a payment amount or settle at least one product';
         if (!form.paymentDate) e.paymentDate = 'Payment date is required';
-        if (form.items.length > 0) {
-            for (const it of form.items) {
-                if (!it.product) { e.items = 'All items must have a product selected'; break; }
-                if (it.quantity === '' || Number(it.quantity) < 1) { e.items = 'All items must have a quantity of at least 1'; break; }
-            }
-        }
         return e;
     };
 
@@ -489,6 +512,7 @@ const PaymentsPanel = ({ customerId, onPaymentRecorded }) => {
             toast.success('Payment recorded');
             setForm(emptyPayment);
             fetchPayments();
+            setOutstandingRefresh(r => r + 1);
             if (onPaymentRecorded) onPaymentRecorded();
         } catch (err) {
             toast.error(err.response?.data?.message || 'Failed to record payment');
@@ -499,13 +523,13 @@ const PaymentsPanel = ({ customerId, onPaymentRecorded }) => {
         e.preventDefault();
         const errs = validateForm();
         if (Object.keys(errs).length) { setFormErr(errs); return; }
-        const effectiveAmount = form.items.length > 0 ? computedAmount : Number(form.amount);
+        const effectiveAmount = activeItems.length > 0 ? computedAmount : Number(form.amount);
         submitPayment({
             customer: customerId,
             amount: effectiveAmount,
             paymentDate: form.paymentDate,
             ...(form.referenceNote.trim() && { referenceNote: form.referenceNote.trim() }),
-            items: form.items.map((it) => ({
+            items: activeItems.map((it) => ({
                 product: it.product,
                 quantity: Number(it.quantity),
                 price: Number(it.price),
@@ -530,6 +554,31 @@ const PaymentsPanel = ({ customerId, onPaymentRecorded }) => {
 
     return (
         <div>
+            {/* Outstanding products summary */}
+            {/* {outstandingProducts.length > 0 && (
+                <div style={{ background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: '10px', padding: '1rem 1.25rem', marginBottom: '1.25rem' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <FiAlertTriangle size={13} /> Outstanding Products ({outstandingProducts.length} product{outstandingProducts.length !== 1 ? 's' : ''}, {outstandingProducts.reduce((a, p) => a + p.outstandingQty, 0).toLocaleString()} units total)
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.5rem' }}>
+                        {outstandingProducts.map((p) => (
+                            <div key={p._id} style={{ background: '#fff', border: '1px solid #FED7AA', borderRadius: '7px', padding: '0.6rem 0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                                <div>
+                                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1E293B' }}>{p.name}</div>
+                                    <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '1px' }}>
+                                        Ordered: {p.orderedQty.toLocaleString()} · Settled: {p.settledQty.toLocaleString()}
+                                    </div>
+                                </div>
+                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                    <div style={{ fontSize: '1rem', fontWeight: 800, color: '#EA580C' }}>{p.outstandingQty.toLocaleString()}</div>
+                                    <div style={{ fontSize: '0.7rem', color: '#94A3B8' }}>units left</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )} */}
+
             {/* Record payment form */}
             <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '1.25rem', marginBottom: '1.5rem' }}>
                 <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', fontWeight: 600, color: '#1E293B' }}>Record Payment</h3>
@@ -538,7 +587,7 @@ const PaymentsPanel = ({ customerId, onPaymentRecorded }) => {
                         <div className="form-group" style={{ margin: 0 }}>
                             <label>
                                 Amount (₦) <span style={{ color: '#DC2626' }}>*</span>
-                                {form.items.length > 0 && (
+                                {form.items.length > 0 && computedAmount !== null && (
                                     <span style={{ marginLeft: '0.5rem', fontSize: '0.78rem', color: '#10B981', fontWeight: 600 }}>
                                         (auto: {fmt(computedAmount)})
                                     </span>
@@ -546,11 +595,11 @@ const PaymentsPanel = ({ customerId, onPaymentRecorded }) => {
                             </label>
                             <input
                                 type="number" min="0.01" step="0.01"
-                                value={form.items.length > 0 ? computedAmount.toFixed(2) : form.amount}
-                                readOnly={form.items.length > 0}
+                                value={computedAmount !== null ? computedAmount.toFixed(2) : form.amount}
+                                readOnly={computedAmount !== null}
                                 onChange={(e) => { setForm((f) => ({ ...f, amount: e.target.value })); setFormErr((fe) => ({ ...fe, amount: undefined })); }}
                                 placeholder="0.00"
-                                style={{ ...(formErr.amount ? { borderColor: '#DC2626' } : {}), ...(form.items.length > 0 ? { background: '#F1F5F9', color: '#64748B' } : {}) }}
+                                style={{ ...(formErr.amount ? { borderColor: '#DC2626' } : {}), ...(computedAmount !== null ? { background: '#F1F5F9', color: '#64748B' } : {}) }}
                             />
                             {formErr.amount && <small style={{ color: '#DC2626' }}>{formErr.amount}</small>}
                         </div>
@@ -569,34 +618,79 @@ const PaymentsPanel = ({ customerId, onPaymentRecorded }) => {
                         </div>
                     </div>
 
-                    {/* Product settlement items */}
-                    <div className="form-group" style={{ marginTop: '1rem', marginBottom: 0 }}>
-                        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span>Products Settled <span style={{ color: '#94A3B8', fontSize: '0.78rem' }}>(optional)</span></span>
-                        </label>
-                        {form.items.map((item, i) => (
-                            <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 80px auto', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
-                                <select value={item.product} onChange={(e) => updateItem(i, 'product', e.target.value)}
-                                    style={formErr.items ? { borderColor: '#DC2626' } : {}}>
-                                    <option value="">Select product</option>
-                                    {orderedProducts.map((p) => (
-                                        <option key={p._id} value={p._id}>{p.name} — {fmt(p.price)}</option>
-                                    ))}
-                                </select>
-                                <input type="number" min={1} value={item.quantity}
-                                    onChange={(e) => updateItem(i, 'quantity', e.target.value)}
-                                    placeholder="Qty" />
-                                <button type="button" onClick={() => removeItem(i)}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#DC2626', padding: '4px' }}>
-                                    <FiX size={16} />
-                                </button>
+                    {/* Product settlement table */}
+                    <div style={{ marginTop: '1.25rem' }}>
+                        <div style={{ marginBottom: '0.6rem' }}>
+                            <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#1E293B' }}>
+                                Products Settled <span style={{ color: '#94A3B8', fontSize: '0.78rem', fontWeight: 400 }}>(enter qty to settle)</span>
+                            </span>
+                        </div>
+
+                        {form.items.length > 0 ? (
+                            <div className="table-container" style={{ marginBottom: '0.5rem' }}>
+                                <table className="data-table" style={{ fontSize: '0.85rem' }}>
+                                    <thead>
+                                        <tr>
+                                            <th>Product</th>
+                                            <th style={{ textAlign: 'right' }}>Unit Price</th>
+                                            <th style={{ textAlign: 'right' }}>Outstanding</th>
+                                            <th style={{ textAlign: 'right', width: '110px' }}>Settle Qty</th>
+                                            <th style={{ textAlign: 'right' }}>Line Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {form.items.map((item) => {
+                                            const outstanding = outstandingProducts.find(p => p._id === item.product);
+                                            const lineTotal = (Number(item.price) || 0) * (Number(item.quantity) || 0);
+                                            const isActive = Number(item.quantity) > 0;
+                                            return (
+                                                <tr key={item.product} style={{ background: isActive ? '#F0FDF4' : undefined }}>
+                                                    <td style={{ fontWeight: isActive ? 600 : 400 }}>
+                                                        {outstanding?.name || item.product}
+                                                    </td>
+                                                    <td style={{ textAlign: 'right', color: '#475569', whiteSpace: 'nowrap' }}>
+                                                        {item.price ? fmt(item.price) : '—'}
+                                                    </td>
+                                                    <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                                        <span style={{ fontWeight: 600, color: '#EA580C' }}>
+                                                            {outstanding?.outstandingQty.toLocaleString() ?? '—'} units
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <input
+                                                            type="number" min={0}
+                                                            value={item.quantity}
+                                                            onChange={(e) => updateQty(item.product, e.target.value)}
+                                                            placeholder="0"
+                                                            style={{ width: '100%', textAlign: 'right', background: isActive ? '#fff' : '#F8FAFC' }}
+                                                        />
+                                                    </td>
+                                                    <td style={{ textAlign: 'right', fontWeight: 600, color: lineTotal > 0 ? '#10B981' : '#94A3B8', whiteSpace: 'nowrap' }}>
+                                                        {lineTotal > 0 ? fmt(lineTotal) : '—'}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                    {activeItems.length > 0 && (
+                                        <tfoot>
+                                            <tr style={{ borderTop: '2px solid #E2E8F0' }}>
+                                                <td colSpan={3} style={{ textAlign: 'right', fontWeight: 600, fontSize: '0.88rem', color: '#1E293B' }}>
+                                                    Total ({activeItems.length} product{activeItems.length !== 1 ? 's' : ''}):
+                                                </td>
+                                                <td style={{ textAlign: 'right', fontWeight: 700, color: '#10B981', whiteSpace: 'nowrap' }}>{fmt(computedAmount)}</td>
+                                                <td></td>
+                                            </tr>
+                                        </tfoot>
+                                    )}
+                                </table>
                             </div>
-                        ))}
+                        ) : (
+                            <div style={{ textAlign: 'center', padding: '1.5rem', color: '#94A3B8', fontSize: '0.85rem', border: '1px dashed #E2E8F0', borderRadius: '8px' }}>
+                                No outstanding products to settle.
+                            </div>
+                        )}
                         {formErr.items && <small style={{ color: '#DC2626', display: 'block', marginBottom: '0.25rem' }}>{formErr.items}</small>}
-                        <button type="button" onClick={addItem}
-                            style={{ background: 'none', border: '1px dashed #CBD5E1', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', color: '#4880FF', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                            <FiPlus size={13} /> Add Product
-                        </button>
                     </div>
 
                     <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>

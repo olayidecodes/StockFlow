@@ -298,23 +298,69 @@ exports.getBalance = async (req, res, next) => {
 // @access  Private (View Inventory)
 exports.getLedger = async (req, res, next) => {
     try {
-        const { warehouseId, productId } = req.query;
+        const { warehouseId, productId, type, startDate, endDate, search, page = 1, limit = 50 } = req.query;
         const query = {};
 
         if (warehouseId) query.warehouse = warehouseId;
         if (productId) query.product = productId;
+        if (type) query.type = type;
+        if (search) query.reference = { $regex: search, $options: 'i' };
+
+        if (startDate || endDate) {
+            query.createdAt = {};
+            if (startDate) query.createdAt.$gte = new Date(startDate);
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                query.createdAt.$lte = end;
+            }
+        }
+
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+        const total = await StockLedger.countDocuments(query);
 
         const ledger = await StockLedger.find(query)
-            .populate('product', 'name sku')
+            .populate('product', 'name sku wholesaleCost price')
             .populate('warehouse', 'name')
-            .populate('performedBy', 'email')
+            .populate('performedBy', 'email name')
             .sort({ createdAt: -1 })
-            .limit(100); // Limit to last 100 entries for safety
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        // Compute total inventory value after the change using product cost
+        const enriched = ledger.map(entry => {
+            const obj = entry.toObject({ virtuals: false });
+            const wc = obj.product?.wholesaleCost;
+            const rp = obj.product?.price;
+            const costPerUnit = (wc != null && wc > 0) ? wc : (rp != null && rp > 0 ? rp : 0);
+            const balAfter = obj.balanceAfter ?? 0;
+            obj.valueAfter = balAfter * costPerUnit;
+            obj._costUsed = costPerUnit;
+            obj._balanceAfter = balAfter;
+            obj._productName = obj.product?.name; // extra debug
+            return obj;
+        });
+
+        // Debug: log first entry to server console
+        if (enriched.length > 0) {
+            const first = enriched[0];
+            console.log('[Ledger Debug] first entry:', {
+                productName: first._productName,
+                balanceAfter: first.balanceAfter,
+                _balanceAfter: first._balanceAfter,
+                _costUsed: first._costUsed,
+                valueAfter: first.valueAfter,
+                productRaw: first.product,
+            });
+        }
 
         res.status(200).json({
             success: true,
-            count: ledger.length,
-            data: ledger,
+            count: enriched.length,
+            total,
+            page: parseInt(page),
+            pages: Math.ceil(total / parseInt(limit)),
+            data: enriched,
         });
     } catch (error) {
         next(error);

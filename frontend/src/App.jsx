@@ -24,6 +24,7 @@ import SORCustomers from './pages/sor/SORCustomers';
 import SORCustomerDetail from './pages/sor/SORCustomerDetail';
 import SOROrderCreate from './pages/sor/SOROrderCreate';
 
+import InventoryHistory from './pages/InventoryHistory';
 import Analytics from './pages/Analytics';
 import CustomerAnalytics from './pages/CustomerAnalytics';
 import Financials from './pages/Financials';
@@ -118,6 +119,14 @@ function App() {
                           <Categories />
                         </RoleRoute>
                       } 
+                    />
+                    <Route
+                      path="/inventory/history"
+                      element={
+                        <RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.INVENTORY_MANAGER]}>
+                          <InventoryHistory />
+                        </RoleRoute>
+                      }
                     />
                     <Route 
                       path="/inventory/products" 

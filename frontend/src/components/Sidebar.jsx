@@ -44,6 +44,7 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
             allowedRoles: [ROLES.ADMIN, ROLES.INVENTORY_MANAGER],
             subItems: [
                 { to: '/inventory/balance', label: 'Stock Levels', icon: <FiLayers /> },
+                { to: '/inventory/history', label: 'History', icon: <FiRepeat /> },
                 { to: '/inventory/products', label: 'Products', icon: <FiBox /> },
                 { to: '/inventory/bundles', label: 'Bundles', icon: <FiPackage /> },
                 { to: '/inventory/brands', label: 'Brands', icon: <FiTag /> },

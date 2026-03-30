@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiPlus, FiChevronUp, FiChevronDown, FiEye } from 'react-icons/fi';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import api from '../utils/api';
 import Spinner from '../components/Spinner';
 import PermissionGuard from '../components/PermissionGuard';
@@ -18,6 +19,40 @@ const Orders = () => {
     const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
     const [expandedOrders, setExpandedOrders] = useState([]);
     const [sorOrderIds, setSorOrderIds] = useState(new Set());
+
+    // Compute MTD and YTD chart data from orders
+    const getMTDData = () => {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const daily = {};
+        for (let d = 1; d <= daysInMonth; d++) daily[d] = 0;
+        orders.forEach(o => {
+            const d = new Date(o.createdAt);
+            if (d.getFullYear() === year && d.getMonth() === month) {
+                daily[d.getDate()] = (daily[d.getDate()] || 0) + (o.totalAmount || 0);
+            }
+        });
+        return Object.entries(daily).map(([day, revenue]) => ({ day: `${day}`, revenue }));
+    };
+
+    const getYTDData = () => {
+        const now = new Date();
+        const year = now.getFullYear();
+        const monthly = {};
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        months.forEach((m, i) => { monthly[i] = { month: m, revenue: 0 }; });
+        orders.forEach(o => {
+            const d = new Date(o.createdAt);
+            if (d.getFullYear() === year) {
+                monthly[d.getMonth()].revenue += (o.totalAmount || 0);
+            }
+        });
+        return Object.values(monthly).slice(0, now.getMonth() + 1);
+    };
+
+    const totalAmount = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
     useEffect(() => {
         fetchWarehouses();
@@ -200,6 +235,48 @@ const Orders = () => {
             {loading ? (
                 <Spinner fullPage />
             ) : (
+                <>
+                {/* MTD / YTD Charts */}
+                {orders.length > 0 && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', margin: '1.25rem 0' }}>
+                        <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '1rem 1.25rem' }}>
+                            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1E293B', marginBottom: '0.75rem' }}>
+                                Month-to-Date Sales ({new Date().toLocaleString('default', { month: 'long', year: 'numeric' })})
+                            </div>
+                            <ResponsiveContainer width="100%" height={180}>
+                                <BarChart data={getMTDData()} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                                    <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#94A3B8' }} interval={4} />
+                                    <YAxis tick={{ fontSize: 10, fill: '#94A3B8' }} tickFormatter={v => `₦${(v/1000).toFixed(0)}k`} width={48} />
+                                    <Tooltip formatter={v => [`₦${v.toLocaleString()}`, 'Revenue']} labelFormatter={l => `Day ${l}`} />
+                                    <Bar dataKey="revenue" radius={[3,3,0,0]} minPointSize={3}>
+                                        {getMTDData().map((entry, i) => (
+                                            <Cell key={i} fill={entry.revenue > 0 ? '#4880FF' : '#DBEAFE'} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '1rem 1.25rem' }}>
+                            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1E293B', marginBottom: '0.75rem' }}>
+                                Year-to-Date Sales ({new Date().getFullYear()})
+                            </div>
+                            <ResponsiveContainer width="100%" height={180}>
+                                <BarChart data={getYTDData()} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                                    <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#94A3B8' }} />
+                                    <YAxis tick={{ fontSize: 10, fill: '#94A3B8' }} tickFormatter={v => `₦${(v/1000).toFixed(0)}k`} width={48} />
+                                    <Tooltip formatter={v => [`₦${v.toLocaleString()}`, 'Revenue']} />
+                                    <Bar dataKey="revenue" radius={[3,3,0,0]} minPointSize={3}>
+                                        {getYTDData().map((entry, i) => (
+                                            <Cell key={i} fill={entry.revenue > 0 ? '#10B981' : '#D1FAE5'} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                )}
                 <div className="table-container">
                     <table className="data-table">
                         <thead>
@@ -462,8 +539,22 @@ const Orders = () => {
                                 </tr>
                             )}
                         </tbody>
+                        {orders.length > 0 && (
+                            <tfoot>
+                                <tr style={{ background: '#F8FAFC', borderTop: '2px solid #E2E8F0' }}>
+                                    <td colSpan={6} style={{ padding: '10px 12px', fontWeight: 700, fontSize: '0.9rem', color: '#1E293B' }}>
+                                        Total ({orders.length} order{orders.length !== 1 ? 's' : ''})
+                                    </td>
+                                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 800, fontSize: '0.95rem', color: '#4880FF' }}>
+                                        ₦{totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        )}
                     </table>
                 </div>
+                </>
             )}
         </div>
     );

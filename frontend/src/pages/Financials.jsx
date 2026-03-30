@@ -873,6 +873,75 @@ const Financials = () => {
             {/* TRENDS VIEW */}
             {activeView === 'trends' && (
                 <div>
+                    {/* MTD / YTD summary charts */}
+                    {trends?.monthlyRevenue?.length > 0 && (() => {
+                        const now = new Date();
+                        const currentYear = now.getFullYear();
+                        const currentMonth = now.getMonth();
+                        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+                        // YTD: monthly data for current year
+                        const ytdData = trends.monthlyRevenue
+                            .filter(m => {
+                                const [yr] = m.period.split('-');
+                                return parseInt(yr) === currentYear;
+                            })
+                            .map(m => ({ month: monthNames[parseInt(m.period.split('-')[1]) - 1] || m.period, revenue: m.totalRevenue, orders: m.orderCount }));
+
+                        // MTD: use the most recent period entry
+                        const mtdEntry = trends.monthlyRevenue.find(m => {
+                            const [yr, mo] = m.period.split('-');
+                            return parseInt(yr) === currentYear && parseInt(mo) === currentMonth + 1;
+                        });
+
+                        return (
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                                <div className="dashboard-card">
+                                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1E293B', marginBottom: '0.5rem' }}>
+                                        Month-to-Date — {now.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                                    </div>
+                                    {mtdEntry ? (
+                                        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', padding: '0.75rem 0' }}>
+                                            <div>
+                                                <div style={{ fontSize: '0.72rem', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Revenue</div>
+                                                <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#10B981' }}>{formatCurrency(mtdEntry.totalRevenue)}</div>
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '0.72rem', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Orders</div>
+                                                <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#4880FF' }}>{formatNumber(mtdEntry.orderCount)}</div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div style={{ color: '#94A3B8', fontSize: '0.85rem', padding: '1rem 0' }}>No data for current month.</div>
+                                    )}
+                                </div>
+                                <div className="dashboard-card">
+                                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1E293B', marginBottom: '0.5rem' }}>
+                                        Year-to-Date — {currentYear}
+                                    </div>
+                                    {ytdData.length > 0 ? (
+                                        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', padding: '0.75rem 0' }}>
+                                            <div>
+                                                <div style={{ fontSize: '0.72rem', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Revenue</div>
+                                                <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#4880FF' }}>
+                                                    {formatCurrency(ytdData.reduce((s, m) => s + m.revenue, 0))}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '0.72rem', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Orders</div>
+                                                <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#8B5CF6' }}>
+                                                    {formatNumber(ytdData.reduce((s, m) => s + m.orders, 0))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div style={{ color: '#94A3B8', fontSize: '0.85rem', padding: '1rem 0' }}>No data for current year.</div>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })()}
+
                     <div className="dashboard-card" style={{ marginBottom: '20px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
                             <h3 style={{ fontSize: '1rem', color: '#1E293B', margin: 0 }}>

@@ -8,6 +8,30 @@ const CustomerAnalytics = () => {
     const [customers, setCustomers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showRecurringOnly, setShowRecurringOnly] = useState(false);
+    const [sortKey, setSortKey] = useState('totalOrders');
+    const [sortDir, setSortDir] = useState('desc');
+
+    const handleSort = (key) => {
+        if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+        else { setSortKey(key); setSortDir('desc'); }
+    };
+
+    const sorted = [...customers].sort((a, b) => {
+        let av = a[sortKey], bv = b[sortKey];
+        if (sortKey === 'lastOrderDate') { av = new Date(av); bv = new Date(bv); }
+        if (av < bv) return sortDir === 'asc' ? -1 : 1;
+        if (av > bv) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    const SortTh = ({ label, field }) => {
+        const active = sortKey === field;
+        return (
+            <th onClick={() => handleSort(field)} style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                {label} {active ? (sortDir === 'asc' ? '▲' : '▼') : <span style={{ opacity: 0.3 }}>▼</span>}
+            </th>
+        );
+    };
 
     useEffect(() => {
         fetchCustomerAnalytics();
@@ -83,15 +107,15 @@ const CustomerAnalytics = () => {
                             <tr>
                                 <th>Customer Name</th>
                                 <th>Contact</th>
-                                <th>Total Orders</th>
-                                <th>Total Spent</th>
-                                <th>Last Order</th>
+                                <SortTh label="Total Orders" field="totalOrders" />
+                                <SortTh label="Total Spent" field="totalSpent" />
+                                <SortTh label="Last Order" field="lastOrderDate" />
                                 <th>Most Ordered Products</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {customers.length > 0 ? (
-                                customers.map((customer, idx) => (
+                            {sorted.length > 0 ? (
+                                sorted.map((customer, idx) => (
                                     <tr key={idx}>
                                         <td>
                                             <div className="cell-primary">{customer._id}</div>

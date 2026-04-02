@@ -638,3 +638,96 @@ exports.getCustomerAnalytics = async (req, res, next) => {
         next(error);
     }
 };
+
+// @desc    Get monthly per-warehouse breakdown (orders, units dispatched, sales volume)
+// @route   GET /api/analytics/warehouse-monthly
+// @access  Private
+exports.getWarehouseMonthly = async (req, res, next) => {
+    try {
+        const { year } = req.query;
+        const targetYear = parseInt(year) || new Date().getFullYear();
+
+        const startDate = new Date(targetYear, 0, 1);
+        const endDate = new Date(targetYear + 1, 0, 1);
+
+        // First, find the warehouse IDs for the 3 target warehouses
+        const Warehouse = require('../models/Warehouse');
+        const warehouses = await Warehouse.find({
+            name: { $in: [/olowora/i, /lekki/i, /wuse/i] }
+        }).lean();
+
+        // Build a map: warehouseId → normalised label
+        const whMap = {};
+        warehouses.forEach(w => {
+            if (/olowora/i.test(w.name)) whMap[w._id.toString()] = 'Olowora';
+            else if (/lekki/i.test(w.name)) whMap[w._id.toString()] = 'Lekki';
+            else if (/wuse/i.test(w.name)) whMap[w._id.toString()] = 'Wuse';
+        });
+
+        const warehouseIds = warehouses.map(w => w._id);
+
+        // Unwind items to sum quantities correctly, then re-group
+        const results = await Order.aggregate([
+            {
+                $match: {
+                    status: { $ne: 'CANCELLED' },
+                    createdAt: { $gte: startDate, $lt: endDate },
+                    warehouse: { $in: warehouseIds },
+                },
+            },
+            // Compute per-order totals before unwinding
+            {
+                $addFields: {
+                    month: { $month: '$createdAt' },
+                    orderUnits: {
+                        $reduce: {
+                            input: '$items',
+                            initialValue: 0,
+                            in: { $add: ['$$value', '$$this.quantity'] },
+                        },
+                    },
+                },
+            },
+            {
+                $group: {
+                    _id: {
+                        warehouse: '$warehouse',
+                        month: '$month',
+                    },
+                    totalOrders: { $sum: 1 },
+                    totalUnits: { $sum: '$orderUnits' },
+                    totalSales: { $sum: '$totalAmount' },
+                },
+            },
+            { $sort: { '_id.month': 1 } },
+        ]);
+
+        // Reshape into per-month rows
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const byMonth = {};
+        months.forEach((m, i) => { byMonth[i + 1] = { month: m }; });
+
+        results.forEach(r => {
+            const label = whMap[r._id.warehouse.toString()];
+            if (!label) return;
+            byMonth[r._id.month][label] = {
+                totalOrders: r.totalOrders,
+                totalUnits: r.totalUnits,
+                totalSales: Math.round(r.totalSales * 100) / 100,
+            };
+        });
+
+        // Fill missing warehouse entries with zeros
+        const whLabels = ['Olowora', 'Lekki', 'Wuse'];
+        const data = Object.values(byMonth).map(entry => {
+            whLabels.forEach(w => {
+                if (!entry[w]) entry[w] = { totalOrders: 0, totalUnits: 0, totalSales: 0 };
+            });
+            return entry;
+        });
+
+        res.status(200).json({ success: true, data, year: targetYear, warehousesFound: warehouses.map(w => w.name), allWarehouses: (await Warehouse.find({}, 'name').lean()).map(w => w.name) });
+    } catch (error) {
+        next(error);
+    }
+};

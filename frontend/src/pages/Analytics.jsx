@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend } from 'recharts';
 import { FiAlertTriangle, FiPackage, FiShoppingCart, FiTrendingUp, FiBox, FiFilter } from 'react-icons/fi';
 import Spinner from '../components/Spinner';
 import { ROLES } from '../utils/constants';
@@ -17,10 +17,25 @@ const Analytics = () => {
     const [stockFilter, setStockFilter] = useState('all');
     const [warehouseFilter, setWarehouseFilter] = useState('all');
     const [burnRateFilter, setBurnRateFilter] = useState('all');
+    const [whMonthlyData, setWhMonthlyData] = useState([]);
+    const [whMetric, setWhMetric] = useState('totalSales'); // totalSales | totalOrders | totalUnits
+    const [whYear, setWhYear] = useState(new Date().getFullYear());
 
     useEffect(() => {
         api.get('/analytics').then(res => { setData(res.data.data); setLoading(false); }).catch(err => { console.error("Analytics fetch error:", err); setLoading(false); });
     }, []);
+
+    useEffect(() => {
+        api.get(`/analytics/warehouse-monthly?year=${whYear}`)
+            .then(res => {
+                setWhMonthlyData(res.data.data || []);
+                if (res.data.warehousesFound !== undefined) {
+                    console.log('[Warehouse Monthly] Matched warehouses:', res.data.warehousesFound);
+                    console.log('[Warehouse Monthly] ALL warehouses in DB:', res.data.allWarehouses);
+                }
+            })
+            .catch(() => {});
+    }, [whYear]);
 
     if (loading) return <Spinner fullPage />;
     if (!data) return <div className="page-container"><div className="text-center">Failed to load data</div></div>;
@@ -164,6 +179,9 @@ const Analytics = () => {
                     <span className="tab-label-full">Low Stock (All Warehouses)</span>
                     <span className="tab-label-short" style={{ display: 'none' }}>Low (All WH)</span>
                     {aggregatedLowStock.length > 0 && <span style={{ background: '#FEE2E2', color: '#991B1B', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600 }}>{aggregatedLowStock.length}</span>}
+                </button>
+                <button onClick={() => setActiveTab('warehouse')} style={{ padding: '0.75rem 1.5rem', border: 'none', background: 'transparent', color: activeTab === 'warehouse' ? '#4880FF' : '#64748B', fontWeight: activeTab === 'warehouse' ? 600 : 500, fontSize: '0.95rem', cursor: 'pointer', borderBottom: activeTab === 'warehouse' ? '2px solid #4880FF' : '2px solid transparent', marginBottom: '-2px', transition: 'all 0.2s', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    Warehouse Performance
                 </button>
             </div>
 
@@ -601,6 +619,127 @@ const Analytics = () => {
                     )}
                 </>
             )}
+
+            {activeTab === 'warehouse' && (() => {
+                const WH_COLORS = { Olowora: '#4880FF', Lekki: '#10B981', Wuse: '#F59E0B' };
+                const metrics = [
+                    { key: 'totalSales',  label: 'Total Sales Volume',    fmt: v => `₦${(v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}` },
+                    { key: 'totalOrders', label: 'Total Orders',           fmt: v => (v||0).toLocaleString() },
+                    { key: 'totalUnits',  label: 'Total Units Dispatched', fmt: v => (v||0).toLocaleString() },
+                ];
+                const active = metrics.find(m => m.key === whMetric);
+
+                // Flatten chart data: each month entry gets warehouse values for the active metric
+                const chartData = whMonthlyData.map(row => ({
+                    month: row.month,
+                    Olowora: row.Olowora?.[whMetric] || 0,
+                    Lekki:   row.Lekki?.[whMetric]   || 0,
+                    Wuse:    row.Wuse?.[whMetric]     || 0,
+                }));
+
+                const tooltipFmt = (v) => active.fmt(v);
+
+                return (
+                    <div>
+                        {/* Controls */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                {metrics.map(m => (
+                                    <button key={m.key} onClick={() => setWhMetric(m.key)} style={{
+                                        padding: '0.5rem 1.1rem', borderRadius: '6px', fontSize: '0.875rem', fontWeight: whMetric === m.key ? 700 : 500, cursor: 'pointer', transition: 'all 0.2s',
+                                        border: whMetric === m.key ? '2px solid #4880FF' : '1px solid #E2E8F0',
+                                        background: whMetric === m.key ? '#EFF6FF' : '#fff',
+                                        color: whMetric === m.key ? '#4880FF' : '#64748B',
+                                    }}>
+                                        {m.label}
+                                    </button>
+                                ))}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '0.85rem', color: '#64748B' }}>Year:</span>
+                                <select value={whYear} onChange={e => setWhYear(Number(e.target.value))}
+                                    style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }}>
+                                    {[new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() - 2].map(y => (
+                                        <option key={y} value={y}>{y}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Chart */}
+                        <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '1.5rem' }}>
+                            <div style={{ fontSize: '1rem', fontWeight: 600, color: '#1E293B', marginBottom: '1.25rem' }}>
+                                {active.label} by Warehouse — {whYear}
+                            </div>
+                            <ResponsiveContainer width="100%" height={360}>
+                                <BarChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }} barCategoryGap="25%" barGap={4}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                                    <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#64748B' }} />
+                                    <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }}
+                                        tickFormatter={v => whMetric === 'totalSales' ? `₦${(v/1000).toFixed(0)}k` : v.toLocaleString()}
+                                        width={60} />
+                                    <Tooltip formatter={(v, name) => [tooltipFmt(v), name]} />
+                                    <Legend />
+                                    {['Olowora', 'Lekki', 'Wuse'].map(wh => (
+                                        <Bar key={wh} dataKey={wh} fill={WH_COLORS[wh]} radius={[4,4,0,0]} />
+                                    ))}
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        {/* Monthly breakdown table */}
+                        <div style={{ marginTop: '1.5rem', background: '#fff', border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden' }}>
+                            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #E2E8F0', fontSize: '0.9rem', fontWeight: 600, color: '#1E293B' }}>
+                                Monthly Breakdown — {active.label}
+                            </div>
+                            <div className="table-container" style={{ margin: 0 }}>
+                                <table className="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Month</th>
+                                            <th style={{ textAlign: 'right', color: WH_COLORS.Olowora }}>Olowora</th>
+                                            <th style={{ textAlign: 'right', color: WH_COLORS.Lekki }}>Lekki</th>
+                                            <th style={{ textAlign: 'right', color: WH_COLORS.Wuse }}>Wuse</th>
+                                            <th style={{ textAlign: 'right' }}>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {whMonthlyData.map((row, i) => {
+                                            const o = row.Olowora?.[whMetric] || 0;
+                                            const l = row.Lekki?.[whMetric]   || 0;
+                                            const w = row.Wuse?.[whMetric]    || 0;
+                                            const total = o + l + w;
+                                            return (
+                                                <tr key={i}>
+                                                    <td style={{ fontWeight: 500 }}>{row.month}</td>
+                                                    <td style={{ textAlign: 'right', color: WH_COLORS.Olowora, fontWeight: 600 }}>{active.fmt(o)}</td>
+                                                    <td style={{ textAlign: 'right', color: WH_COLORS.Lekki,   fontWeight: 600 }}>{active.fmt(l)}</td>
+                                                    <td style={{ textAlign: 'right', color: WH_COLORS.Wuse,    fontWeight: 600 }}>{active.fmt(w)}</td>
+                                                    <td style={{ textAlign: 'right', fontWeight: 700, color: '#1E293B' }}>{active.fmt(total)}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr style={{ borderTop: '2px solid #E2E8F0', background: '#F8FAFC' }}>
+                                            <td style={{ fontWeight: 700 }}>Total</td>
+                                            {['Olowora','Lekki','Wuse'].map(wh => (
+                                                <td key={wh} style={{ textAlign: 'right', fontWeight: 700, color: WH_COLORS[wh] }}>
+                                                    {active.fmt(whMonthlyData.reduce((s, r) => s + (r[wh]?.[whMetric] || 0), 0))}
+                                                </td>
+                                            ))}
+                                            <td style={{ textAlign: 'right', fontWeight: 800, color: '#1E293B' }}>
+                                                {active.fmt(whMonthlyData.reduce((s, r) =>
+                                                    s + (r.Olowora?.[whMetric]||0) + (r.Lekki?.[whMetric]||0) + (r.Wuse?.[whMetric]||0), 0))}
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 };

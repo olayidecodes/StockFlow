@@ -20,3 +20,8 @@ Thumbs.db
 .baileys_auth/
 .wwebjs_auth/
 .wwebjs_cache/
+
+.kiro/
+.vscode/
+*.md
+!README.md

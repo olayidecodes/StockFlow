@@ -134,8 +134,8 @@ class InvoiceService {
         doc.fontSize(8)
            .font('Helvetica')
            .fillColor('#64748B')
-           .text('GIDI GAMES PUBLISHING LIMITED', rightX, 115, { align: 'right', width: 145 })
-           .text('MAGODO, LAGOS', rightX, 127, { align: 'right', width: 145 });
+           .text('HAKA PLAZA, 109 AWOLOWO ROAD', rightX, 115, { align: 'right', width: 145 })
+           .text('IKOYI, LAGOS', rightX, 127, { align: 'right', width: 145 });
         
         doc.y = 145;
     }
@@ -221,9 +221,6 @@ class InvoiceService {
            .fontSize(9);
         
         order.items.forEach((item, index) => {
-            const cartonSize = item.product?.cartonSize || 1;
-            const cartons = Math.floor(item.quantity / cartonSize);
-            const pieces = item.quantity % cartonSize;
             const subtotal = item.quantity * (item.price || 0);
             
             if (currentY > 680) {
@@ -234,15 +231,8 @@ class InvoiceService {
             doc.text(`${index + 1}`, colNo, currentY);
             doc.text(item.product?.name || 'Unknown', colDetails, currentY, { width: 210 });
             
-            let qtyText;
-            if (cartonSize > 1) {
-                if (cartons > 0 && pieces > 0) qtyText = `${cartons} ctn, ${pieces} pcs`;
-                else if (cartons > 0) qtyText = `${cartons} ctn`;
-                else qtyText = `${pieces} pcs`;
-            } else {
-                qtyText = `${item.quantity}`;
-            }
-            doc.text(qtyText, colQty, currentY, { width: 65, align: 'center' });
+            // Always show total pieces (no carton conversion)
+            doc.text(`${item.quantity} pcs`, colQty, currentY, { width: 65, align: 'center' });
             doc.text(`N${(item.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
                      colPrice, currentY, { width: 75, align: 'right' });
             doc.text(`N${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
@@ -272,6 +262,17 @@ class InvoiceService {
                  valueX, netY, { width: valueW, align: 'right' });
 
         doc.y = netY + 20;
+
+        // Delivery fee (if any)
+        if (order.deliveryFee > 0) {
+            const deliveryY = doc.y;
+            doc.fontSize(10).font('Helvetica').fillColor('#1E293B');
+            doc.text('Delivery Fee', labelX, deliveryY);
+            doc.text(`N${order.deliveryFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                     valueX, deliveryY, { width: valueW, align: 'right' });
+            doc.y = deliveryY + 20;
+            doc.font('Helvetica-Bold');
+        }
 
         // Separator line
         doc.moveTo(390, doc.y)

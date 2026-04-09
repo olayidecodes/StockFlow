@@ -353,6 +353,7 @@ const SOROrderCreate = () => {
                             <>
                                 <label style={{ fontSize: '13px', color: '#92400E', fontWeight: 500 }}>Total Discount:</label>
                                 <input type="number" min="0" value={discountAmount || ''} onChange={e => setDiscountAmount(parseFloat(e.target.value) || 0)} placeholder="0"
+                                    onWheel={e => e.target.blur()}
                                     style={{ width: '120px', padding: '4px 8px', borderRadius: '5px', border: '1px solid #FCD34D', fontSize: '13px' }} />
                                 <span style={{ fontSize: '11px', color: '#78350F' }}>₦ off total order</span>
                             </>
@@ -363,6 +364,7 @@ const SOROrderCreate = () => {
                     <div style={{ background: '#F0F9FF', padding: '12px 16px', borderRadius: '6px', marginBottom: '16px', border: '1px solid #BAE6FD', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                         <label style={{ fontSize: '13px', color: '#0C4A6E', fontWeight: 600 }}>Delivery Fee:</label>
                         <input type="number" min="0" value={deliveryFee || ''} onChange={e => setDeliveryFee(parseFloat(e.target.value) || 0)} placeholder="0"
+                            onWheel={e => e.target.blur()}
                             style={{ width: '140px', padding: '6px 12px', borderRadius: '5px', border: '1px solid #BAE6FD', fontSize: '13px' }} />
                         <span style={{ fontSize: '12px', color: '#0369A1' }}>₦ (optional)</span>
                     </div>
@@ -382,7 +384,7 @@ const SOROrderCreate = () => {
                                 </div>
                                 <div className="form-group" style={{ width: '100px', minWidth: '80px' }}>
                                     <label>Quantity</label>
-                                    <input type="number" min="1" value={item.quantity || ''} onChange={e => updateItem(idx, 'quantity', parseInt(e.target.value) || 1)} />
+                                    <input type="number" min="1" value={item.quantity || ''} onChange={e => updateItem(idx, 'quantity', parseInt(e.target.value) || 1)} onWheel={e => e.target.blur()} />
                                 </div>
                                 <div className="form-group" style={{ width: '120px', minWidth: '90px' }}>
                                     <label>Price/Unit <span style={{ fontSize: '10px', color: orderType === 'WHOLESALE' ? '#10b981' : '#4880FF', fontWeight: 600 }}>({orderType === 'WHOLESALE' ? 'W' : 'R'})</span></label>
@@ -394,6 +396,7 @@ const SOROrderCreate = () => {
                                         type="number" min="0"
                                         value={item.discount || ''}
                                         onChange={e => updateItem(idx, 'discount', parseFloat(e.target.value) || 0)}
+                                        onWheel={e => e.target.blur()}
                                         placeholder="0"
                                         style={{ borderColor: item.discount > 0 ? '#F59E0B' : undefined }}
                                     />

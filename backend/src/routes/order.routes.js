@@ -5,9 +5,12 @@ const {
     getOrders,
     getOrder,
     updateOrderStatus,
+    updateOrder,
     downloadReceipt,
     downloadInvoice,
 } = require('../controllers/order.controller');
+const { checkPermission } = require('../middleware/checkPermission');
+const { PERMISSIONS } = require('../config/constants');
 const { protect } = require('../middleware/auth');
 const router = express.Router();
 
@@ -29,6 +32,8 @@ router
     .get(getOrders);
 
 router.route('/:id').get(getOrder);
+
+router.put('/:id', checkPermission(PERMISSIONS.MANAGE_ORDERS), updateOrder);
 
 router.put('/:id/status', updateOrderStatus);
 

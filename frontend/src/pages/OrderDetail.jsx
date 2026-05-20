@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FiArrowLeft, FiCheck, FiX, FiCopy, FiShare2, FiDownload } from 'react-icons/fi';
+import { FiArrowLeft, FiCheck, FiX, FiCopy, FiShare2, FiDownload, FiEdit2 } from 'react-icons/fi';
 import api from '../utils/api';
 import Spinner from '../components/Spinner';
 import PermissionGuard from '../components/PermissionGuard';
@@ -275,6 +275,15 @@ ${itemsList}
 
                     {/* Status Change Buttons */}
                     <PermissionGuard permission={PERMISSIONS.MANAGE_ORDERS}>
+                        {(order.status === 'PENDING' || order.status === 'CONFIRMED') && (
+                            <button
+                                className="btn btn-secondary"
+                                onClick={() => navigate(`/orders/${id}/edit`)}
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '6px 12px', fontSize: '0.85rem' }}
+                            >
+                                <FiEdit2 size={14} /> Edit Order
+                            </button>
+                        )}
                         {order.status === 'PENDING' && (
                             <>
                                 <button

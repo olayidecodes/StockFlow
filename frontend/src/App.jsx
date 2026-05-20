@@ -18,6 +18,7 @@ import Inventory from './pages/Inventory';
 import Orders from './pages/Orders';
 import OrderCreate from './pages/OrderCreate';
 import OrderDetail from './pages/OrderDetail';
+import OrderEdit from './pages/OrderEdit';
 
 import SORDashboard from './pages/sor/SORDashboard';
 import SORCustomers from './pages/sor/SORCustomers';
@@ -99,6 +100,14 @@ function App() {
                       element={
                         <RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.INVENTORY_MANAGER, ROLES.SALES]}>
                           <OrderDetail />
+                        </RoleRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/orders/:id/edit" 
+                      element={
+                        <RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.INVENTORY_MANAGER, ROLES.SALES]}>
+                          <OrderEdit />
                         </RoleRoute>
                       } 
                     />

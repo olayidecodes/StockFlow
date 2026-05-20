@@ -470,3 +470,19 @@ exports.downloadInvoice = async (req, res, next) => {
         }
     }
 };
+
+// @desc    Edit an existing order (items, customer, pricing, etc.)
+// @route   PUT /api/orders/:id
+// @access  Private (MANAGE_ORDERS permission required)
+exports.updateOrder = async (req, res, next) => {
+    try {
+        const { editOrder } = require('../services/order.edit.service');
+        const result = await editOrder(req.params.id, req.body, req.user.id);
+        res.status(200).json({ success: true, data: result });
+    } catch (error) {
+        if (error.statusCode) {
+            return res.status(error.statusCode).json({ success: false, message: error.message });
+        }
+        next(error);
+    }
+};

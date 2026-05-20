@@ -33,5 +33,11 @@
     "fast-check": "^4.6.0",
     "jest": "^30.3.0",
     "nodemon": "^3.1.11"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "@whiskeysockets/baileys": "<rootDir>/src/tests/__mocks__/baileys.js"
+    }
   }
 }

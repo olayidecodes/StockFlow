@@ -78,12 +78,18 @@ exports.createOrder = async (req, res, next) => {
 // @access  Private
 exports.getOrders = async (req, res, next) => {
     try {
-        const { status, warehouseId, startDate, endDate, isSOR } = req.query;
+        const { status, warehouseId, startDate, endDate, isSOR, paymentStatus } = req.query;
         
         const query = {};
 
         if (status) query.status = status;
         if (warehouseId) query.warehouse = warehouseId;
+        if (paymentStatus === 'PAID') {
+            // Match docs explicitly set to PAID, or where the field doesn't exist yet (legacy orders)
+            query.$or = [{ paymentStatus: 'PAID' }, { paymentStatus: { $exists: false } }];
+        } else if (paymentStatus === 'NOT_PAID') {
+            query.paymentStatus = 'NOT_PAID';
+        }
         
         // Date range filtering
         if (startDate || endDate) {

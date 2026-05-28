@@ -15,6 +15,7 @@ const Orders = () => {
     const [filterStatus, setFilterStatus] = useState('');
     const [filterWarehouse, setFilterWarehouse] = useState('');
     const [filterSOR, setFilterSOR] = useState('');
+    const [filterPaymentStatus, setFilterPaymentStatus] = useState('');
     const [warehouses, setWarehouses] = useState([]);
     const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
     const [expandedOrders, setExpandedOrders] = useState([]);
@@ -79,6 +80,7 @@ const Orders = () => {
             if (filterStatus) params.append('status', filterStatus);
             if (filterWarehouse) params.append('warehouseId', filterWarehouse);
             if (filterSOR) params.append('isSOR', filterSOR);
+            if (filterPaymentStatus) params.append('paymentStatus', filterPaymentStatus);
             if (dateRange.startDate) params.append('startDate', dateRange.startDate);
             if (dateRange.endDate) params.append('endDate', dateRange.endDate);
             const res = await api.get(`/orders?${params.toString()}`);
@@ -88,7 +90,7 @@ const Orders = () => {
         } finally {
             setLoading(false);
         }
-    }, [filterStatus, filterWarehouse, filterSOR, dateRange]);
+    }, [filterStatus, filterWarehouse, filterSOR, filterPaymentStatus, dateRange]);
 
     useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
@@ -99,6 +101,7 @@ const Orders = () => {
         setFilterStatus('');
         setFilterWarehouse('');
         setFilterSOR('');
+        setFilterPaymentStatus('');
     };
 
     const toggleOrderExpansion = (orderId, e) => {
@@ -210,6 +213,16 @@ const Orders = () => {
                 </select>
 
                 <select
+                    value={filterPaymentStatus}
+                    onChange={(e) => setFilterPaymentStatus(e.target.value)}
+                    className="filter-select"
+                >
+                    <option value="">All Payment Statuses</option>
+                    <option value="PAID">Paid</option>
+                    <option value="NOT_PAID">Not Paid</option>
+                </select>
+
+                <select
                     value={filterWarehouse}
                     onChange={(e) => setFilterWarehouse(e.target.value)}
                     className="filter-select"
@@ -238,7 +251,7 @@ const Orders = () => {
                 <button onClick={handleDateFilter} className="btn btn-primary" style={{ padding: '5px 10px', fontSize: '0.8rem' }}>
                     Apply
                 </button>
-                {(dateRange.startDate || dateRange.endDate || filterStatus || filterWarehouse || filterSOR) && (
+                {(dateRange.startDate || dateRange.endDate || filterStatus || filterWarehouse || filterSOR || filterPaymentStatus) && (
                     <button 
                         onClick={handleClearFilters} 
                         className="btn btn-secondary"

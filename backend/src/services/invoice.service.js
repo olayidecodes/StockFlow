@@ -245,9 +245,9 @@ class InvoiceService {
     }
 
     addPaymentSummary(doc, order) {
-        const labelX = 390;
-        const valueX  = 475;
-        const valueW  = 70;
+        const labelX = 370;
+        const valueX  = 460;
+        const valueW  = 85;
 
         doc.fontSize(10)
            .font('Helvetica-Bold')
@@ -275,7 +275,7 @@ class InvoiceService {
         }
 
         // Separator line
-        doc.moveTo(390, doc.y)
+        doc.moveTo(370, doc.y)
            .lineTo(545, doc.y)
            .strokeColor('#1E293B')
            .lineWidth(1)
@@ -284,7 +284,7 @@ class InvoiceService {
         doc.y = doc.y + 8;
 
         // NAIRA TOTAL
-        doc.fontSize(12)
+        doc.fontSize(11)
            .font('Helvetica-Bold')
            .fillColor('#1E293B');
 

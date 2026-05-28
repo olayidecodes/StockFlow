@@ -19,6 +19,7 @@ const Orders = () => {
     const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
     const [expandedOrders, setExpandedOrders] = useState([]);
     const [sorOrderIds, setSorOrderIds] = useState(new Set());
+    const [paymentStatusUpdating, setPaymentStatusUpdating] = useState(new Set());
 
     // Compute MTD and YTD chart data from orders
     const getMTDData = () => {
@@ -109,6 +110,20 @@ const Orders = () => {
         );
     };
 
+    const togglePaymentStatus = async (order, e) => {
+        e.stopPropagation();
+        const newStatus = order.paymentStatus === 'NOT_PAID' ? 'PAID' : 'NOT_PAID';
+        setPaymentStatusUpdating(prev => new Set([...prev, order._id]));
+        try {
+            await api.patch(`/orders/${order._id}/payment-status`, { paymentStatus: newStatus });
+            setOrders(prev => prev.map(o => o._id === order._id ? { ...o, paymentStatus: newStatus } : o));
+        } catch (err) {
+            console.error('Failed to update payment status', err);
+        } finally {
+            setPaymentStatusUpdating(prev => { const s = new Set(prev); s.delete(order._id); return s; });
+        }
+    };
+
     const getStatusBadge = (status) => {
         switch (status) {
             case 'PENDING': return 'warning';
@@ -126,6 +141,7 @@ const Orders = () => {
             customerPhone: order.customer?.phone || '',
             customerEmail: order.customer?.email || '',
             status: order.status || '',
+            paymentStatus: order.paymentStatus === 'NOT_PAID' ? 'Not Paid' : 'Paid',
             channel: order.channel || '',
             warehouse: order.warehouse?.name || '',
             region: order.region || '',
@@ -141,6 +157,7 @@ const Orders = () => {
         { key: 'customerPhone', label: 'Phone' },
         { key: 'customerEmail', label: 'Email' },
         { key: 'status', label: 'Status' },
+        { key: 'paymentStatus', label: 'Payment Status' },
         { key: 'channel', label: 'Channel' },
         { key: 'warehouse', label: 'Warehouse' },
         { key: 'region', label: 'Region' },
@@ -288,6 +305,7 @@ const Orders = () => {
                                 <th>Status</th>
                                 <th>Channel</th>
                                 <th>Total</th>
+                                <th>Payment</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -318,6 +336,27 @@ const Orders = () => {
                                             </td>
                                             <td>{order.channel || 'N/A'}</td>
                                             <td>₦{(order.totalAmount || 0).toLocaleString()}</td>
+                                            <td onClick={e => e.stopPropagation()}>
+                                                <button
+                                                    onClick={(e) => togglePaymentStatus(order, e)}
+                                                    disabled={paymentStatusUpdating.has(order._id)}
+                                                    style={{
+                                                        padding: '3px 10px',
+                                                        borderRadius: '99px',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: 600,
+                                                        border: 'none',
+                                                        cursor: paymentStatusUpdating.has(order._id) ? 'not-allowed' : 'pointer',
+                                                        background: order.paymentStatus === 'NOT_PAID' ? '#FEE2E2' : '#D1FAE5',
+                                                        color: order.paymentStatus === 'NOT_PAID' ? '#DC2626' : '#059669',
+                                                        opacity: paymentStatusUpdating.has(order._id) ? 0.6 : 1,
+                                                        whiteSpace: 'nowrap',
+                                                    }}
+                                                    title="Click to toggle payment status"
+                                                >
+                                                    {order.paymentStatus === 'NOT_PAID' ? 'Not Paid' : 'Paid'}
+                                                </button>
+                                            </td>
                                             <td>
                                                 <div className="button-group">
                                                     <button
@@ -339,7 +378,7 @@ const Orders = () => {
                                         </tr>
                                         {expandedOrders.includes(order._id) && (
                                             <tr className="expanded-row">
-                                                <td colSpan="8" style={{ padding: 0, background: '#F8FAFC', borderTop: '2px solid #E2E8F0' }}>
+                                                <td colSpan="9" style={{ padding: 0, background: '#F8FAFC', borderTop: '2px solid #E2E8F0' }}>
                                                     <div style={{ padding: '20px 24px' }}>
                                                         {/* Order Details Grid */}
                                                         <div style={{ 
@@ -535,14 +574,14 @@ const Orders = () => {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="8" className="text-center">No orders found.</td>
+                                    <td colSpan="9" className="text-center">No orders found.</td>
                                 </tr>
                             )}
                         </tbody>
                         {orders.length > 0 && (
                             <tfoot>
                                 <tr style={{ background: '#F8FAFC', borderTop: '2px solid #E2E8F0' }}>
-                                    <td colSpan={6} style={{ padding: '10px 12px', fontWeight: 700, fontSize: '0.9rem', color: '#1E293B' }}>
+                                    <td colSpan={7} style={{ padding: '10px 12px', fontWeight: 700, fontSize: '0.9rem', color: '#1E293B' }}>
                                         Total ({orders.length} order{orders.length !== 1 ? 's' : ''})
                                     </td>
                                     <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 800, fontSize: '0.95rem', color: '#4880FF' }}>

@@ -486,3 +486,29 @@ exports.updateOrder = async (req, res, next) => {
         next(error);
     }
 };
+
+// @desc    Update order payment status
+// @route   PATCH /api/orders/:id/payment-status
+// @access  Private (MANAGE_ORDERS permission required)
+exports.updatePaymentStatus = async (req, res, next) => {
+    try {
+        const { paymentStatus } = req.body;
+        if (!['PAID', 'NOT_PAID'].includes(paymentStatus)) {
+            return res.status(400).json({ success: false, message: 'paymentStatus must be PAID or NOT_PAID' });
+        }
+
+        const order = await Order.findByIdAndUpdate(
+            req.params.id,
+            { paymentStatus },
+            { new: true, runValidators: true }
+        );
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        res.status(200).json({ success: true, data: order });
+    } catch (error) {
+        next(error);
+    }
+};

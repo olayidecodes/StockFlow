@@ -6,6 +6,7 @@ const {
     getOrder,
     updateOrderStatus,
     updateOrder,
+    updatePaymentStatus,
     downloadReceipt,
     downloadInvoice,
 } = require('../controllers/order.controller');
@@ -36,6 +37,8 @@ router.route('/:id').get(getOrder);
 router.put('/:id', checkPermission(PERMISSIONS.MANAGE_ORDERS), updateOrder);
 
 router.put('/:id/status', updateOrderStatus);
+
+router.patch('/:id/payment-status', checkPermission(PERMISSIONS.MANAGE_ORDERS), updatePaymentStatus);
 
 router.get('/:id/receipt', downloadReceipt);
 

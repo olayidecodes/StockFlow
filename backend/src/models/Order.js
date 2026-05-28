@@ -76,6 +76,11 @@ const orderSchema = new mongoose.Schema(
             enum: ['Instagram', 'Google', 'Facebook', 'Referral', 'Walk-in', 'Other'],
             default: 'Other',
         },
+        paymentStatus: {
+            type: String,
+            enum: ['PAID', 'NOT_PAID'],
+            default: 'PAID',
+        },
         createdBy: {
             type: mongoose.Schema.ObjectId,
             ref: 'User',

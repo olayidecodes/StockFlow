@@ -359,8 +359,8 @@ class ReceiptService {
         
         doc.moveDown(0.5);
         
-        const summaryX = 370;
-        const valueX = 460;
+        const summaryX = 350;
+        const valueX = 450;
         
         doc.fontSize(10)
            .font('Helvetica');
@@ -373,7 +373,7 @@ class ReceiptService {
             const rowY = doc.y;
             doc.text('Subtotal:', summaryX, rowY);
             doc.text(`NGN ${itemsSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-                     valueX, rowY, { width: 85, align: 'right' });
+                     valueX, rowY, { width: 95, align: 'right' });
             
             doc.moveDown(0.5);
         }
@@ -384,7 +384,7 @@ class ReceiptService {
             doc.fillColor('#EF4444')
                .text('Discount:', summaryX, rowY);
             doc.text(`-NGN ${order.discountAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-                     valueX, rowY, { width: 85, align: 'right' })
+                     valueX, rowY, { width: 95, align: 'right' })
                .fillColor('#000000');
             
             doc.moveDown(0.5);
@@ -395,13 +395,13 @@ class ReceiptService {
             const rowY = doc.y;
             doc.text('Delivery Fee:', summaryX, rowY);
             doc.text(`NGN ${order.deliveryFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-                     valueX, rowY, { width: 85, align: 'right' });
+                     valueX, rowY, { width: 95, align: 'right' });
             
             doc.moveDown(0.5);
         }
         
         // Total line
-        doc.moveTo(370, doc.y)
+        doc.moveTo(350, doc.y)
            .lineTo(545, doc.y)
            .strokeColor('#1E293B')
            .lineWidth(2)
@@ -412,12 +412,12 @@ class ReceiptService {
         
         // Total Amount
         const totalY = doc.y;
-        doc.fontSize(12)
+        doc.fontSize(11)
            .font('Helvetica-Bold')
            .text('TOTAL AMOUNT:', summaryX, totalY);
         doc.fillColor('#4880FF')
            .text(`NGN ${order.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-                 valueX, totalY, { width: 85, align: 'right' })
+                 valueX, totalY, { width: 95, align: 'right' })
            .fillColor('#000000');
         
         doc.moveDown(1);

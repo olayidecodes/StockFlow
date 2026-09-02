@@ -41,7 +41,7 @@ exports.adjustStock = async (req, res, next) => {
         if (type === 'ADJUSTMENT' && setQuantity !== undefined) {
             // Correction mode: set quantity to exact value
             updatedBalance = await InventoryBalance.findOneAndUpdate(
-                { product, warehouse },
+                { product, warehouse, countryId: req.countryId },
                 {
                     $set: { quantity: setQuantity, lastUpdated: new Date() },
                 },
@@ -55,7 +55,7 @@ exports.adjustStock = async (req, res, next) => {
         } else {
             // Normal mode: increment/decrement
             updatedBalance = await InventoryBalance.findOneAndUpdate(
-                { product, warehouse },
+                { product, warehouse, countryId: req.countryId },
                 {
                     $inc: { quantity: change },
                     $set: { lastUpdated: new Date() },
@@ -81,6 +81,7 @@ exports.adjustStock = async (req, res, next) => {
                     reference,
                     balanceAfter: updatedBalance.quantity,
                     performedBy: req.user.id,
+                    countryId: req.countryId,
                 },
             ],
             { session }
@@ -128,6 +129,7 @@ exports.getBalance = async (req, res, next) => {
             // Aggregated View - Group by product
             const match = {};
             if (productId && productId !== '') match.product = new mongoose.Types.ObjectId(productId);
+            match.countryId = req.countryId;
 
             const pipeline = [
                 { $match: match },
@@ -201,13 +203,13 @@ exports.getBalance = async (req, res, next) => {
         }
 
         // Specific Warehouse View
-        const query = { warehouse: warehouseId };
+        const query = { warehouse: warehouseId, countryId: req.countryId };
         if (productId) query.product = productId;
 
         let balances;
         if ((categoryId && categoryId !== '') || (brandId && brandId !== '')) {
             // Need to filter by category or brand - use aggregation
-            const matchStage = { warehouse: new mongoose.Types.ObjectId(warehouseId) };
+            const matchStage = { warehouse: new mongoose.Types.ObjectId(warehouseId), countryId: req.countryId };
             if (productId) matchStage.product = new mongoose.Types.ObjectId(productId);
 
             const pipeline = [
@@ -300,6 +302,9 @@ exports.getLedger = async (req, res, next) => {
     try {
         const { warehouseId, productId, type, startDate, endDate, search, page = 1, limit = 50 } = req.query;
         const query = {};
+
+        // Always scope to active country
+        query.countryId = req.countryId;
 
         if (warehouseId) query.warehouse = warehouseId;
         if (productId) query.product = productId;
@@ -423,11 +428,12 @@ exports.transferStock = async (req, res, next) => {
             reason,
             status: 'COMPLETED',
             initiatedBy: req.user.id,
+            countryId: req.countryId,
         });
 
         // 4. Update source warehouse (TRANSFER_OUT)
         const updatedSourceBalance = await InventoryBalance.findOneAndUpdate(
-            { product, warehouse: sourceWarehouse },
+            { product, warehouse: sourceWarehouse, countryId: req.countryId },
             {
                 $inc: { quantity: -quantity },
                 $set: { lastUpdated: new Date() },
@@ -437,7 +443,7 @@ exports.transferStock = async (req, res, next) => {
 
         // 5. Update destination warehouse (TRANSFER_IN)
         const updatedDestBalance = await InventoryBalance.findOneAndUpdate(
-            { product, warehouse: destinationWarehouse },
+            { product, warehouse: destinationWarehouse, countryId: req.countryId },
             {
                 $inc: { quantity: quantity },
                 $set: { lastUpdated: new Date() },
@@ -460,6 +466,7 @@ exports.transferStock = async (req, res, next) => {
                 reference: transfer._id.toString(),
                 balanceAfter: updatedSourceBalance.quantity,
                 performedBy: req.user.id,
+                countryId: req.countryId,
             },
             {
                 product,
@@ -470,6 +477,7 @@ exports.transferStock = async (req, res, next) => {
                 reference: transfer._id.toString(),
                 balanceAfter: updatedDestBalance.quantity,
                 performedBy: req.user.id,
+                countryId: req.countryId,
             },
         ]);
 

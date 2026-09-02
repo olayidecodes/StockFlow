@@ -13,6 +13,12 @@ const regionSchema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
+        countryId: {
+            type: mongoose.Schema.ObjectId,
+            ref: 'Country',
+            required: true,
+            index: true,
+        },
     },
     {
         timestamps: true,

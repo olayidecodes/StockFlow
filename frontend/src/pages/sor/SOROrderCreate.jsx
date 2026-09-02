@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { FiPlus, FiTrash2 } from 'react-icons/fi';
 import api from '../../utils/api';
 import Spinner from '../../components/Spinner';
+import { useCountry } from '../../context/CountryContext';
 
 // Reused from OrderCreate — searchable product dropdown
 const ProductSearchSelect = ({ value, options, onChange, placeholder }) => {
@@ -76,6 +77,7 @@ const formatCurrency = (n) => `₦${Number(n || 0).toLocaleString(undefined, { m
 
 const SOROrderCreate = () => {
     const navigate = useNavigate();
+    const { activeCountry } = useCountry();
     const [loading, setLoading] = useState(false);
 
     // Reference data
@@ -102,16 +104,18 @@ const SOROrderCreate = () => {
 
     // Load SOR customers and regions on mount
     useEffect(() => {
+        if (!activeCountry?._id) return;
+        const countryParam = `?countryId=${activeCountry._id}`;
         Promise.all([
-            api.get('/sor/customers?limit=500'),
-            api.get('/regions'),
+            api.get(`/sor/customers?limit=500&countryId=${activeCountry._id}`),
+            api.get(`/regions${countryParam}`),
             api.get('/products?limit=500'),
         ]).then(([custRes, regRes, prodRes]) => {
             setSorCustomers(custRes.data.data || []);
             setRegions(regRes.data.data || []);
             setProducts((prodRes.data.data || []).filter(p => p.status === 'ACTIVE'));
         }).catch(() => toast.error('Failed to load form data'));
-    }, []);
+    }, [activeCountry?._id]);
 
     // Load templates when customer changes
     useEffect(() => {
@@ -232,12 +236,13 @@ const SOROrderCreate = () => {
                 items: formData.items.map(i => ({
                     product: i.product,
                     quantity: i.quantity,
-                    price: Math.max(0, (i.price || 0) - (i.discount || 0)), // effective price after per-item discount
+                    price: Math.max(0, (i.price || 0) - (i.discount || 0)),
                 })),
                 subtotal,
                 discountAmount: finalDiscountAmount,
                 discountType: finalDiscountType,
                 deliveryFee: deliveryFee || 0,
+                ...(activeCountry?._id && { countryId: activeCountry._id }),
             };
 
             await api.post('/sor/orders', payload);

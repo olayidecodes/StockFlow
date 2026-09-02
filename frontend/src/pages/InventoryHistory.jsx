@@ -3,6 +3,7 @@ import { FiFilter, FiX, FiDownload, FiArrowUp, FiArrowDown, FiRefreshCw } from '
 import api from '../utils/api';
 import Spinner from '../components/Spinner';
 import ExportButton from '../components/ExportButton';
+import { useCountry } from '../context/CountryContext';
 
 const TYPE_META = {
     IN:           { label: 'Stock In',       color: '#10B981', bg: '#D1FAE5' },
@@ -27,6 +28,7 @@ const StatCard = ({ label, value, sub, color }) => (
 );
 
 const InventoryHistory = () => {
+    const { activeCountry } = useCountry();
     const [entries, setEntries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [warehouses, setWarehouses] = useState([]);
@@ -49,14 +51,17 @@ const InventoryHistory = () => {
     const [stats, setStats] = useState({ totalIn: 0, totalOut: 0, netChange: 0, valueChange: 0 });
 
     useEffect(() => {
-        Promise.all([api.get('/warehouses'), api.get('/products?limit=1000')])
+        if (!activeCountry?._id) return;
+        const countryParam = `?countryId=${activeCountry._id}`;
+        Promise.all([api.get(`/warehouses${countryParam}`), api.get('/products?limit=1000')])
             .then(([wh, pr]) => {
                 setWarehouses(wh.data.data || []);
                 setProducts((pr.data.data || []).filter(p => p.status === 'ACTIVE'));
             }).catch(() => {});
-    }, []);
+    }, [activeCountry?._id]);
 
     const fetchLedger = useCallback(async (pg = 1) => {
+        if (!activeCountry?._id) return;
         setLoading(true);
         try {
             const params = new URLSearchParams({ page: pg, limit: LIMIT });
@@ -66,6 +71,7 @@ const InventoryHistory = () => {
             if (filterSearch.trim()) params.append('search', filterSearch.trim());
             if (dateRange.startDate) params.append('startDate', dateRange.startDate);
             if (dateRange.endDate) params.append('endDate', dateRange.endDate);
+            params.append('countryId', activeCountry._id);
 
             const res = await api.get(`/inventory/ledger?${params}`);
             const data = res.data.data || [];
@@ -87,7 +93,7 @@ const InventoryHistory = () => {
         } finally {
             setLoading(false);
         }
-    }, [filterWarehouse, filterProduct, filterType, filterSearch, dateRange]);
+    }, [filterWarehouse, filterProduct, filterType, filterSearch, dateRange, activeCountry?._id]);
 
     useEffect(() => { fetchLedger(1); }, [fetchLedger]);
 

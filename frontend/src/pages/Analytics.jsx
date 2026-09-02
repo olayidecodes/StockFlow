@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useCountry } from '../context/CountryContext';
 import api from '../utils/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend } from 'recharts';
 import { FiAlertTriangle, FiPackage, FiShoppingCart, FiTrendingUp, FiBox, FiFilter } from 'react-icons/fi';
@@ -11,6 +12,7 @@ const COLORS = ['#4880FF', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 const Analytics = () => {
     const { user } = useAuth();
+    const { activeCountry } = useCountry();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('overview');
@@ -22,20 +24,18 @@ const Analytics = () => {
     const [whYear, setWhYear] = useState(new Date().getFullYear());
 
     useEffect(() => {
-        api.get('/analytics').then(res => { setData(res.data.data); setLoading(false); }).catch(err => { console.error("Analytics fetch error:", err); setLoading(false); });
-    }, []);
+        if (!activeCountry?._id) return;
+        api.get(`/analytics?countryId=${activeCountry._id}`).then(res => { setData(res.data.data); setLoading(false); }).catch(err => { console.error("Analytics fetch error:", err); setLoading(false); });
+    }, [activeCountry?._id]);
 
     useEffect(() => {
-        api.get(`/analytics/warehouse-monthly?year=${whYear}`)
+        if (!activeCountry?._id) return;
+        api.get(`/analytics/warehouse-monthly?year=${whYear}&countryId=${activeCountry._id}`)
             .then(res => {
                 setWhMonthlyData(res.data.data || []);
-                if (res.data.warehousesFound !== undefined) {
-                    console.log('[Warehouse Monthly] Matched warehouses:', res.data.warehousesFound);
-                    console.log('[Warehouse Monthly] ALL warehouses in DB:', res.data.allWarehouses);
-                }
             })
             .catch(() => {});
-    }, [whYear]);
+    }, [whYear, activeCountry?._id]);
 
     if (loading) return <Spinner fullPage />;
     if (!data) return <div className="page-container"><div className="text-center">Failed to load data</div></div>;
@@ -147,7 +147,14 @@ const Analytics = () => {
         <div className="page-container">
             <div className="page-header">
                 <h1>Operational Insights</h1>
-                <p style={{ color: '#64748B', fontSize: '0.9rem', marginTop: '0.5rem' }}>Real-time analytics and performance metrics</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    {activeCountry && (
+                        <span style={{ fontSize: '0.8rem', fontWeight: 600, background: '#F0F4FF', color: '#4880FF', padding: '4px 12px', borderRadius: '20px', border: '1px solid #D1DEFF' }}>
+                            🌍 {activeCountry.name}
+                        </span>
+                    )}
+                    <p style={{ color: '#64748B', fontSize: '0.9rem', marginTop: '0.5rem' }}>Real-time analytics and performance metrics</p>
+                </div>
             </div>
 
             <div style={{ 

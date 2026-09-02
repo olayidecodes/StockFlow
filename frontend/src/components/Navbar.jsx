@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
 import PermissionGuard from './PermissionGuard';
+import CountrySelector from './CountrySelector';
 
 const Navbar = () => {
-    const { logout } = useAuth();
-    const { user, role, PERMISSIONS } = usePermissions();
+    const { PERMISSIONS } = usePermissions();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const navigate = useNavigate();
 
@@ -23,11 +22,6 @@ const Navbar = () => {
             document.body.classList.remove('no-scroll');
         };
     }, [isMenuOpen]);
-
-    const handleLogout = () => {
-        logout();
-        navigate('/login');
-    };
 
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
     const closeMenu = () => setIsMenuOpen(false);
@@ -92,25 +86,11 @@ const Navbar = () => {
                         </NavLink>
                     </PermissionGuard>
 
-                    <div className="nav-user-mobile">
-                        <div className="user-profile">
-                            <span className="user-name">{user?.username}</span>
-                            <span className="user-role">{role?.replace('_', ' ')}</span>
-                        </div>
-                        <button onClick={handleLogout} className="btn-logout">
-                            Logout
-                        </button>
-                    </div>
+
                 </div>
 
                 <div className="nav-user">
-                    <div className="user-profile">
-                        <span className="user-name">{user?.username}</span>
-                        <span className="user-role">{role?.replace('_', ' ')}</span>
-                    </div>
-                    <button onClick={handleLogout} className="btn-logout">
-                        Logout
-                    </button>
+                    <CountrySelector />
                 </div>
 
                 {isMenuOpen && (

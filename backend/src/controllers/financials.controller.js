@@ -19,11 +19,12 @@ exports.getFinancials = async (req, res, next) => {
         if (startDate) orderDateFilter.$gte = new Date(startDate);
         if (endDate) orderDateFilter.$lte = new Date(endDate);
         const orderMatch = Object.keys(orderDateFilter).length > 0 
-            ? { createdAt: orderDateFilter, status: { $ne: 'CANCELLED' } }
-            : { status: { $ne: 'CANCELLED' } };
+            ? { createdAt: orderDateFilter, status: { $ne: 'CANCELLED' }, countryId: req.countryId }
+            : { status: { $ne: 'CANCELLED' }, countryId: req.countryId };
 
         // 1. INVENTORY VALUATION - Current stock value by warehouse
         const inventoryByWarehouse = await InventoryBalance.aggregate([
+            { $match: { countryId: req.countryId } },
             {
                 $lookup: {
                     from: 'products',
@@ -131,6 +132,7 @@ exports.getFinancials = async (req, res, next) => {
 
         // 2. INVENTORY VALUATION - By Brand
         const inventoryByBrand = await InventoryBalance.aggregate([
+            { $match: { countryId: req.countryId } },
             {
                 $lookup: {
                     from: 'products',
@@ -217,6 +219,7 @@ exports.getFinancials = async (req, res, next) => {
 
         // 3. INVENTORY VALUATION - By Category
         const inventoryByCategory = await InventoryBalance.aggregate([
+            { $match: { countryId: req.countryId } },
             {
                 $lookup: {
                     from: 'products',
@@ -307,6 +310,7 @@ exports.getFinancials = async (req, res, next) => {
 
         // 4. TOP PRODUCTS BY VALUE (Current Inventory)
         const topProductsByValue = await InventoryBalance.aggregate([
+            { $match: { countryId: req.countryId } },
             {
                 $lookup: {
                     from: 'products',
@@ -684,7 +688,8 @@ exports.getFinancials = async (req, res, next) => {
             { 
                 $match: { 
                     createdAt: { $gte: trendStartDate },
-                    status: { $ne: 'CANCELLED' }
+                    status: { $ne: 'CANCELLED' },
+                    countryId: req.countryId,
                 } 
             },
             {

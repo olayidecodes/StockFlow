@@ -2,11 +2,13 @@ const express = require('express');
 const { recordPayment, getPayments, deletePayment } = require('../controllers/sor.payment.controller');
 const { protect } = require('../middleware/auth');
 const { authorize } = require('../middleware/authorize');
+const validateCountryAccess = require('../middleware/validateCountryAccess');
 
 const router = express.Router();
 
 // All routes require authentication
 router.use(protect);
+router.use(validateCountryAccess);
 
 const STAFF_ROLES = ['SALES', 'INVENTORY_MANAGER', 'ADMIN'];
 

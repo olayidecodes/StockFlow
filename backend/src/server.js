@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/database');
 const errorHandler = require('./middleware/errorHandler');
+const Country = require('./models/Country');
 
 // Import routes
 const authRoutes = require('./routes/auth.routes');
@@ -24,9 +25,21 @@ const sorTemplateRoutes = require('./routes/sor.template.routes');
 const sorOrderRoutes = require('./routes/sor.order.routes');
 const sorPaymentRoutes = require('./routes/sor.payment.routes');
 const sorDashboardRoutes = require('./routes/sor.dashboard.routes');
+const countryRoutes = require('./routes/country.routes');
 
-// Connect to database
-connectDB();
+// Connect to database and seed default data
+connectDB().then(async () => {
+    try {
+        await Country.findOneAndUpdate(
+            { isoCode: 'NG' },
+            { name: 'Nigeria', isoCode: 'NG', isActive: true, isDefault: true },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+        console.log('Nigeria country seed: OK');
+    } catch (err) {
+        console.error('Nigeria country seed failed:', err.message);
+    }
+});
 
 // Initialize express app
 const app = express();
@@ -56,6 +69,7 @@ app.use('/api/sor/templates', sorTemplateRoutes);
 app.use('/api/sor/orders', sorOrderRoutes);
 app.use('/api/sor/payments', sorPaymentRoutes);
 app.use('/api/sor/dashboard', sorDashboardRoutes);
+app.use('/api/countries', countryRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

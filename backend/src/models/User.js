@@ -45,6 +45,10 @@ const userSchema = new mongoose.Schema(
         verificationToken: String,
         resetPasswordToken: String,
         resetPasswordExpire: Date,
+        countryAssignments: [{
+            type: mongoose.Schema.ObjectId,
+            ref: 'Country',
+        }],
     },
     {
         timestamps: true, // Adds createdAt and updatedAt

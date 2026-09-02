@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useCountry } from '../context/CountryContext';
 import api from '../utils/api';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -13,6 +14,7 @@ const COLORS = ['#4880FF', '#10B981', '#64748B', '#8B5CF6', '#F59E0B', '#EC4899'
 
 const Financials = () => {
     const { user } = useAuth();
+    const { activeCountry } = useCountry();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
@@ -22,8 +24,8 @@ const Financials = () => {
     useEffect(() => {
         console.log('Current user:', user);
         console.log('User role:', user?.role);
-        fetchFinancials();
-    }, [trendPeriod]);
+        if (activeCountry?._id) fetchFinancials();
+    }, [trendPeriod, activeCountry?._id]);
 
     const fetchFinancials = async () => {
         setLoading(true);
@@ -32,8 +34,7 @@ const Financials = () => {
             if (dateRange.startDate) params.append('startDate', dateRange.startDate);
             if (dateRange.endDate) params.append('endDate', dateRange.endDate);
             params.append('trendPeriod', trendPeriod);
-            
-            console.log('Fetching financials from:', `/financials?${params.toString()}`);
+            if (activeCountry?._id) params.append('countryId', activeCountry._id);
             const res = await api.get(`/financials?${params.toString()}`);
             console.log('Financials data received:', res.data);
             setData(res.data.data);
@@ -101,9 +102,16 @@ const Financials = () => {
             <div className="page-header">
                 <div>
                     <h1>Financial Analytics</h1>
-                    <p style={{ color: '#64748B', fontSize: '0.9rem', marginTop: '4px' }}>
-                        Comprehensive financial overview and cost analysis
-                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '4px' }}>
+                        {activeCountry && (
+                            <span style={{ fontSize: '0.8rem', fontWeight: 600, background: '#F0F4FF', color: '#4880FF', padding: '4px 12px', borderRadius: '20px', border: '1px solid #D1DEFF' }}>
+                                🌍 {activeCountry.name}
+                            </span>
+                        )}
+                        <p style={{ color: '#64748B', fontSize: '0.9rem' }}>
+                            Comprehensive financial overview and cost analysis
+                        </p>
+                    </div>
                 </div>
                 
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>

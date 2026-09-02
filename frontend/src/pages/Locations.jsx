@@ -5,8 +5,10 @@ import api from '../utils/api';
 import Spinner from '../components/Spinner';
 import PermissionGuard from '../components/PermissionGuard';
 import { PERMISSIONS } from '../utils/constants';
+import { useCountry } from '../context/CountryContext';
 
 const Locations = () => {
+    const { activeCountry } = useCountry();
     const [regions, setRegions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -23,13 +25,13 @@ const Locations = () => {
     const [warehouseForm, setWarehouseForm] = useState({ name: '', active: true, region: '' });
 
     useEffect(() => {
-        fetchLocations();
-    }, []);
+        if (activeCountry?._id) fetchLocations();
+    }, [activeCountry?._id]);
 
     const fetchLocations = async () => {
         try {
             setLoading(true);
-            const res = await api.get('/regions');
+            const res = await api.get(`/regions?countryId=${activeCountry._id}`);
             setRegions(res.data.data);
             setLoading(false);
         } catch (err) {
@@ -45,7 +47,7 @@ const Locations = () => {
             if (editingRegion) {
                 await api.put(`/regions/${editingRegion._id}`, regionForm);
             } else {
-                await api.post('/regions', regionForm);
+                await api.post('/regions', { ...regionForm, countryId: activeCountry?._id });
             }
             fetchLocations();
             closeRegionModal();
@@ -74,7 +76,7 @@ const Locations = () => {
             if (editingWarehouse) {
                 await api.put(`/warehouses/${editingWarehouse._id}`, warehouseForm);
             } else {
-                await api.post('/warehouses', warehouseForm);
+                await api.post('/warehouses', { ...warehouseForm, countryId: activeCountry?._id });
             }
             fetchLocations();
             closeWarehouseModal();

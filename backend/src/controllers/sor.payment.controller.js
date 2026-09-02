@@ -40,8 +40,8 @@ exports.recordPayment = async (req, res, next) => {
             }
         }
 
-        // Validate customer exists
-        const customer = await SORCustomer.findById(customerId);
+        // Validate customer exists and belongs to active country
+        const customer = await SORCustomer.findOne({ _id: customerId, countryId: req.countryId });
         if (!customer) {
             return res.status(404).json({ success: false, message: 'SOR customer not found' });
         }
@@ -81,6 +81,12 @@ exports.getPayments = async (req, res, next) => {
 
         if (!customerId) {
             return res.status(400).json({ success: false, message: 'Customer query parameter is required' });
+        }
+
+        // Ensure the customer belongs to the active country
+        const customer = await SORCustomer.findOne({ _id: customerId, countryId: req.countryId });
+        if (!customer) {
+            return res.status(404).json({ success: false, message: 'SOR customer not found' });
         }
 
         // Req 4.5: ordered by paymentDate descending

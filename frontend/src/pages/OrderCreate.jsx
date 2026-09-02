@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { FiPlus, FiTrash2, FiPackage, FiBox } from 'react-icons/fi';
 import api from '../utils/api';
 import Spinner from '../components/Spinner';
+import { useCountry } from '../context/CountryContext';
 
 const ProductSearchSelect = ({ value, options, onChange, placeholder }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -231,6 +232,7 @@ const BundleSearchSelect = ({ value, options, onChange, placeholder }) => {
 
 const OrderCreate = () => {
     const navigate = useNavigate();
+    const { activeCountry } = useCountry();
     const [loading, setLoading] = useState(false);
     const [regions, setRegions] = useState([]);
     const [warehouses, setWarehouses] = useState([]);
@@ -257,9 +259,10 @@ const OrderCreate = () => {
 
     // Load Regions and Templates
     useEffect(() => {
-        api.get('/regions').then(res => setRegions(res.data.data)).catch(console.error);
+        if (!activeCountry?._id) return;
+        api.get(`/regions?countryId=${activeCountry._id}`).then(res => setRegions(res.data.data)).catch(console.error);
         api.get('/templates').then(res => setTemplates(res.data.data)).catch(console.error);
-    }, []);
+    }, [activeCountry?._id]);
 
     // Load Warehouses when Region changes
     useEffect(() => {
@@ -284,9 +287,10 @@ const OrderCreate = () => {
 
     const loadWarehouseData = async (warehouseId) => {
         try {
+            const countryParam = activeCountry?._id ? `&countryId=${activeCountry._id}` : '';
             const [prodRes, invRes, bundleRes] = await Promise.all([
                 api.get('/products?limit=1000'),
-                api.get(`/inventory/balance?warehouseId=${warehouseId}`),
+                api.get(`/inventory/balance?warehouseId=${warehouseId}${countryParam}`),
                 api.get('/bundles?status=ACTIVE')
             ]);
             setProducts(prodRes.data.data.filter(p => p.status === 'ACTIVE'));
@@ -601,7 +605,8 @@ const OrderCreate = () => {
                 discountType: finalDiscountType,
                 deliveryFee: deliveryFee || 0,
                 orderType: orderType,
-                channel: formData.channel
+                channel: formData.channel,
+                ...(activeCountry?._id && { countryId: activeCountry._id }),
             };
             await api.post('/orders', payload);
             toast.success('Order created successfully');

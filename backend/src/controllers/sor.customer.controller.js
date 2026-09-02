@@ -30,6 +30,7 @@ exports.createCustomer = async (req, res, next) => {
             email,
             notes,
             createdBy: req.user.id,
+            countryId: req.countryId,
         });
 
         res.status(201).json({ success: true, data: customer });
@@ -49,9 +50,10 @@ exports.getCustomers = async (req, res, next) => {
         const search = req.query.search ? req.query.search.trim() : '';
 
         // Build query — case-insensitive contains on name or phone
-        let query = {};
+        let query = { countryId: req.countryId };
         if (search) {
             query = {
+                countryId: req.countryId,
                 $or: [
                     { name: { $regex: search, $options: 'i' } },
                     { phone: { $regex: search, $options: 'i' } },
@@ -90,7 +92,7 @@ exports.getCustomers = async (req, res, next) => {
 // @access  Staff
 exports.getCustomer = async (req, res, next) => {
     try {
-        const customer = await SORCustomer.findById(req.params.id).populate('createdBy', 'name email');
+        const customer = await SORCustomer.findOne({ _id: req.params.id, countryId: req.countryId }).populate('createdBy', 'name email');
 
         if (!customer) {
             return res.status(404).json({ success: false, message: 'SOR customer not found' });
@@ -112,7 +114,7 @@ exports.getCustomer = async (req, res, next) => {
 // @access  Staff
 exports.updateCustomer = async (req, res, next) => {
     try {
-        const customer = await SORCustomer.findById(req.params.id);
+        const customer = await SORCustomer.findOne({ _id: req.params.id, countryId: req.countryId });
 
         if (!customer) {
             return res.status(404).json({ success: false, message: 'SOR customer not found' });
@@ -148,7 +150,7 @@ exports.updateCustomer = async (req, res, next) => {
 // @access  Admin
 exports.deleteCustomer = async (req, res, next) => {
     try {
-        const customer = await SORCustomer.findById(req.params.id);
+        const customer = await SORCustomer.findOne({ _id: req.params.id, countryId: req.countryId });
 
         if (!customer) {
             return res.status(404).json({ success: false, message: 'SOR customer not found' });
@@ -180,7 +182,7 @@ exports.deleteCustomer = async (req, res, next) => {
 // @access  Staff
 exports.getCustomerLedger = async (req, res, next) => {
     try {
-        const customer = await SORCustomer.findById(req.params.id);
+        const customer = await SORCustomer.findOne({ _id: req.params.id, countryId: req.countryId });
 
         if (!customer) {
             return res.status(404).json({ success: false, message: 'SOR customer not found' });
@@ -199,7 +201,7 @@ exports.getCustomerLedger = async (req, res, next) => {
 // @access  Staff
 exports.exportCustomerLedger = async (req, res, next) => {
     try {
-        const customer = await SORCustomer.findById(req.params.id);
+        const customer = await SORCustomer.findOne({ _id: req.params.id, countryId: req.countryId });
 
         if (!customer) {
             return res.status(404).json({ success: false, message: 'SOR customer not found' });

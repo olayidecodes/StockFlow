@@ -10,9 +10,9 @@ exports.getWarehouses = async (req, res, next) => {
 
         // Filter by region if provided
         if (req.query.regionId) {
-            query = Warehouse.find({ region: req.query.regionId });
+            query = Warehouse.find({ region: req.query.regionId, countryId: req.countryId });
         } else {
-            query = Warehouse.find();
+            query = Warehouse.find({ countryId: req.countryId });
         }
 
         // Populate region details
@@ -38,7 +38,7 @@ exports.getWarehouses = async (req, res, next) => {
 // @access  Private
 exports.getWarehouse = async (req, res, next) => {
     try {
-        const warehouse = await Warehouse.findById(req.params.id).populate('region');
+        const warehouse = await Warehouse.findOne({ _id: req.params.id, countryId: req.countryId }).populate('region');
 
         if (!warehouse) {
             return res.status(404).json({
@@ -66,7 +66,7 @@ exports.createWarehouse = async (req, res, next) => {
             return res.status(400).json({ success: false, errors: errors.array() });
         }
 
-        const warehouse = await Warehouse.create(req.body);
+        const warehouse = await Warehouse.create({ ...req.body, countryId: req.countryId });
 
         res.status(201).json({
             success: true,
@@ -87,7 +87,7 @@ exports.updateWarehouse = async (req, res, next) => {
             return res.status(400).json({ success: false, errors: errors.array() });
         }
 
-        let warehouse = await Warehouse.findById(req.params.id);
+        let warehouse = await Warehouse.findOne({ _id: req.params.id, countryId: req.countryId });
 
         if (!warehouse) {
             return res.status(404).json({
@@ -115,7 +115,7 @@ exports.updateWarehouse = async (req, res, next) => {
 // @access  Private (Admin)
 exports.deleteWarehouse = async (req, res, next) => {
     try {
-        const warehouse = await Warehouse.findById(req.params.id);
+        const warehouse = await Warehouse.findOne({ _id: req.params.id, countryId: req.countryId });
 
         if (!warehouse) {
             return res.status(404).json({

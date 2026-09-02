@@ -10,8 +10,8 @@ exports.getDashboard = async (req, res, next) => {
     try {
         const { startDate, endDate } = req.query;
 
-        // 1. Get all SOR customers
-        const customers = await SORCustomer.find().lean();
+        // 1. Get SOR customers for the active country
+        const customers = await SORCustomer.find({ countryId: req.countryId }).lean();
 
         // 2. Compute liability for each customer
         const customersWithLiability = await Promise.all(
@@ -35,8 +35,8 @@ exports.getDashboard = async (req, res, next) => {
             0
         );
 
-        // 5. Payments in date range
-        const paymentQuery = {};
+        // 5. Payments in date range (scoped to country customers)
+        const paymentQuery = { customer: { $in: customers.map(c => c._id) } };
         if (startDate || endDate) {
             paymentQuery.paymentDate = {};
             if (startDate) paymentQuery.paymentDate.$gte = new Date(startDate);
@@ -54,10 +54,12 @@ exports.getDashboard = async (req, res, next) => {
             (a, b) => b.outstandingLiability - a.outstandingLiability
         );
 
-        // 7. Overdue orders — CONFIRMED SOR orders created more than 30 days ago
+        // 7. Overdue orders — CONFIRMED SOR orders created more than 30 days ago (scoped to country)
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        const customerIds = customers.map(c => c._id);
 
         const overdueOrders = await SOROrder.aggregate([
+            { $match: { customer: { $in: customerIds } } },
             {
                 $lookup: {
                     from: 'orders',

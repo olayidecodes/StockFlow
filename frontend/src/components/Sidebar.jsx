@@ -6,8 +6,8 @@ import { ROLES } from '../utils/constants';
 
 import {
     FiHome, FiShoppingCart, FiPackage, FiBarChart2, FiUsers,
-    FiMapPin, FiLayers, FiBox, FiTag, FiGrid, FiTrendingUp, FiUserCheck, FiDollarSign, FiLogOut,
-    FiMenu, FiChevronLeft, FiChevronRight, FiX, FiRepeat
+    FiMapPin, FiLayers, FiBox, FiTag, FiGrid, FiTrendingUp, FiUserCheck, FiDollarSign,
+    FiChevronLeft, FiChevronRight, FiX, FiRepeat, FiGlobe, FiLogOut
 } from 'react-icons/fi';
 
 const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
@@ -98,6 +98,12 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
             icon: <FiMapPin />,
             allowedRoles: [ROLES.ADMIN, ROLES.INVENTORY_MANAGER]
         },
+        {
+            to: '/settings/countries',
+            label: 'Countries',
+            icon: <FiGlobe />,
+            allowedRoles: [ROLES.ADMIN]
+        },
     ];
 
     return (
@@ -168,14 +174,31 @@ const Sidebar = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
             </nav>
 
             <div className="sidebar-footer">
-                <div className="user-profile-mini">
+                <div className="sidebar-user">
                     <div className="avatar">{user?.username?.charAt(0).toUpperCase()}</div>
-                    <div className="user-info">
-                        <span className="name">{user?.username}</span>
-                        {/* <span className="role">{role?.replace('_', ' ')}</span> */}
-                    </div>
                     {!isCollapsed && (
-                        <button onClick={handleLogout} className="logout-btn" title="Logout">
+                        <>
+                            <div className="user-info">
+                                <span className="name">{user?.username}</span>
+                                <span className="role">{role?.replace('_', ' ')}</span>
+                            </div>
+                            <button
+                                onClick={handleLogout}
+                                className="btn-logout-icon"
+                                title="Logout"
+                                aria-label="Logout"
+                            >
+                                <FiLogOut />
+                            </button>
+                        </>
+                    )}
+                    {isCollapsed && (
+                        <button
+                            onClick={handleLogout}
+                            className="btn-logout-icon"
+                            title="Logout"
+                            aria-label="Logout"
+                        >
                             <FiLogOut />
                         </button>
                     )}

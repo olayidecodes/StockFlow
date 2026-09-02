@@ -3,8 +3,10 @@ import { toast } from 'react-toastify';
 import api from '../utils/api';
 import Spinner from '../components/Spinner';
 import ExportButton from '../components/ExportButton';
+import { useCountry } from '../context/CountryContext';
 
 const CustomerAnalytics = () => {
+    const { activeCountry } = useCountry();
     const [customers, setCustomers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showRecurringOnly, setShowRecurringOnly] = useState(false);
@@ -34,13 +36,16 @@ const CustomerAnalytics = () => {
     };
 
     useEffect(() => {
-        fetchCustomerAnalytics();
-    }, [showRecurringOnly]);
+        if (activeCountry?._id) fetchCustomerAnalytics();
+    }, [showRecurringOnly, activeCountry?._id]);
 
     const fetchCustomerAnalytics = async () => {
         setLoading(true);
         try {
-            const query = showRecurringOnly ? '?recurring=true' : '';
+            const params = new URLSearchParams();
+            if (showRecurringOnly) params.append('recurring', 'true');
+            if (activeCountry?._id) params.append('countryId', activeCountry._id);
+            const query = params.toString() ? `?${params.toString()}` : '';
             const res = await api.get(`/analytics/customers${query}`);
             setCustomers(res.data.data);
             setLoading(false);

@@ -3,8 +3,10 @@ import { toast } from 'react-toastify';
 import { FiX } from 'react-icons/fi';
 import api from '../utils/api';
 import Spinner from '../components/Spinner';
+import { useCountry } from '../context/CountryContext';
 
 const StockTransferModal = ({ isOpen, onClose, product, sourceWarehouse, warehouses, onSuccess }) => {
+    const { activeCountry } = useCountry();
     const [formData, setFormData] = useState({
         destinationWarehouse: '',
         cartons: 0,
@@ -55,6 +57,7 @@ const StockTransferModal = ({ isOpen, onClose, product, sourceWarehouse, warehou
                 destinationWarehouse: formData.destinationWarehouse,
                 quantity: totalQuantity,
                 reason: formData.reason,
+                countryId: activeCountry?._id,
             };
 
             await api.post('/inventory/transfer', payload);

@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { FiUsers, FiAlertTriangle, FiDollarSign, FiClock } from 'react-icons/fi';
 import api from '../../utils/api';
 import Spinner from '../../components/Spinner';
+import { useCountry } from '../../context/CountryContext';
 
 const formatCurrency = (amount) =>
     `₦${Number(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -19,6 +20,7 @@ const getDefaultDates = () => {
 };
 
 const SORDashboard = () => {
+    const { activeCountry } = useCountry();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const defaults = getDefaultDates();
@@ -26,11 +28,13 @@ const SORDashboard = () => {
     const [endDate, setEndDate] = useState(defaults.endDate);
 
     const fetchDashboard = useCallback(async () => {
+        if (!activeCountry?._id) return;
         setLoading(true);
         try {
             const params = new URLSearchParams();
             if (startDate) params.append('startDate', startDate);
             if (endDate) params.append('endDate', endDate);
+            params.append('countryId', activeCountry._id);
             const res = await api.get(`/sor/dashboard?${params.toString()}`);
             setData(res.data.data);
         } catch (err) {
@@ -42,7 +46,7 @@ const SORDashboard = () => {
 
     useEffect(() => {
         fetchDashboard();
-    }, [fetchDashboard]);
+    }, [fetchDashboard, activeCountry?._id]);
 
     return (
         <div className="page-container">

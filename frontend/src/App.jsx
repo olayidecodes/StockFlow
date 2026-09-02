@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { CountryProvider } from './context/CountryContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleRoute from './components/RoleRoute';
 import { ROLES } from './utils/constants';
@@ -33,14 +34,16 @@ import Users from './pages/Users';
 import VerifyEmail from './pages/VerifyEmail';
 import Layout from './components/Layout';
 import InstallPrompt from './components/InstallPrompt';
+import CountrySettings from './pages/CountrySettings';
 
 function App() {
   return (
     <AuthProvider>
+      <CountryProvider>
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
-          {/* <Route path="/register" element={<Register />} /> */}
+          <Route path="/register" element={<Register />} />
           <Route
             path="*"
             element={
@@ -171,6 +174,14 @@ function App() {
                         </RoleRoute>
                       } 
                     />
+                    <Route
+                      path="/settings/countries"
+                      element={
+                        <RoleRoute allowedRoles={[ROLES.ADMIN]}>
+                          <CountrySettings />
+                        </RoleRoute>
+                      }
+                    />
                     
                     {/* Users - Admin only */}
                     <Route 
@@ -224,6 +235,7 @@ function App() {
           />
         </Routes>
       </Router>
+      </CountryProvider>
       <ToastContainer position="top-right" autoClose={3000} />
       <InstallPrompt />
     </AuthProvider >

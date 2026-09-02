@@ -3,8 +3,10 @@ import { toast } from 'react-toastify';
 import { FiX } from 'react-icons/fi';
 import api from '../utils/api';
 import Spinner from '../components/Spinner';
+import { useCountry } from '../context/CountryContext';
 
 const StockAdjustmentModal = ({ isOpen, onClose, product, warehouse, onSuccess }) => {
+    const { activeCountry } = useCountry();
     const [formData, setFormData] = useState({
         type: 'ADJUSTMENT',
         cartons: 0,
@@ -117,7 +119,6 @@ const StockAdjustmentModal = ({ isOpen, onClose, product, warehouse, onSuccess }
         try {
             let payload;
             if (isCorrection) {
-                // For corrections, send the change needed to reach the target quantity
                 payload = {
                     product: currentProduct._id,
                     warehouse: currentWarehouse._id,
@@ -125,7 +126,8 @@ const StockAdjustmentModal = ({ isOpen, onClose, product, warehouse, onSuccess }
                     type: 'ADJUSTMENT',
                     reason: formData.reason || `Stock correction: set to ${totalInput} pieces`,
                     reference: `Manual Correction`,
-                    setQuantity: totalInput  // Tell backend the exact target
+                    setQuantity: totalInput,
+                    countryId: activeCountry?._id,
                 };
             } else {
                 payload = {
@@ -135,6 +137,7 @@ const StockAdjustmentModal = ({ isOpen, onClose, product, warehouse, onSuccess }
                     type: formData.type,
                     reason: formData.reason,
                     reference: `Manual Adjustment`,
+                    countryId: activeCountry?._id,
                 };
             }
 

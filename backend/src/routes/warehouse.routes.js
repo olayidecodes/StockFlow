@@ -10,10 +10,12 @@ const {
 const { protect } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/checkPermission');
 const { PERMISSIONS } = require('../config/constants');
+const validateCountryAccess = require('../middleware/validateCountryAccess');
 
 const router = express.Router();
 
 router.use(protect);
+router.use(validateCountryAccess);
 
 router
     .route('/')

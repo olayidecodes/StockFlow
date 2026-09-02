@@ -7,9 +7,11 @@ import Spinner from '../components/Spinner';
 import PermissionGuard from '../components/PermissionGuard';
 import { PERMISSIONS } from '../utils/constants';
 import ExportButton from '../components/ExportButton';
+import { useCountry } from '../context/CountryContext';
 
 const Orders = () => {
     const navigate = useNavigate();
+    const { activeCountry } = useCountry();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState('');
@@ -57,8 +59,8 @@ const Orders = () => {
     const totalAmount = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
     useEffect(() => {
-        fetchWarehouses();
-        api.get('/sor/orders').then((res) => {
+        if (activeCountry?._id) fetchWarehouses();
+        api.get(`/sor/orders${activeCountry?._id ? `?countryId=${activeCountry._id}` : ''}`).then((res) => {
             const ids = new Set((res.data.data || []).map((so) => String(so.order?._id || so.order)));
             setSorOrderIds(ids);
         }).catch(() => {});
@@ -66,7 +68,8 @@ const Orders = () => {
 
     const fetchWarehouses = async () => {
         try {
-            const res = await api.get('/warehouses');
+            const countryParam = activeCountry?._id ? `?countryId=${activeCountry._id}` : '';
+            const res = await api.get(`/warehouses${countryParam}`);
             setWarehouses(res.data.data);
         } catch (err) {
             console.error('Failed to load warehouses', err);
@@ -83,6 +86,7 @@ const Orders = () => {
             if (filterPaymentStatus) params.append('paymentStatus', filterPaymentStatus);
             if (dateRange.startDate) params.append('startDate', dateRange.startDate);
             if (dateRange.endDate) params.append('endDate', dateRange.endDate);
+            if (activeCountry?._id) params.append('countryId', activeCountry._id);
             const res = await api.get(`/orders?${params.toString()}`);
             setOrders(res.data.data);
         } catch (err) {
@@ -90,9 +94,9 @@ const Orders = () => {
         } finally {
             setLoading(false);
         }
-    }, [filterStatus, filterWarehouse, filterSOR, filterPaymentStatus, dateRange]);
+    }, [filterStatus, filterWarehouse, filterSOR, filterPaymentStatus, dateRange, activeCountry?._id]);
 
-    useEffect(() => { fetchOrders(); }, [fetchOrders]);
+    useEffect(() => { if (activeCountry?._id) fetchOrders(); }, [fetchOrders]);
 
     const handleDateFilter = () => { fetchOrders(); };
 
@@ -172,7 +176,14 @@ const Orders = () => {
     return (
         <div className="page-container">
             <div className="page-header">
-                <h1>Orders</h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <h1>Orders</h1>
+                    {activeCountry && (
+                        <span style={{ fontSize: '0.8rem', fontWeight: 600, background: '#F0F4FF', color: '#4880FF', padding: '4px 12px', borderRadius: '20px', border: '1px solid #D1DEFF' }}>
+                            🌍 {activeCountry.name}
+                        </span>
+                    )}
+                </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                     {orders.length > 0 && (
                         <ExportButton

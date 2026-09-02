@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useCountry } from '../context/CountryContext';
 import { useNavigate } from 'react-router-dom';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -11,6 +12,7 @@ import ExportButton from '../components/ExportButton';
 
 const Dashboard = () => {
     const { user } = useAuth();
+    const { activeCountry } = useCountry();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [trendPeriod, setTrendPeriod] = useState('past30'); // Changed from trendDays
@@ -43,7 +45,8 @@ const Dashboard = () => {
         try {
             setLoading(true);
             const selectedPeriod = timePeriods.find(p => p.value === period);
-            const response = await api.get(`/analytics?period=${period}&days=${selectedPeriod.days}`);
+            const countryParam = activeCountry?._id ? `&countryId=${activeCountry._id}` : '';
+            const response = await api.get(`/analytics?period=${period}&days=${selectedPeriod.days}${countryParam}`);
             setStats(response.data.data);
             setLoading(false);
         } catch (error) {
@@ -53,8 +56,10 @@ const Dashboard = () => {
     };
 
     useEffect(() => {
-        fetchDashboardData(trendPeriod);
-    }, [trendPeriod]);
+        if (activeCountry?._id) {
+            fetchDashboardData(trendPeriod);
+        }
+    }, [trendPeriod, activeCountry?._id]);
 
     if (loading && stats.summary.totalOrders === 0) return <Spinner fullPage />;
 
@@ -111,6 +116,11 @@ const Dashboard = () => {
             {/* Header */}
             <div className="dash-header">
                 <h1>Dashboard Overview</h1>
+                {activeCountry && (
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, background: '#F0F4FF', color: '#4880FF', padding: '4px 12px', borderRadius: '20px', border: '1px solid #D1DEFF' }}>
+                        🌍 {activeCountry.name}
+                    </span>
+                )}
             </div>
 
             {/* Stat Cards Row */}

@@ -28,6 +28,12 @@ const inventoryBalanceSchema = new mongoose.Schema(
             type: Date,
             default: Date.now,
         },
+        countryId: {
+            type: mongoose.Schema.ObjectId,
+            ref: 'Country',
+            required: true,
+            index: true,
+        },
     },
     {
         timestamps: true,
@@ -41,7 +47,7 @@ inventoryBalanceSchema.virtual('available').get(function () {
     return this.quantity - this.allocated;
 });
 
-// Ensure unique combination of product+warehouse
-inventoryBalanceSchema.index({ warehouse: 1, product: 1 }, { unique: true });
+// Ensure unique combination of product+warehouse+countryId
+inventoryBalanceSchema.index({ warehouse: 1, product: 1, countryId: 1 }, { unique: true });
 
 module.exports = mongoose.model('InventoryBalance', inventoryBalanceSchema);

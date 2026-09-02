@@ -25,11 +25,12 @@ const IMMUTABLE_FIELDS = ['orderNumber', 'createdBy', 'status', 'createdAt'];
  * @returns {Promise<Order>}      - Populated updated order
  * @throws {Error}                - With .statusCode set for the controller to forward
  */
-async function editOrder(orderId, updatePayload, userId) {
+async function editOrder(orderId, updatePayload, userId, countryId) {
     // -------------------------------------------------------------------------
     // 1. Load order; throw 404 if not found
     // -------------------------------------------------------------------------
-    const order = await Order.findById(orderId);
+    const query = countryId ? { _id: orderId, countryId } : { _id: orderId };
+    const order = await Order.findOne(query);
     if (!order) {
         const err = new Error('Order not found');
         err.statusCode = 404;

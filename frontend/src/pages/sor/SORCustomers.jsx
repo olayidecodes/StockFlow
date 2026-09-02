@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { FiPlus, FiEdit2, FiEye, FiSearch, FiX } from 'react-icons/fi';
 import api from '../../utils/api';
 import Spinner from '../../components/Spinner';
+import { useCountry } from '../../context/CountryContext';
 
 const LIMIT = 20;
 
@@ -20,6 +21,7 @@ const formatCurrency = (amount) =>
 
 const SORCustomers = () => {
     const navigate = useNavigate();
+    const { activeCountry } = useCountry();
 
     // List state
     const [customers, setCustomers] = useState([]);
@@ -46,10 +48,12 @@ const SORCustomers = () => {
     }, [searchInput]);
 
     const fetchCustomers = useCallback(async () => {
+        if (!activeCountry?._id) return;
         setLoading(true);
         try {
             const params = new URLSearchParams({ page, limit: LIMIT });
             if (search) params.append('search', search);
+            params.append('countryId', activeCountry._id);
             const res = await api.get(`/sor/customers?${params.toString()}`);
             setCustomers(res.data.data);
             setPagination(res.data.pagination || { totalPages: 1, total: res.data.data.length });
@@ -62,7 +66,7 @@ const SORCustomers = () => {
 
     useEffect(() => {
         fetchCustomers();
-    }, [fetchCustomers]);
+    }, [fetchCustomers, activeCountry?._id]);
 
     // --- Modal helpers ---
     const openModal = (customer = null) => {
@@ -115,6 +119,7 @@ const SORCustomers = () => {
                 address: formData.address.trim(),
                 ...(formData.email.trim() && { email: formData.email.trim() }),
                 ...(formData.notes.trim() && { notes: formData.notes.trim() }),
+                ...(activeCountry?._id && { countryId: activeCountry._id }),
             };
             if (editingCustomer) {
                 await api.put(`/sor/customers/${editingCustomer._id}`, payload);

@@ -92,7 +92,13 @@ const orderSchema = new mongoose.Schema(
                 changedBy: { type: mongoose.Schema.ObjectId, ref: 'User' },
                 date: { type: Date, default: Date.now }
             }
-        ]
+        ],
+        countryId: {
+            type: mongoose.Schema.ObjectId,
+            ref: 'Country',
+            required: true,
+            index: true,
+        },
     },
     {
         timestamps: true,

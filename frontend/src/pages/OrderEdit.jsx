@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { FiPlus, FiTrash2, FiPackage, FiBox } from 'react-icons/fi';
 import api from '../utils/api';
 import Spinner from '../components/Spinner';
+import { useCountry } from '../context/CountryContext';
 
 // ---------------------------------------------------------------------------
 // ProductSearchSelect — identical to OrderCreate
@@ -158,6 +159,7 @@ const COUNTRIES = [
 const OrderEdit = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { activeCountry } = useCountry();
 
     const [pageLoading, setPageLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -186,8 +188,9 @@ const OrderEdit = () => {
 
     // Load regions on mount
     useEffect(() => {
-        api.get('/regions').then(res => setRegions(res.data.data)).catch(console.error);
-    }, []);
+        if (!activeCountry?._id) return;
+        api.get(`/regions?countryId=${activeCountry._id}`).then(res => setRegions(res.data.data)).catch(console.error);
+    }, [activeCountry?._id]);
 
     // Load warehouses when region changes
     useEffect(() => {
@@ -206,9 +209,10 @@ const OrderEdit = () => {
 
     const loadWarehouseData = async (warehouseId) => {
         try {
+            const countryParam = activeCountry?._id ? `&countryId=${activeCountry._id}` : '';
             const [prodRes, invRes, bundleRes] = await Promise.all([
                 api.get('/products?limit=1000'),
-                api.get(`/inventory/balance?warehouseId=${warehouseId}`),
+                api.get(`/inventory/balance?warehouseId=${warehouseId}${countryParam}`),
                 api.get('/bundles?status=ACTIVE'),
             ]);
             setProducts(prodRes.data.data.filter(p => p.status === 'ACTIVE'));
@@ -437,6 +441,7 @@ const OrderEdit = () => {
                 discountType: finalDiscountType,
                 deliveryFee: deliveryFee || 0,
                 subtotal: orderSubtotal,
+                ...(activeCountry?._id && { countryId: activeCountry._id }),
             };
 
             await api.put(`/orders/${id}`, payload);

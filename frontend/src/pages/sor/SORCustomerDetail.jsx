@@ -9,6 +9,7 @@ import api from '../../utils/api';
 import Spinner from '../../components/Spinner';
 import { useAuth } from '../../context/AuthContext';
 import { ROLES } from '../../utils/constants';
+import { useCountry } from '../../context/CountryContext';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 const fmt = (n) =>
@@ -161,7 +162,7 @@ const LedgerPanel = ({ customerId }) => {
 // ─── TEMPLATES PANEL ─────────────────────────────────────────────────────────
 const emptyTemplate = { name: '', region: '', warehouse: '', items: [{ product: '', quantity: 1 }] };
 
-const TemplatesPanel = ({ customerId }) => {
+const TemplatesPanel = ({ customerId, countryId }) => {
     const [templates, setTemplates] = useState([]);
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
@@ -186,16 +187,17 @@ const TemplatesPanel = ({ customerId }) => {
 
     useEffect(() => {
         if (!modalOpen) return;
+        const countryParam = countryId ? `?countryId=${countryId}` : '';
         Promise.all([
             api.get('/products?limit=500'),
-            api.get('/regions'),
-            api.get('/warehouses'),
+            api.get(`/regions${countryParam}`),
+            api.get(`/warehouses${countryParam}`),
         ]).then(([p, r, w]) => {
             setProducts(p.data.data || []);
             setRegions(r.data.data || []);
             setWarehouses(w.data.data || []);
         }).catch(() => {});
-    }, [modalOpen]);
+    }, [modalOpen, countryId]);
 
     const openModal = (tpl = null) => {
         if (tpl) {
@@ -392,6 +394,7 @@ const emptyPayment = { amount: '', paymentDate: new Date().toISOString().split('
 
 const PaymentsPanel = ({ customerId, onPaymentRecorded }) => {
     const { user } = useAuth();
+    const { activeCountry } = useCountry();
     const isAdmin = user?.role === ROLES.ADMIN;
 
     const [payments, setPayments] = useState([]);
@@ -534,6 +537,7 @@ const PaymentsPanel = ({ customerId, onPaymentRecorded }) => {
                 quantity: Number(it.quantity),
                 price: Number(it.price),
             })),
+            ...(activeCountry?._id && { countryId: activeCountry._id }),
         });
     };
 
@@ -820,6 +824,7 @@ const TABS = [
 const SORCustomerDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { activeCountry } = useCountry();
 
     const [customer, setCustomer] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -993,7 +998,7 @@ const SORCustomerDetail = () => {
             )}
 
             {activeTab === 'ledger' && <LedgerPanel customerId={id} />}
-            {activeTab === 'templates' && <TemplatesPanel customerId={id} />}
+            {activeTab === 'templates' && <TemplatesPanel customerId={id} countryId={activeCountry?._id} />}
             {activeTab === 'payments' && <PaymentsPanel customerId={id} onPaymentRecorded={fetchCustomer} />}
 
             {/* Edit Customer Modal */}

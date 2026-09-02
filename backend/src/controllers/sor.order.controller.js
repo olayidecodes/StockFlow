@@ -36,8 +36,8 @@ exports.createSOROrder = async (req, res, next) => {
             return res.status(400).json({ success: false, message: 'Warehouse is required', field: 'warehouse' });
         }
 
-        // Req 3.1 — Validate SOR customer exists
-        const sorCustomer = await SORCustomer.findById(customerId);
+        // Req 3.1 — Validate SOR customer exists AND belongs to active country
+        const sorCustomer = await SORCustomer.findOne({ _id: customerId, countryId: req.countryId });
         if (!sorCustomer) {
             return res.status(404).json({ success: false, message: 'SOR customer not found' });
         }
@@ -67,6 +67,7 @@ exports.createSOROrder = async (req, res, next) => {
             createdBy: req.user.id,
             status: 'PENDING',
             logs: [{ status: 'PENDING', changedBy: req.user.id }],
+            countryId: req.countryId,
         });
 
         // Req 3.4 / 3.5 — Create the SOROrder link document
@@ -90,7 +91,11 @@ exports.createSOROrder = async (req, res, next) => {
 // @access  Staff
 exports.getSOROrders = async (req, res, next) => {
     try {
-        const query = {};
+        // Get customer IDs that belong to the active country
+        const countryCustomers = await SORCustomer.find({ countryId: req.countryId }, '_id').lean();
+        const countryCustomerIds = countryCustomers.map(c => c._id);
+
+        const query = { customer: { $in: countryCustomerIds } };
         if (req.query.customer) {
             query.customer = req.query.customer;
         }

@@ -51,7 +51,7 @@ exports.getStats = async (req, res, next) => {
 
         // 1. Top Selling Product (by quantity - single for card)
         const topProductByQtySingle = await Order.aggregate([
-            { $match: { status: { $ne: 'CANCELLED' } } },
+            { $match: { status: { $ne: 'CANCELLED' }, countryId: req.countryId } },
             { $unwind: '$items' },
             {
                 $group: {
@@ -74,7 +74,7 @@ exports.getStats = async (req, res, next) => {
 
         // 2. Top Selling Product (by sales value - single for card)
         const topProductByValueSingle = await Order.aggregate([
-            { $match: { status: { $ne: 'CANCELLED' } } },
+            { $match: { status: { $ne: 'CANCELLED' }, countryId: req.countryId } },
             { $unwind: '$items' },
             {
                 $group: {
@@ -97,7 +97,7 @@ exports.getStats = async (req, res, next) => {
 
         // 3. Top Selling Brand (single for card)
         const topBrand = await Order.aggregate([
-            { $match: { status: { $ne: 'CANCELLED' } } },
+            { $match: { status: { $ne: 'CANCELLED' }, countryId: req.countryId } },
             { $unwind: '$items' },
             {
                 $lookup: {
@@ -129,6 +129,7 @@ exports.getStats = async (req, res, next) => {
 
         // 4. Warehouse Volume (CBM)
         const warehouseCBM = await InventoryBalance.aggregate([
+            { $match: { countryId: req.countryId } },
             {
                 $lookup: {
                     from: 'products',
@@ -202,7 +203,8 @@ exports.getStats = async (req, res, next) => {
             {
                 $match: {
                     createdAt: { $gte: trendStartDate },
-                    status: { $ne: 'CANCELLED' }
+                    status: { $ne: 'CANCELLED' },
+                    countryId: req.countryId,
                 },
             },
             {
@@ -223,7 +225,7 @@ exports.getStats = async (req, res, next) => {
 
         // 6. Top Customers (for Dashboard table)
         const topCustomers = await Order.aggregate([
-            { $match: { status: { $ne: 'CANCELLED' } } },
+            { $match: { status: { $ne: 'CANCELLED' }, countryId: req.countryId } },
             {
                 $group: {
                     _id: '$customer.name',
@@ -240,7 +242,7 @@ exports.getStats = async (req, res, next) => {
 
         // 7. Top Selling Products (Top 5 list for bar chart)
         const topProducts = await Order.aggregate([
-            { $match: { status: { $ne: 'CANCELLED' } } },
+            { $match: { status: { $ne: 'CANCELLED' }, countryId: req.countryId } },
             { $unwind: '$items' },
             {
                 $group: {
@@ -269,7 +271,7 @@ exports.getStats = async (req, res, next) => {
 
         // 8. Regional Performance (Order Count for pie chart)
         const regionalPerformance = await Order.aggregate([
-            { $match: { status: { $ne: 'CANCELLED' } } },
+            { $match: { status: { $ne: 'CANCELLED' }, countryId: req.countryId } },
             {
                 $group: {
                     _id: '$region',
@@ -296,11 +298,12 @@ exports.getStats = async (req, res, next) => {
         // 9. Stock Health / Financials
         const lowStockCount = await InventoryBalance.countDocuments({
             quantity: { $lt: 150 },
+            countryId: req.countryId,
         });
 
         // Get low stock products with details
         const lowStockProducts = await InventoryBalance.aggregate([
-            { $match: { quantity: { $lt: 150 } } },
+            { $match: { quantity: { $lt: 150 }, countryId: req.countryId } },
             {
                 $lookup: {
                     from: 'products',
@@ -348,6 +351,7 @@ exports.getStats = async (req, res, next) => {
 
         // Get aggregated low stock products (total across all warehouses)
         const aggregatedLowStock = await InventoryBalance.aggregate([
+            { $match: { countryId: req.countryId } },
             {
                 $group: {
                     _id: '$product',
@@ -390,6 +394,7 @@ exports.getStats = async (req, res, next) => {
         ]);
 
         const inventorySummary = await InventoryBalance.aggregate([
+            { $match: { countryId: req.countryId } },
             {
                 $lookup: {
                     from: 'products',
@@ -408,7 +413,7 @@ exports.getStats = async (req, res, next) => {
             }
         ]);
 
-        const totalOrders = await Order.countDocuments({ status: { $ne: 'CANCELLED' } });
+        const totalOrders = await Order.countDocuments({ status: { $ne: 'CANCELLED' }, countryId: req.countryId });
         const totalProducts = await Product.countDocuments();
 
         // 10. Burn Rate Analysis (Stock Movement Velocity)
@@ -419,7 +424,8 @@ exports.getStats = async (req, res, next) => {
             { 
                 $match: { 
                     status: { $ne: 'CANCELLED' },
-                    createdAt: { $gte: thirtyDaysAgoDate }
+                    createdAt: { $gte: thirtyDaysAgoDate },
+                    countryId: req.countryId,
                 } 
             },
             { $unwind: '$items' },
@@ -568,7 +574,7 @@ exports.getCustomerAnalytics = async (req, res, next) => {
 
         // Aggregate orders by customer
         const customerStats = await Order.aggregate([
-            { $match: { status: { $ne: 'CANCELLED' } } },
+            { $match: { status: { $ne: 'CANCELLED' }, countryId: req.countryId } },
             {
                 $group: {
                     _id: '$customer.name',
@@ -593,7 +599,7 @@ exports.getCustomerAnalytics = async (req, res, next) => {
         const customersWithProducts = await Promise.all(
             filteredStats.map(async (customer) => {
                 const topProducts = await Order.aggregate([
-                    { $match: { 'customer.name': customer._id, status: { $ne: 'CANCELLED' } } },
+                    { $match: { 'customer.name': customer._id, status: { $ne: 'CANCELLED' }, countryId: req.countryId } },
                     { $unwind: '$items' },
                     {
                         $group: {
@@ -673,6 +679,7 @@ exports.getWarehouseMonthly = async (req, res, next) => {
                     status: { $ne: 'CANCELLED' },
                     createdAt: { $gte: startDate, $lt: endDate },
                     warehouse: { $in: warehouseIds },
+                    countryId: req.countryId,
                 },
             },
             // Compute per-order totals before unwinding

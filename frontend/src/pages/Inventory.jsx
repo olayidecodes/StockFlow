@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FiPlus } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
+import { useCountry } from '../context/CountryContext';
 import api from '../utils/api';
 import Spinner from '../components/Spinner';
 import PermissionGuard from '../components/PermissionGuard';
@@ -12,6 +13,7 @@ import ExportButton from '../components/ExportButton';
 
 const Inventory = () => {
     const { user } = useAuth();
+    const { activeCountry } = useCountry();
     const [balances, setBalances] = useState([]);
     const [warehouses, setWarehouses] = useState([]);
     const [products, setProducts] = useState([]);
@@ -36,17 +38,18 @@ const Inventory = () => {
     const [selectedItem, setSelectedItem] = useState(null);
 
     useEffect(() => {
-        fetchInitialData();
-    }, []);
+        if (activeCountry?._id) fetchInitialData();
+    }, [activeCountry?._id]);
 
     useEffect(() => {
-        fetchBalances();
-    }, [filterWarehouse, filterProduct, filterCategory, filterBrand]);
+        if (activeCountry?._id) fetchBalances();
+    }, [filterWarehouse, filterProduct, filterCategory, filterBrand, activeCountry?._id]);
 
     const fetchInitialData = async () => {
         try {
+            const countryParam = activeCountry?._id ? `?countryId=${activeCountry._id}` : '';
             const [whRes, prodRes, catRes, brandRes] = await Promise.all([
-                api.get('/warehouses'),
+                api.get(`/warehouses${countryParam}`),
                 api.get('/products?limit=1000'),
                 api.get('/categories'),
                 api.get('/brands')
@@ -69,12 +72,13 @@ const Inventory = () => {
             if (filterProduct) params.push(`productId=${filterProduct}`);
             if (filterCategory) params.push(`categoryId=${filterCategory}`);
             if (filterBrand) params.push(`brandId=${filterBrand}`);
+            if (activeCountry?._id) params.push(`countryId=${activeCountry._id}`);
             if (params.length > 0) query = `?${params.join('&')}`;
 
             // Fetch both balance data and warehouse totals (for Dashboard correlation)
             const [balanceRes, analyticsRes] = await Promise.all([
                 api.get(`/inventory/balance${query}`),
-                api.get('/analytics') // Get warehouse CBM totals from Dashboard endpoint
+                api.get(`/analytics?countryId=${activeCountry?._id || ''}`)
             ]);
             
             setBalances(balanceRes.data.data);

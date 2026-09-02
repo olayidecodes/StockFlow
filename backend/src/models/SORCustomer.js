@@ -26,6 +26,12 @@ const sorCustomerSchema = new mongoose.Schema(
             ref: 'User',
             required: [true, 'createdBy is required'],
         },
+        countryId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Country',
+            required: true,
+            index: true,
+        },
     },
     {
         timestamps: true,

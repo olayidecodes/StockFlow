@@ -7,7 +7,7 @@ const { validationResult } = require('express-validator');
 exports.getRegions = async (req, res, next) => {
     try {
         // Populate virtual warehouses
-        const regions = await Region.find()
+        const regions = await Region.find({ countryId: req.countryId })
             .populate('warehouses')
             .sort({ name: 1 });
 
@@ -26,7 +26,7 @@ exports.getRegions = async (req, res, next) => {
 // @access  Private
 exports.getRegion = async (req, res, next) => {
     try {
-        const region = await Region.findById(req.params.id).populate('warehouses');
+        const region = await Region.findOne({ _id: req.params.id, countryId: req.countryId }).populate('warehouses');
 
         if (!region) {
             return res.status(404).json({
@@ -54,7 +54,7 @@ exports.createRegion = async (req, res, next) => {
             return res.status(400).json({ success: false, errors: errors.array() });
         }
 
-        const region = await Region.create(req.body);
+        const region = await Region.create({ ...req.body, countryId: req.countryId });
 
         res.status(201).json({
             success: true,
@@ -75,7 +75,7 @@ exports.updateRegion = async (req, res, next) => {
             return res.status(400).json({ success: false, errors: errors.array() });
         }
 
-        let region = await Region.findById(req.params.id);
+        let region = await Region.findOne({ _id: req.params.id, countryId: req.countryId });
 
         if (!region) {
             return res.status(404).json({
@@ -103,7 +103,7 @@ exports.updateRegion = async (req, res, next) => {
 // @access  Private (Admin)
 exports.deleteRegion = async (req, res, next) => {
     try {
-        const region = await Region.findById(req.params.id);
+        const region = await Region.findOne({ _id: req.params.id, countryId: req.countryId });
 
         if (!region) {
             return res.status(404).json({

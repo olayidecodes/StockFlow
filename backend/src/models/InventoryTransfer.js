@@ -36,6 +36,12 @@ const inventoryTransferSchema = new mongoose.Schema(
             ref: 'User',
             required: true,
         },
+        countryId: {
+            type: mongoose.Schema.ObjectId,
+            ref: 'Country',
+            required: true,
+            index: true,
+        },
     },
     {
         timestamps: true,

@@ -35,6 +35,7 @@ exports.createOrder = async (req, res, next) => {
             orderType: orderType || 'RETAIL',
             channel: channel || 'Other',
             totalAmount,
+            countryId: req.countryId,
             createdBy: req.user.id,
             status: 'PENDING',
             logs: [{ status: 'PENDING', changedBy: req.user.id }],
@@ -84,6 +85,7 @@ exports.getOrders = async (req, res, next) => {
 
         if (status) query.status = status;
         if (warehouseId) query.warehouse = warehouseId;
+        query.countryId = req.countryId;
         if (paymentStatus === 'PAID') {
             // Match docs explicitly set to PAID, or where the field doesn't exist yet (legacy orders)
             query.$or = [{ paymentStatus: 'PAID' }, { paymentStatus: { $exists: false } }];
@@ -133,7 +135,7 @@ exports.getOrders = async (req, res, next) => {
 // @access  Private
 exports.getOrder = async (req, res, next) => {
     try {
-        const order = await Order.findById(req.params.id)
+        const order = await Order.findOne({ _id: req.params.id, countryId: req.countryId })
             .populate('warehouse', 'name')
             .populate('region', 'name')
             .populate('items.product', 'name sku cartonSize')
@@ -166,7 +168,7 @@ exports.updateOrderStatus = async (req, res, next) => {
         // Start Transaction
         session.startTransaction();
 
-        const order = await Order.findById(req.params.id).session(session);
+        const order = await Order.findOne({ _id: req.params.id, countryId: req.countryId }).session(session);
         if (!order) {
             await session.abortTransaction();
             await session.endSession();
@@ -184,6 +186,7 @@ exports.updateOrderStatus = async (req, res, next) => {
                 const balance = await InventoryBalance.findOne({
                     product: item.product,
                     warehouse: order.warehouse,
+                    countryId: order.countryId,
                 }).session(session);
 
                 const currentQuantity = balance ? balance.quantity : 0;
@@ -216,6 +219,7 @@ exports.updateOrderStatus = async (req, res, next) => {
                             reference: order._id.toString(),
                             balanceAfter: balance.quantity,
                             performedBy: req.user.id,
+                            countryId: req.countryId,
                         },
                     ],
                     { session }
@@ -271,7 +275,7 @@ exports.updateOrderStatus = async (req, res, next) => {
 // @access  Private
 exports.downloadReceipt = async (req, res, next) => {
     try {
-        const order = await Order.findById(req.params.id)
+        const order = await Order.findOne({ _id: req.params.id, countryId: req.countryId })
             .populate('warehouse', 'name')
             .populate('region', 'name')
             .populate('items.product', 'name sku cartonSize')
@@ -377,7 +381,7 @@ exports.downloadReceipt = async (req, res, next) => {
 // @access  Private
 exports.downloadInvoice = async (req, res, next) => {
     try {
-        const order = await Order.findById(req.params.id)
+        const order = await Order.findOne({ _id: req.params.id, countryId: req.countryId })
             .populate('warehouse', 'name')
             .populate('region', 'name')
             .populate('items.product', 'name sku cartonSize')
@@ -483,7 +487,7 @@ exports.downloadInvoice = async (req, res, next) => {
 exports.updateOrder = async (req, res, next) => {
     try {
         const { editOrder } = require('../services/order.edit.service');
-        const result = await editOrder(req.params.id, req.body, req.user.id);
+        const result = await editOrder(req.params.id, req.body, req.user.id, req.countryId);
         res.status(200).json({ success: true, data: result });
     } catch (error) {
         if (error.statusCode) {
@@ -503,8 +507,8 @@ exports.updatePaymentStatus = async (req, res, next) => {
             return res.status(400).json({ success: false, message: 'paymentStatus must be PAID or NOT_PAID' });
         }
 
-        const order = await Order.findByIdAndUpdate(
-            req.params.id,
+        const order = await Order.findOneAndUpdate(
+            { _id: req.params.id, countryId: req.countryId },
             { paymentStatus },
             { new: true, runValidators: true }
         );

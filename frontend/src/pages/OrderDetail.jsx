@@ -6,10 +6,12 @@ import api from '../utils/api';
 import Spinner from '../components/Spinner';
 import PermissionGuard from '../components/PermissionGuard';
 import { PERMISSIONS } from '../utils/constants';
+import { useCountry } from '../context/CountryContext';
 
 const OrderDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { activeCountry } = useCountry();
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -22,7 +24,8 @@ const OrderDetail = () => {
     const fetchOrder = async () => {
         setLoading(true);
         try {
-            const res = await api.get(`/orders/${id}`);
+            const countryParam = activeCountry?._id ? `?countryId=${activeCountry._id}` : '';
+            const res = await api.get(`/orders/${id}${countryParam}`);
             setOrder(res.data.data);
         } catch (err) {
             setError('Failed to load order');
@@ -36,7 +39,8 @@ const OrderDetail = () => {
 
         setActionLoading(true);
         try {
-            await api.put(`/orders/${id}/status`, { status: newStatus });
+            const countryParam = activeCountry?._id ? `?countryId=${activeCountry._id}` : '';
+            await api.put(`/orders/${id}/status${countryParam}`, { status: newStatus });
             fetchOrder(); // Reload to get updates logs and allocated check
             toast.success(`Order status updated to ${newStatus}`);
         } catch (err) {
@@ -128,7 +132,8 @@ ${itemsList}
             const token = localStorage.getItem('token');
             
             // Build URL with regenerate parameter if needed
-            const url = `${api.defaults.baseURL}/orders/${id}/receipt${regenerate ? '?regenerate=true' : ''}`;
+            const countryParam = activeCountry?._id ? `&countryId=${activeCountry._id}` : '';
+            const url = `${api.defaults.baseURL}/orders/${id}/receipt${regenerate ? `?regenerate=true${countryParam}` : countryParam ? `?${countryParam.slice(1)}` : ''}`;
             
             // Fetch the PDF
             const response = await fetch(url, {

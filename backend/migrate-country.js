@@ -28,7 +28,7 @@ async function run() {
 
     // Upsert Nigeria country document
     const countriesCol = db.collection('countries');
-    const result = await countriesCol.findOneAndUpdate(
+    await countriesCol.findOneAndUpdate(
         { isoCode: 'NG' },
         {
             $set: { name: 'Nigeria', isoCode: 'NG', isActive: true, isDefault: true },
@@ -37,7 +37,11 @@ async function run() {
         { upsert: true, returnDocument: 'after' }
     );
 
-    const nigeria = result.value || (await countriesCol.findOne({ isoCode: 'NG' }));
+    // Always fetch by isoCode to get the definitive _id
+    const nigeria = await countriesCol.findOne({ isoCode: 'NG' });
+    if (!nigeria) {
+        throw new Error('Failed to find or create Nigeria country document');
+    }
     const nigeriaId = nigeria._id;
     console.log(`Nigeria _id: ${nigeriaId}`);
 
